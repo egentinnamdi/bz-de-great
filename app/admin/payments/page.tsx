@@ -15,11 +15,12 @@ import {
   X,
   ShieldCheck,
   Check,
-  FileText
+  FileText,
+  Download
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { useToast } from '@/components/toast-provider';
-import { cn } from '@/lib/utils';
+import { cn, formatPhoneForWhatsApp } from '@/lib/utils';
 
 interface PayRmbRequest {
   id: string;
@@ -461,7 +462,7 @@ export default function AdminPaymentsPage() {
                             Mark RMB received
                           </button>
                           <a
-                            href={`https://wa.me/2348139690031?text=${encodeURIComponent(`Hello ${row.customerName}, regarding request ${row.reference}...`)}`}
+                            href={`https://wa.me/${formatPhoneForWhatsApp(row.customerPhone)}?text=${encodeURIComponent(`Hello ${row.customerName}, regarding request ${row.reference}...`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-2.5 py-1.5 rounded-lg border border-[#eae3e4] bg-white text-[#1b1416] hover:bg-[#faf7f7] text-xs font-medium transition-colors"
@@ -481,7 +482,7 @@ export default function AdminPaymentsPage() {
                       )}
                       {row.status === 'naira_paid' && (
                         <a
-                          href={`https://wa.me/2348139690031?text=${encodeURIComponent(`Hello ${row.customerName}, payment for ${row.reference} has been completed.`)}`}
+                          href={`https://wa.me/${formatPhoneForWhatsApp(row.customerPhone)}?text=${encodeURIComponent(`Hello ${row.customerName}, payment for ${row.reference} has been completed.`)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-2.5 py-1.5 rounded-lg border border-[#eae3e4] bg-white text-[#716769] hover:bg-[#faf7f7] text-xs font-medium transition-colors"
@@ -652,6 +653,13 @@ export default function AdminPaymentsPage() {
                         <>
                           <button
                             type="button"
+                            onClick={() => setSelectedReceipt(row)}
+                            className="px-2.5 py-1 rounded-md border border-[#eae3e4] bg-white text-[#716769] hover:text-[#1b1416] hover:bg-[#faf7f7] text-[11px] font-medium transition-colors cursor-pointer"
+                          >
+                            View slip
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleApprove(row)}
                             className="px-3 py-1 rounded-md bg-[#7A0C1A] hover:bg-[#600814] text-white text-[11px] font-semibold transition-colors cursor-pointer"
                           >
@@ -790,21 +798,77 @@ export default function AdminPaymentsPage() {
                 </div>
               )}
 
-              {/* Receipt slip simulation image */}
+              {/* Receipt slip inspection image / document */}
               <div className="border border-[#eae3e4] rounded-xl p-4 bg-[#fdfbfb] space-y-3">
                 <div className="flex items-center justify-between text-xs text-[#716769]">
-                  <span className="font-medium">Bank Transfer Slip</span>
-                  <span className="font-mono text-[10px]">Verified via NIBSS</span>
+                  <span className="font-semibold text-[#1b1416]">Payment Transfer Slip / Receipt</span>
+                  {selectedReceipt.receiptUrl && (
+                    <a
+                      href={selectedReceipt.receiptUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#7A0C1A] hover:underline"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Open Full Size
+                    </a>
+                  )}
                 </div>
-                <div className="h-44 rounded-lg bg-[#1b1416]/5 border border-dashed border-[#eae3e4] flex flex-col items-center justify-center p-4 text-center">
-                  <FileText className="w-8 h-8 text-[#7A0C1A] mb-2" />
-                  <p className="text-xs font-semibold text-[#1b1416]">Transfer Receipt #{selectedReceipt.reference}</p>
-                  <p className="text-[11px] text-[#716769]">Payer: {selectedReceipt.customerName}</p>
-                  <p className="text-[11px] text-[#716769]">Beneficiary: BZ Global Universal Solutions Ltd</p>
-                  <span className="mt-2 text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-[#eae3e4]">
-                    Ref: 99420019283741
-                  </span>
-                </div>
+
+                {selectedReceipt.receiptUrl ? (
+                  selectedReceipt.receiptUrl.startsWith('data:application/pdf') || selectedReceipt.receiptUrl.toLowerCase().endsWith('.pdf') ? (
+                    <div className="space-y-2">
+                      <div className="h-64 rounded-lg bg-white border border-[#eae3e4] overflow-hidden">
+                        <iframe
+                          src={selectedReceipt.receiptUrl}
+                          title={`Receipt ${selectedReceipt.reference}`}
+                          className="w-full h-full"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-[#716769]">
+                        <span>PDF Document attached</span>
+                        <a
+                          href={selectedReceipt.receiptUrl}
+                          download={`receipt-${selectedReceipt.reference}.pdf`}
+                          className="font-semibold text-[#7A0C1A] hover:underline inline-flex items-center gap-1"
+                        >
+                          <Download className="w-3 h-3" /> Download PDF
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="max-h-72 rounded-lg bg-black/5 border border-[#eae3e4] overflow-hidden flex items-center justify-center p-1">
+                        <img
+                          src={selectedReceipt.receiptUrl}
+                          alt={`Receipt ${selectedReceipt.reference}`}
+                          className="max-h-64 w-auto object-contain rounded-md"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-[#716769]">
+                        <span>Image receipt proof</span>
+                        <a
+                          href={selectedReceipt.receiptUrl}
+                          download={`receipt-${selectedReceipt.reference}.png`}
+                          className="font-semibold text-[#7A0C1A] hover:underline inline-flex items-center gap-1"
+                        >
+                          <Download className="w-3 h-3" /> Download Image
+                        </a>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="h-36 rounded-lg bg-[#faf7f7] border border-dashed border-[#eae3e4] flex flex-col items-center justify-center p-4 text-center">
+                    <FileText className="w-8 h-8 text-[#716769]/50 mb-2" />
+                    <p className="text-xs font-semibold text-[#1b1416]">No Transfer Slip Uploaded Yet</p>
+                    <p className="text-[11px] text-[#716769] mt-0.5">
+                      The client has not attached a screenshot or PDF slip for this transaction.
+                    </p>
+                    <span className="mt-2 text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-[#eae3e4] text-[#716769]">
+                      Awaiting verification proof
+                    </span>
+                  </div>
+                )}
               </div>
 
               {selectedReceipt.rejectionReason && (
@@ -817,7 +881,9 @@ export default function AdminPaymentsPage() {
               {/* Modal footer actions */}
               <div className="flex items-center justify-between gap-3 pt-2">
                 <a
-                  href={`https://wa.me/2348139690031?text=${encodeURIComponent(`Hello ${selectedReceipt.customerName}, regarding payment ${selectedReceipt.reference} of ${selectedReceipt.amountFormatted}...`)}`}
+                  href={`https://wa.me/${formatPhoneForWhatsApp(selectedReceipt.customerPhone)}?text=${encodeURIComponent(
+                    `Hello ${selectedReceipt.customerName}, regarding payment ${selectedReceipt.reference} of ${selectedReceipt.amountFormatted}...`
+                  )}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 rounded-lg border border-[#eae3e4] text-xs font-semibold text-[#1b1416] hover:bg-[#faf7f7] transition-colors"

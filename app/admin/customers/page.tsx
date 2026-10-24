@@ -18,7 +18,7 @@ import {
   FileText
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
-import { cn } from '@/lib/utils';
+import { cn, formatPhoneForWhatsApp } from '@/lib/utils';
 
 interface CustomerRecord {
   id: string;
@@ -364,7 +364,7 @@ export default function AdminCustomersPage() {
                         View
                       </button>
                       <a
-                        href={`https://wa.me/2348139690031?text=${encodeURIComponent(`Hello ${row.name}, contacting you from BZ Group luxury services.`)}`}
+                        href={`https://wa.me/${formatPhoneForWhatsApp(row.phoneFull || row.phoneMasked)}?text=${encodeURIComponent(`Hello ${row.name}, contacting you from BZ Group luxury services.`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1 rounded-md border border-[#eae3e4] bg-white text-[#1b1416] hover:bg-[#faf7f7] text-[11px] font-medium transition-colors"
@@ -463,7 +463,7 @@ export default function AdminCustomersPage() {
               {/* Footer Buttons */}
               <div className="flex items-center justify-between pt-2">
                 <a
-                  href={`https://wa.me/2348139690031?text=${encodeURIComponent(`Hello ${selectedCustomer.name}, this is the concierge desk at BZ Group.`)}`}
+                  href={`https://wa.me/${formatPhoneForWhatsApp(selectedCustomer.phoneFull || selectedCustomer.phoneMasked)}?text=${encodeURIComponent(`Hello ${selectedCustomer.name}, this is the concierge desk at BZ Group.`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 rounded-lg border border-[#eae3e4] text-xs font-semibold text-[#1b1416] hover:bg-[#faf7f7] transition-colors"

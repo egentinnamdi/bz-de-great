@@ -64,7 +64,7 @@ interface StoreContextType {
   createBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Promise<Booking>;
   updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>;
 
-  createRmbRequest: (req: Omit<RmbExchangeRequest, 'id' | 'createdAt' | 'updatedAt'>) => Promise<RmbExchangeRequest>;
+  createRmbRequest: (req: Omit<RmbExchangeRequest, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; reference?: string }) => Promise<RmbExchangeRequest>;
   updateRmbRequest: (id: string, updates: Partial<RmbExchangeRequest>) => Promise<void>;
 
   updateRmbRates: (rates: { payRmbRate: number; payNairaRate: number }) => Promise<void>;
@@ -216,14 +216,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     await supabaseService.updateBooking(id, updates);
   };
 
-  const createRmbRequest = async (item: Omit<RmbExchangeRequest, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const createRmbRequest = async (item: Omit<RmbExchangeRequest, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; reference?: string }) => {
     const num = Math.floor(100 + Math.random() * 900);
-    const newId = `RMB-0${num}`;
+    const newId = item.id || `RMB-0${num}`;
+    const newRef = item.reference || newId;
     const now = new Date().toISOString();
     const newReq: RmbExchangeRequest = {
       ...item,
       id: newId,
-      reference: newId,
+      reference: newRef,
       createdAt: now,
       updatedAt: now
     };

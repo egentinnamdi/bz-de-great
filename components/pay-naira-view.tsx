@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
 import { useStore } from '@/lib/store';
+import { supabaseService } from '@/lib/supabase/service';
 
 interface PayNairaViewProps {
   orderId?: string;
@@ -76,25 +77,27 @@ export function PayNairaView({
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Form states - Customer contact
-  const [name, setName] = useState(initialCustomerName || 'Chidi Okafor');
-  const [email, setEmail] = useState(initialCustomerEmail || 'chidi.o@email.com');
-  const [phone, setPhone] = useState(initialCustomerPhone || '+234 813 000 0000');
+  const [name, setName] = useState(initialCustomerName || '');
+  const [email, setEmail] = useState(initialCustomerEmail || '');
+  const [phone, setPhone] = useState(initialCustomerPhone || '');
 
   // Payout destination - When paying RMB to get Naira (Nigerian Bank)
   const [payoutBank, setPayoutBank] = useState('Zenith Bank');
-  const [payoutAccountNumber, setPayoutAccountNumber] = useState('1012345678');
-  const [payoutAccountName, setPayoutAccountName] = useState(initialCustomerName || 'Chidi Okafor');
+  const [payoutAccountNumber, setPayoutAccountNumber] = useState('');
+  const [payoutAccountName, setPayoutAccountName] = useState(initialCustomerName || '');
 
   // Payout destination - When paying Naira to get RMB (Alipay/WeChat/Chinese Bank)
   const [rmbChannel, setRmbChannel] = useState<'Alipay' | 'WeChat Pay' | 'Chinese Bank'>('Alipay');
   const [rmbAccountDetails, setRmbAccountDetails] = useState('');
   const [rmbRecipientName, setRmbRecipientName] = useState('');
 
-  // Payment proof & upload
-  const [receiptFile, setReceiptFile] = useState<{ name: string; size: string } | null>({
-    name: 'payment-slip-transfer.pdf',
-    size: '284 KB · Uploaded just now'
-  });
+  // Payment proof & upload (strictly null initially - only shows when user uploads)
+  const [receiptFile, setReceiptFile] = useState<{
+    name: string;
+    size: string;
+    dataUrl?: string;
+    file?: File;
+  } | null>(null);
   const [confirmedCheck, setConfirmedCheck] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -148,15 +151,30 @@ export function PayNairaView({
       const sizeStr = file.size > 1024 * 1024
         ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
         : `${Math.round(file.size / 1024)} KB`;
-      setReceiptFile({
-        name: file.name,
-        size: `${sizeStr} · Attached`
-      });
-      toast({
-        title: 'Receipt attached',
-        description: file.name,
-        variant: 'default'
-      });
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setReceiptFile({
+          name: file.name,
+          size: `${sizeStr} · Attached`,
+          dataUrl,
+          file
+        });
+        toast({
+          title: 'Receipt attached',
+          description: file.name,
+          variant: 'default'
+        });
+      };
+      reader.onerror = () => {
+        toast({
+          title: 'Error reading file',
+          description: 'Could not read receipt file. Please select another image or PDF.',
+          variant: 'error'
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -198,12 +216,29 @@ export function PayNairaView({
     setIsSubmitting(true);
 
     try {
+      let finalReceiptUrl: string | undefined = undefined;
+
+      if (receiptFile) {
+        if (receiptFile.file) {
+          try {
+            finalReceiptUrl = await supabaseService.uploadReceipt(receiptFile.file, receiptFile.name);
+          } catch (uploadErr) {
+            console.warn('Storage upload fallback to dataUrl:', uploadErr);
+            finalReceiptUrl = receiptFile.dataUrl;
+          }
+        } else if (receiptFile.dataUrl) {
+          finalReceiptUrl = receiptFile.dataUrl;
+        }
+      }
+
       const destinationChannel = direction === 'rmb_to_naira' ? payoutBank : rmbChannel;
       const destinationDetails = direction === 'rmb_to_naira'
         ? `${payoutBank} - ${payoutAccountNumber} (${payoutAccountName || name})`
         : `${rmbChannel}: ${rmbAccountDetails || 'To be confirmed'} (${rmbRecipientName || name})`;
 
       await createRmbRequest({
+        id: orderId,
+        reference: orderId,
         direction,
         sourceAmount,
         rateApplied,
@@ -215,7 +250,7 @@ export function PayNairaView({
         destinationAccountDetails: destinationDetails,
         senderBank: direction === 'naira_to_rmb' ? payoutBank : 'WeChat / Alipay / Chinese Bank',
         senderAccountName: name.trim(),
-        receiptUrl: receiptFile ? `/receipts/${receiptFile.name}` : undefined,
+        receiptUrl: finalReceiptUrl,
         notes: direction === 'rmb_to_naira'
           ? `Pay ¥${sourceAmount.toLocaleString()} → Payout ₦${destinationAmount.toLocaleString('en-NG')} to ${destinationDetails}`
           : `Pay ₦${sourceAmount.toLocaleString('en-NG')} → Payout ¥${destinationAmount.toLocaleString()} to ${destinationDetails}`,
@@ -689,9 +724,17 @@ export function PayNairaView({
                   {receiptFile && (
                     <div className="rounded-[12px] border border-[#eae3e4] bg-white p-3.5 sm:px-4 flex items-center justify-between gap-3 shadow-2xs">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-[8px] bg-rose-50 flex items-center justify-center shrink-0 text-[#81141f]">
-                          <FileText className="w-4 h-4" />
-                        </div>
+                        {receiptFile.dataUrl && receiptFile.dataUrl.startsWith('data:image/') ? (
+                          <img
+                            src={receiptFile.dataUrl}
+                            alt="Receipt Slip"
+                            className="w-10 h-10 rounded-[8px] object-cover border border-[#eae3e4] shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-[8px] bg-rose-50 flex items-center justify-center shrink-0 text-[#81141f]">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <div className="font-semibold text-[15px] text-[#1b1416] truncate">
                             {receiptFile.name}

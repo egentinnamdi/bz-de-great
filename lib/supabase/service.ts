@@ -532,5 +532,41 @@ export const supabaseService = {
     } catch (err) {
       return false;
     }
+  },
+
+  // ============================================================================
+  // 8. STORAGE & RECEIPT UPLOADS
+  // ============================================================================
+  async uploadReceipt(file: File | Blob, filename?: string): Promise<string> {
+    const fname = filename || (file instanceof File ? file.name : `receipt-${Date.now()}.png`);
+    const ext = fname.split('.').pop() || 'png';
+    const filePath = `receipts/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+
+    try {
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase.storage.from('receipts').upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+        if (!error && data) {
+          const { data: pubData } = supabase.storage.from('receipts').getPublicUrl(filePath);
+          if (pubData?.publicUrl) {
+            return pubData.publicUrl;
+          }
+        }
+      }
+    } catch (e) {
+      // Fall through to Base64 data URL
+    }
+
+    // Direct fallback: Base64 data URL ensures 100% receipt persistence
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to encode receipt file'));
+      reader.readAsDataURL(file);
+    });
   }
 };
+

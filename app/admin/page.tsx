@@ -13,13 +13,16 @@ import {
   CheckCircle2,
   XCircle,
   Activity,
-  CalendarCheck
+  CalendarCheck,
+  MessageSquare,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
 import { useStore } from '@/lib/store';
 import { useToast } from '@/components/toast-provider';
 import { useAdminAuth } from '@/lib/admin-auth';
+import { formatPhoneForWhatsApp } from '@/lib/utils';
 
 export default function AdminDashboardPage() {
   const { listings, bookings, rmbRequests, updateBooking, updateRmbRequest, activities, addActivity } = useStore();
@@ -206,6 +209,15 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={`https://wa.me/${formatPhoneForWhatsApp(b.customerPhone)}?text=${encodeURIComponent(`Hello ${b.customerName}, contacting you from BZ Group regarding booking ${b.id} (${b.listingTitle})...`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg border border-border-subtle bg-white text-text-subtle hover:text-[#25D366] hover:bg-[#faf7f7] transition-colors"
+                      title={`Message ${b.customerName} on WhatsApp`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                    </a>
                     {b.paymentStatus !== 'verified' && (
                       <Button
                         size="xs"
@@ -255,6 +267,22 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={`https://wa.me/${formatPhoneForWhatsApp(r.customerWhatsApp)}?text=${encodeURIComponent(`Hello ${r.customerName}, contacting you from BZ Group regarding RMB request ${r.id}...`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg border border-border-subtle bg-white text-text-subtle hover:text-[#25D366] hover:bg-[#faf7f7] transition-colors"
+                      title={`Message ${r.customerName} on WhatsApp`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                    </a>
+                    <Link
+                      href="/admin/payments"
+                      className="p-1.5 rounded-lg border border-border-subtle bg-white text-text-subtle hover:text-wine-900 hover:bg-[#faf7f7] transition-colors"
+                      title="Inspect on payments desk"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                    </Link>
                     {r.status !== 'approved' && r.status !== 'paid_out' && (
                       <Button
                         size="xs"
