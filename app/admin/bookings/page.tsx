@@ -1,0 +1,507 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
+import {
+  Search,
+  Bell,
+  Plus,
+  CalendarDays,
+  Check,
+  Clock,
+  X,
+  RotateCcw
+} from 'lucide-react';
+import { useToast } from '@/components/toast-provider';
+
+interface BookingRow {
+  id: string;
+  reference: string;
+  customer: string;
+  listing: string;
+  when: string;
+  type: 'Car rental' | 'Inspection' | 'Apartment' | 'Test drive';
+  status: 'Pending' | 'Approved' | 'In progress' | 'Declined';
+}
+
+const INITIAL_BOOKINGS: BookingRow[] = [
+  {
+    id: 'b-01',
+    reference: 'BK-2292',
+    customer: 'Amaka Eze',
+    listing: 'Lincoln Navigator 2022',
+    when: 'Fri 24 → Mon 27 Oct',
+    type: 'Car rental',
+    status: 'Pending'
+  },
+  {
+    id: 'b-02',
+    reference: 'INS-0318',
+    customer: 'Mr Ibrahim',
+    listing: '5-Bedroom Detached Duplex',
+    when: 'Sat 25 Oct, 11:00',
+    type: 'Inspection',
+    status: 'Pending'
+  },
+  {
+    id: 'b-03',
+    reference: 'BK-2290',
+    customer: 'Fatima Sule',
+    listing: '3-Bed Serviced Apartment',
+    when: '1 yr from 1 Nov',
+    type: 'Apartment',
+    status: 'Approved'
+  },
+  {
+    id: 'b-04',
+    reference: 'BK-2288',
+    customer: 'Corporate client',
+    listing: 'Mercedes E-Class + driver',
+    when: 'Mon 20 → Thu 23 Oct',
+    type: 'Car rental',
+    status: 'In progress'
+  },
+  {
+    id: 'b-05',
+    reference: 'TD-0091',
+    customer: 'Mrs Adeyemi',
+    listing: 'BMW X5 xDrive40i 2021',
+    when: 'Thu 23 Oct, 10:00',
+    type: 'Test drive',
+    status: 'Pending'
+  }
+];
+
+export default function AdminBookingsPage() {
+  const { toast } = useToast();
+  const [timeFilter, setTimeFilter] = useState<'This week' | 'Next week' | 'This month'>('This week');
+  const [bookings, setBookings] = useState<BookingRow[]>(INITIAL_BOOKINGS);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [needsConfirmation, setNeedsConfirmation] = useState([
+    {
+      id: 'nc-1',
+      title: 'Lincoln Navigator · 3 days',
+      customerDate: 'Amaka Eze · Fri 24 → Mon 27',
+      timeAgo: '12 min ago'
+    },
+    {
+      id: 'nc-2',
+      title: 'Inspection · 5-Bed Duplex',
+      customerDate: 'Mr Ibrahim · Sat 25, 11:00 AM',
+      timeAgo: '40 min ago'
+    },
+    {
+      id: 'nc-3',
+      title: 'Test drive · BMW X5 2021',
+      customerDate: 'Mrs Adeyemi · Thu 23, 10:00 AM',
+      timeAgo: '2 hrs ago'
+    }
+  ]);
+
+  const handleConfirm = (refOrId: string) => {
+    setBookings(prev =>
+      prev.map(b => (b.reference === refOrId || b.id === refOrId ? { ...b, status: 'Approved' } : b))
+    );
+    setNeedsConfirmation(prev => prev.filter(c => !c.title.includes(refOrId)));
+    toast({
+      title: 'Booking confirmed',
+      description: `Notification sent to client.`,
+      variant: 'default'
+    });
+  };
+
+  const handleDecline = (id: string, title: string) => {
+    setNeedsConfirmation(prev => prev.filter(c => c.id !== id));
+    toast({
+      title: 'Booking declined',
+      description: title,
+      variant: 'default'
+    });
+  };
+
+  const handleReschedule = (title: string) => {
+    toast({
+      title: 'Reschedule request sent',
+      description: `Client invited to pick a revised slot for ${title}.`,
+      variant: 'default'
+    });
+  };
+
+  const filteredBookings = useMemo(() => {
+    if (!searchQuery.trim()) return bookings;
+    const q = searchQuery.toLowerCase();
+    return bookings.filter(
+      b =>
+        b.reference.toLowerCase().includes(q) ||
+        b.customer.toLowerCase().includes(q) ||
+        b.listing.toLowerCase().includes(q) ||
+        b.type.toLowerCase().includes(q)
+    );
+  }, [bookings, searchQuery]);
+
+  return (
+    <div className="space-y-6">
+      {/* ========================================================
+          1. TOP BAR (Figma: Top bar)
+         ======================================================== */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-[30px] font-bold text-[#1b1416] tracking-tight">
+            Bookings
+          </h1>
+          <p className="text-[13px] text-[#716769] font-normal">
+            Rentals, test drives and inspections · 20–26 October
+          </p>
+        </div>
+
+        {/* Global Search + Notifications + New Booking */}
+        <div className="flex items-center gap-3">
+          <div className="relative w-64 hidden sm:block">
+            <Search className="w-4 h-4 text-[#716769] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search orders, listings, customers"
+              className="w-full h-[40px] pl-9 pr-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors"
+            />
+          </div>
+
+          <div className="relative w-10 h-10 rounded-[8px] bg-white border border-[#eae3e4] flex items-center justify-center text-[#716769] hover:text-[#1b1416] cursor-pointer">
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-[#81141f]" />
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              toast({
+                title: 'New reservation modal',
+                description: 'Ready to record walk-in or phone reservation.',
+                variant: 'default'
+              })
+            }
+            className="h-[40px] px-4 rounded-[8px] bg-[#81141f] hover:bg-[#680e18] text-white text-[13px] font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>New booking</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================
+          2. FILTERS & LEGEND ROW
+         ======================================================== */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+        {/* Time Tabs */}
+        <div className="flex items-center gap-2">
+          {(['This week', 'Next week', 'This month'] as const).map(tab => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setTimeFilter(tab)}
+              className={`h-[36px] px-4 rounded-[8px] text-[13px] font-semibold transition-all cursor-pointer ${
+                timeFilter === tab
+                  ? 'bg-[#81141f] text-white shadow-2xs'
+                  : 'bg-white border border-[#eae3e4] text-[#4a4245] hover:border-[#81141f] hover:text-[#81141f]'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 text-[12px] font-medium text-[#716769]">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#81141f]" />
+            <span>Car rentals</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#1b1416]" />
+            <span>Test drives</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#d97706]" />
+            <span>Inspections</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================
+          3. CALENDAR & NEEDS CONFIRMATION ROW
+         ======================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Calendar Grid (8 Cols) */}
+        <div className="lg:col-span-8 bg-white rounded-[16px] border border-[#eae3e4] p-5 sm:p-6 shadow-xs overflow-x-auto">
+          <div className="min-w-[580px]">
+            {/* Days Header */}
+            <div className="grid grid-cols-8 gap-2 pb-3 border-b border-[#eae3e4] text-center text-[12px] font-semibold">
+              <div className="text-left text-[#716769] font-normal">Time</div>
+              <div className="text-[#4a4245]">Mon 20</div>
+              <div className="text-[#81141f] font-bold bg-[#fcf3f4] py-1 rounded-md">Tue 21</div>
+              <div className="text-[#4a4245]">Wed 22</div>
+              <div className="text-[#4a4245]">Thu 23</div>
+              <div className="text-[#4a4245]">Fri 24</div>
+              <div className="text-[#4a4245]">Sat 25</div>
+              <div className="text-[#716769]">Sun 26</div>
+            </div>
+
+            {/* Time Grid with Interactive Event Chips */}
+            <div className="divide-y divide-[#eae3e4]/60 text-[11px] relative">
+              {/* 8:00 */}
+              <div className="grid grid-cols-8 gap-2 py-3.5">
+                <div className="text-[#716769] font-mono">8:00</div>
+                <div /><div /><div /><div /><div /><div /><div />
+              </div>
+
+              {/* 9:00 */}
+              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
+                <div className="text-[#716769] font-mono">9:00</div>
+                <div />
+                {/* Tue 21 Pick-up Navigator */}
+                <div className="p-2 rounded-[6px] bg-[#81141f] text-white leading-tight shadow-xs text-[10px]">
+                  <div className="font-semibold truncate">Pick-up · Navigator</div>
+                  <div className="text-white/80 truncate">Amaka E.</div>
+                </div>
+                <div /><div />
+                {/* Fri 24 Pick-up Navigator */}
+                <div className="p-2 rounded-[6px] bg-[#81141f] text-white leading-tight shadow-xs text-[10px]">
+                  <div className="font-semibold truncate">Pick-up · Navigator</div>
+                  <div className="text-white/80 truncate">Amaka E.</div>
+                </div>
+                <div /><div />
+              </div>
+
+              {/* 10:00 */}
+              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
+                <div className="text-[#716769] font-mono">10:00</div>
+                <div /><div /><div />
+                {/* Thu 23 Test drive BMW X5 */}
+                <div className="p-2 rounded-[6px] bg-[#1b1416] text-white leading-tight shadow-xs text-[10px]">
+                  <div className="font-semibold truncate">Test drive · BMW X5</div>
+                  <div className="text-white/80 truncate">Mrs Adeyemi</div>
+                </div>
+                <div /><div /><div />
+              </div>
+
+              {/* 11:00 */}
+              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
+                <div className="text-[#716769] font-mono">11:00</div>
+                <div /><div />
+                {/* Wed 22 Inspection Terrace */}
+                <div className="p-2 rounded-[6px] bg-[#fef3c7] border border-[#fcd34d] text-[#92400e] leading-tight text-[10px]">
+                  <div className="font-semibold truncate">Inspection · Terrace</div>
+                  <div className="text-[#92400e]/80 truncate">Ifeanyi O.</div>
+                </div>
+                <div /><div />
+                {/* Sat 25 Inspection Duplex */}
+                <div className="p-2 rounded-[6px] bg-[#fef3c7] border border-[#fcd34d] text-[#92400e] leading-tight text-[10px]">
+                  <div className="font-semibold truncate">Inspection · Duplex</div>
+                  <div className="text-[#92400e]/80 truncate">Mr Ibrahim</div>
+                </div>
+                <div />
+              </div>
+
+              {/* 12:00 */}
+              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
+                <div className="text-[#716769] font-mono">12:00</div>
+                {/* Mon 20 E-Class with driver */}
+                <div className="p-2 rounded-[6px] bg-[#81141f] text-white leading-tight shadow-xs text-[10px]">
+                  <div className="font-semibold truncate">E-Class with driver</div>
+                  <div className="text-white/80 truncate">Corporate</div>
+                </div>
+                <div /><div /><div /><div /><div /><div />
+              </div>
+
+              {/* 13:00 */}
+              <div className="grid grid-cols-8 gap-2 py-3.5">
+                <div className="text-[#716769] font-mono">13:00</div>
+                <div /><div /><div /><div /><div /><div /><div />
+              </div>
+
+              {/* 14:00 */}
+              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
+                <div className="text-[#716769] font-mono">14:00</div>
+                <div /><div /><div />
+                {/* Thu 23 Return E-Class */}
+                <div className="p-2 rounded-[6px] bg-[#81141f] text-white leading-tight shadow-xs text-[10px]">
+                  <div className="font-semibold truncate">Return · E-Class</div>
+                  <div className="text-white/80 truncate">Corporate</div>
+                </div>
+                <div /><div /><div />
+              </div>
+
+              {/* 15:00 */}
+              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
+                <div className="text-[#716769] font-mono">15:00</div>
+                <div /><div /><div /><div />
+                {/* Fri 24 Inspection Villa */}
+                <div className="p-2 rounded-[6px] bg-[#fef3c7] border border-[#fcd34d] text-[#92400e] leading-tight text-[10px]">
+                  <div className="font-semibold truncate">Inspection · Villa</div>
+                  <div className="text-[#92400e]/80 truncate">Asokoro</div>
+                </div>
+                <div /><div />
+              </div>
+
+              {/* 16:00 */}
+              <div className="grid grid-cols-8 gap-2 py-3.5">
+                <div className="text-[#716769] font-mono">16:00</div>
+                <div /><div /><div /><div /><div /><div /><div />
+              </div>
+
+              {/* 17:00 */}
+              <div className="grid grid-cols-8 gap-2 py-3.5">
+                <div className="text-[#716769] font-mono">17:00</div>
+                <div /><div /><div /><div /><div /><div /><div />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Needs Confirmation Card (4 Cols) */}
+        <div className="lg:col-span-4 bg-white rounded-[16px] border border-[#eae3e4] p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[16px] font-bold text-[#1b1416]">Needs confirmation</h2>
+            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold">
+              {needsConfirmation.length} new
+            </span>
+          </div>
+
+          <div className="space-y-3.5">
+            {needsConfirmation.map(item => (
+              <div
+                key={item.id}
+                className="p-3.5 rounded-[12px] bg-[#faf8f8] border border-[#eae3e4] space-y-2.5 text-[12px]"
+              >
+                <div>
+                  <div className="font-bold text-[13px] text-[#1b1416]">{item.title}</div>
+                  <div className="text-[#716769]">{item.customerDate}</div>
+                  <div className="text-[11px] text-[#716769] mt-0.5">{item.timeAgo}</div>
+                </div>
+
+                {/* 3 Action Buttons */}
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleConfirm(item.title)}
+                    className="flex-1 h-[32px] rounded-[6px] bg-[#81141f] hover:bg-[#680e18] text-white font-semibold text-[11px] shadow-2xs transition-colors cursor-pointer"
+                  >
+                    Confirm
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleReschedule(item.title)}
+                    className="flex-1 h-[32px] rounded-[6px] bg-white border border-[#eae3e4] hover:bg-[#f8f5f5] text-[#4a4245] font-semibold text-[11px] transition-colors cursor-pointer"
+                  >
+                    Reschedule
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDecline(item.id, item.title)}
+                    className="h-[32px] px-2.5 rounded-[6px] bg-white border border-[#eae3e4] hover:bg-rose-50 hover:text-rose-700 text-[#716769] font-semibold text-[11px] transition-colors cursor-pointer"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {needsConfirmation.length === 0 && (
+              <div className="py-8 text-center text-[13px] text-[#716769]">
+                All pending bookings have been confirmed.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================
+          4. ALL BOOKINGS TABLE
+         ======================================================== */}
+      <div className="bg-white rounded-[16px] border border-[#eae3e4] p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h2 className="text-[18px] font-bold text-[#1b1416]">All bookings</h2>
+
+          <div className="relative w-64">
+            <Search className="w-3.5 h-3.5 text-[#716769] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search bookings"
+              className="w-full h-[36px] pl-8 pr-3 bg-white border border-[#eae3e4] rounded-[8px] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-[13px]">
+            <thead>
+              <tr className="border-b border-[#eae3e4] text-[#716769] font-medium bg-[#faf8f8]">
+                <th className="py-3 px-4 font-normal">Reference</th>
+                <th className="py-3 px-4 font-normal">Customer</th>
+                <th className="py-3 px-4 font-normal">Listing</th>
+                <th className="py-3 px-4 font-normal">When</th>
+                <th className="py-3 px-4 font-normal">Type</th>
+                <th className="py-3 px-4 font-normal">Status</th>
+                <th className="py-3 px-4 font-normal text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#eae3e4]">
+              {filteredBookings.map(row => (
+                <tr key={row.id} className="hover:bg-[#fdfbfb] transition-colors">
+                  <td className="py-3.5 px-4 font-mono font-semibold text-[#81141f]">
+                    {row.reference}
+                  </td>
+                  <td className="py-3.5 px-4 font-medium text-[#1b1416]">{row.customer}</td>
+                  <td className="py-3.5 px-4 text-[#4a4245]">{row.listing}</td>
+                  <td className="py-3.5 px-4 text-[#716769] text-[12px]">{row.when}</td>
+                  <td className="py-3.5 px-4 text-[#4a4245]">{row.type}</td>
+                  <td className="py-3.5 px-4">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                        row.status === 'Approved'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : row.status === 'In progress'
+                          ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}
+                    >
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    {row.status === 'Pending' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleConfirm(row.reference)}
+                        className="h-[30px] px-3.5 rounded-[6px] bg-[#81141f] hover:bg-[#680e18] text-white font-semibold text-[11px] shadow-2xs transition-colors cursor-pointer"
+                      >
+                        Confirm
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toast({
+                            title: `Viewing Booking ${row.reference}`,
+                            description: `${row.customer} · ${row.listing}`,
+                            variant: 'default'
+                          })
+                        }
+                        className="h-[30px] px-3.5 rounded-[6px] bg-white border border-[#eae3e4] hover:bg-[#f8f5f5] text-[#4a4245] font-semibold text-[11px] transition-colors cursor-pointer"
+                      >
+                        View
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
