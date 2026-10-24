@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
@@ -13,13 +14,30 @@ import { useStore } from '@/lib/store';
 
 function HomesForRentContent() {
   const { listings } = useStore();
+  const searchParams = useSearchParams();
 
-  const [selectedLocation, setSelectedLocation] = useState<string>('all');
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedBeds, setSelectedBeds] = useState<string>('all');
+  const initialLocation = searchParams.get('location') || 'all';
+  const initialType = searchParams.get('type');
+  const initialBeds = searchParams.get('beds') || 'all';
+  const initialKeyword = searchParams.get('q') || '';
+  const initialReq = searchParams.get('req') || 'all';
+
+  const [selectedLocation, setSelectedLocation] = useState<string>(initialLocation);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(initialType ? [initialType] : []);
+  const [selectedBeds, setSelectedBeds] = useState<string>(initialBeds);
+  const [selectedReq, setSelectedReq] = useState<string>(initialReq);
+  const [keyword, setKeyword] = useState<string>(initialKeyword);
   const [maxPrice, setMaxPrice] = useState<number>(45000000);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc'>('recommended');
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  React.useEffect(() => {
+    if (searchParams.get('location')) setSelectedLocation(searchParams.get('location')!);
+    if (searchParams.get('type')) setSelectedTypes([searchParams.get('type')!]);
+    if (searchParams.get('beds')) setSelectedBeds(searchParams.get('beds')!);
+    if (searchParams.get('req')) setSelectedReq(searchParams.get('req')!);
+    if (searchParams.get('q')) setKeyword(searchParams.get('q')!);
+  }, [searchParams]);
 
   const toggleType = (t: string) => {
     setSelectedTypes(prev =>
@@ -31,6 +49,8 @@ function HomesForRentContent() {
     setSelectedLocation('all');
     setSelectedTypes([]);
     setSelectedBeds('all');
+    setSelectedReq('all');
+    setKeyword('');
     setMaxPrice(45000000);
     setSortBy('recommended');
   };
@@ -39,14 +59,29 @@ function HomesForRentContent() {
     selectedLocation !== 'all' ||
     selectedTypes.length > 0 ||
     selectedBeds !== 'all' ||
+    selectedReq !== 'all' ||
+    Boolean(keyword) ||
     maxPrice < 45000000;
 
   const homesForRent = useMemo(() => {
     return listings
       .filter(l => l.category === 'property_rent')
       .filter(item => {
-        if (selectedLocation === 'all') return true;
-        return item.location.toLowerCase().includes(selectedLocation.toLowerCase());
+        if (!keyword.trim()) return true;
+        const kw = keyword.toLowerCase();
+        return (
+          item.title.toLowerCase().includes(kw) ||
+          item.description?.toLowerCase().includes(kw) ||
+          item.location.toLowerCase().includes(kw) ||
+          item.tags?.some(t => t.toLowerCase().includes(kw))
+        );
+      })
+      .filter(item => {
+        if (selectedLocation === 'all' || selectedLocation === 'Abuja, FCT') return true;
+        return (
+          item.location.toLowerCase().includes(selectedLocation.toLowerCase()) ||
+          selectedLocation.toLowerCase().includes(item.location.toLowerCase())
+        );
       })
       .filter(item => {
         if (selectedTypes.length === 0) return true;
@@ -54,8 +89,20 @@ function HomesForRentContent() {
         return selectedTypes.some(t => type.toLowerCase().includes(t.toLowerCase()) || item.title.toLowerCase().includes(t.toLowerCase()));
       })
       .filter(item => {
-        if (selectedBeds === 'all') return true;
-        return item.propertySpecs?.bedrooms === Number(selectedBeds);
+        if (selectedBeds === 'all' || selectedBeds === 'Any') return true;
+        const beds = Number(selectedBeds);
+        if (beds >= 5) {
+          return (item.propertySpecs?.bedrooms || 0) >= 5;
+        }
+        return item.propertySpecs?.bedrooms === beds;
+      })
+      .filter(item => {
+        if (selectedReq === 'all') return true;
+        const reqStr = selectedReq.toLowerCase();
+        return (
+          item.tags?.some(t => t.toLowerCase().includes(reqStr)) ||
+          item.description?.toLowerCase().includes(reqStr)
+        );
       })
       .filter(item => item.price <= maxPrice)
       .sort((a, b) => {
@@ -63,7 +110,7 @@ function HomesForRentContent() {
         if (sortBy === 'price_desc') return b.price - a.price;
         return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
       });
-  }, [listings, selectedLocation, selectedTypes, selectedBeds, maxPrice, sortBy]);
+  }, [listings, keyword, selectedLocation, selectedTypes, selectedBeds, selectedReq, maxPrice, sortBy]);
 
   return (
     <>

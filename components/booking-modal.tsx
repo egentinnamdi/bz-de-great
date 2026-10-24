@@ -10,6 +10,7 @@ import { useStore } from '@/lib/store';
 import { useToast } from './toast-provider';
 import { getWhatsAppBookingLink, SITE_CONFIG } from '@/lib/constants';
 import { CopyButton } from './ui/copy-button';
+import { sendTransactionEmail } from '@/lib/email/service';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -35,7 +36,7 @@ export function BookingModal({
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('+234 ');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('egentinnamdi10@gmail.com');
   const [date, setDate] = useState('2026-10-25');
   const [endDate, setEndDate] = useState(isRent && isCar ? '2026-10-28' : '');
   const [driverOption, setDriverOption] = useState<'Self-drive' | 'Chauffeured'>('Self-drive');
@@ -46,23 +47,25 @@ export function BookingModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone) {
+    if (!name || !phone || !email) {
       toast({
         title: 'Missing information',
-        description: 'Please provide your full name and phone number.',
+        description: 'Please provide your full name, phone number, and email address to receive your confirmation receipt.',
         variant: 'warning'
       });
       return;
     }
+
+    const recipientEmail = email.trim();
 
     const booking = await createBooking({
       type: defaultType,
       listingId: listing.id,
       listingTitle: listing.title,
       listingImage: listing.images[0],
-      customerName: name,
-      customerPhone: phone,
-      customerEmail: email || 'client@bzgroup.com',
+      customerName: name.trim(),
+      customerPhone: phone.trim(),
+      customerEmail: recipientEmail,
       startDate: date,
       endDate: endDate || undefined,
       driverOption: isCar && isRent ? driverOption : undefined,
@@ -75,9 +78,25 @@ export function BookingModal({
 
     setConfirmedBookingId(booking.id);
 
+    // Dispatch automated confirmation email
+    sendTransactionEmail({
+      recipientEmail,
+      recipientName: name.trim(),
+      transactionId: booking.id,
+      transactionType: defaultType,
+      event: 'order_submitted',
+      statusDisplay: 'Reservation Logged · Concierge Review',
+      statusBadgeColor: 'amber',
+      amountFormatted: `₦${Number(booking.totalAmount || 0).toLocaleString('en-NG')}.00`,
+      assetTitle: listing.title,
+      scheduledDates: `${date}${endDate ? ` to ${endDate}` : ''}`,
+      pickupLocation: listing.location,
+      adminNotes: notes || undefined
+    });
+
     toast({
       title: 'Booking requested successfully',
-      description: `Reference: ${booking.id}`,
+      description: `Reference: ${booking.id}. A confirmation email has been dispatched.`,
       variant: 'success'
     });
   };
@@ -164,11 +183,12 @@ export function BookingModal({
               </div>
 
               <Input
-                label="Email Address (Optional)"
+                label="Email Address (For reservation receipt & tracking link)"
                 type="email"
                 placeholder="client@gmail.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
+                required
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

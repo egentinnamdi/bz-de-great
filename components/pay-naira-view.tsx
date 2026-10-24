@@ -20,6 +20,7 @@ import {
 import { useToast } from '@/components/toast-provider';
 import { useStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
+import { sendTransactionEmail } from '@/lib/email/service';
 
 interface PayNairaViewProps {
   orderId?: string;
@@ -78,7 +79,7 @@ export function PayNairaView({
 
   // Form states - Customer contact
   const [name, setName] = useState(initialCustomerName || '');
-  const [email, setEmail] = useState(initialCustomerEmail || '');
+  const [email, setEmail] = useState(initialCustomerEmail || 'egentinnamdi10@gmail.com');
   const [phone, setPhone] = useState(initialCustomerPhone || '');
 
   // Payout destination - When paying RMB to get Naira (Nigerian Bank)
@@ -196,6 +197,14 @@ export function PayNairaView({
       });
       return;
     }
+    if (!email.trim() || !email.includes('@')) {
+      toast({
+        title: 'Valid email required',
+        description: 'Please provide your email address to receive your official receipt and live status tracking link.',
+        variant: 'warning'
+      });
+      return;
+    }
     if (!receiptFile) {
       toast({
         title: 'Please attach transfer receipt',
@@ -267,10 +276,26 @@ export function PayNairaView({
         category: 'payments'
       });
 
+      // Dispatch automated standard luxury email receipt to customer
+      sendTransactionEmail({
+        recipientEmail: email.trim() || `${name.trim().toLowerCase().replace(/\s+/g, '.')}@client.com`,
+        recipientName: name.trim(),
+        transactionId: orderId,
+        transactionType: direction,
+        event: 'order_submitted',
+        statusDisplay: 'Receipt Under Treasury Review',
+        statusBadgeColor: 'amber',
+        sourceAmountFormatted: direction === 'rmb_to_naira' ? `¥${sourceAmount.toLocaleString('en-US')}.00 RMB` : `₦${sourceAmount.toLocaleString('en-NG')}.00 Naira`,
+        rateAppliedFormatted: `¥1 = ₦${rateApplied.toFixed(2)}`,
+        amountFormatted: direction === 'rmb_to_naira' ? `₦${destinationAmount.toLocaleString('en-NG')}.00 Naira` : `¥${destinationAmount.toLocaleString('en-US')}.00 RMB`,
+        payoutDetails: destinationDetails,
+        receiptUrl: finalReceiptUrl
+      });
+
       setIsSubmitted(true);
       toast({
         title: 'Payment submitted successfully',
-        description: `Order ${orderId} is now under verification by our treasury desk.`,
+        description: `Order ${orderId} is now under verification by our treasury desk. An email receipt has been sent to ${email.trim() || name}.`,
         variant: 'success'
       });
     } catch (err) {
@@ -797,7 +822,7 @@ export function PayNairaView({
 
                         <div className="space-y-1.5">
                           <label className="text-[13px] font-semibold text-[#1b1416] block">
-                            Email address
+                            Email address (for receipt &amp; tracker) <span className="text-[#81141f]">*</span>
                           </label>
                           <input
                             type="email"
@@ -805,6 +830,7 @@ export function PayNairaView({
                             onChange={e => setEmail(e.target.value)}
                             placeholder="your.email@example.com"
                             className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors font-normal"
+                            required
                           />
                         </div>
                       </div>

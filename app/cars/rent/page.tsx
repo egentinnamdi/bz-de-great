@@ -16,16 +16,29 @@ function CarRentalsContent() {
   const { listings } = useStore();
   const searchParams = useSearchParams();
 
+  const initialLocation = searchParams.get('location') || 'all';
   const initialDriver = searchParams.get('driver') || 'all';
+  const initialBrand = searchParams.get('brand');
+  const initialType = searchParams.get('type');
+  const initialKeyword = searchParams.get('q') || '';
 
   // Filters state
-  const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [selectedLocation, setSelectedLocation] = useState<string>(initialLocation);
   const [selectedDriver, setSelectedDriver] = useState<string>(initialDriver);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(initialType ? [initialType] : []);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(initialBrand ? [initialBrand] : []);
+  const [keyword, setKeyword] = useState<string>(initialKeyword);
   const [maxPrice, setMaxPrice] = useState<number>(300000);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc'>('recommended');
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  React.useEffect(() => {
+    if (searchParams.get('location')) setSelectedLocation(searchParams.get('location')!);
+    if (searchParams.get('driver')) setSelectedDriver(searchParams.get('driver')!);
+    if (searchParams.get('brand')) setSelectedBrands([searchParams.get('brand')!]);
+    if (searchParams.get('type')) setSelectedTypes([searchParams.get('type')!]);
+    if (searchParams.get('q')) setKeyword(searchParams.get('q')!);
+  }, [searchParams]);
 
   const toggleType = (t: string) => {
     setSelectedTypes(prev =>
@@ -44,6 +57,7 @@ function CarRentalsContent() {
     setSelectedDriver('all');
     setSelectedTypes([]);
     setSelectedBrands([]);
+    setKeyword('');
     setMaxPrice(300000);
     setSortBy('recommended');
   };
@@ -53,6 +67,7 @@ function CarRentalsContent() {
     selectedDriver !== 'all' ||
     selectedTypes.length > 0 ||
     selectedBrands.length > 0 ||
+    Boolean(keyword) ||
     maxPrice < 300000;
 
   // Filter listings
@@ -60,22 +75,35 @@ function CarRentalsContent() {
     return listings
       .filter(item => item.category === 'car_rent')
       .filter(item => {
-        if (selectedLocation === 'all') return true;
-        return item.location.toLowerCase().includes(selectedLocation.toLowerCase());
+        if (!keyword.trim()) return true;
+        const kw = keyword.toLowerCase();
+        return (
+          item.title.toLowerCase().includes(kw) ||
+          item.description?.toLowerCase().includes(kw) ||
+          item.location.toLowerCase().includes(kw) ||
+          item.tags?.some(t => t.toLowerCase().includes(kw))
+        );
       })
       .filter(item => {
-        if (selectedDriver === 'all') return true;
+        if (selectedLocation === 'all' || selectedLocation === 'Abuja, FCT') return true;
+        return (
+          item.location.toLowerCase().includes(selectedLocation.toLowerCase()) ||
+          selectedLocation.toLowerCase().includes(item.location.toLowerCase())
+        );
+      })
+      .filter(item => {
+        if (selectedDriver === 'all' || selectedDriver === 'All') return true;
         const driver = item.vehicleSpecs?.driverOption;
         return driver === selectedDriver || driver === 'Both';
       })
       .filter(item => {
         if (selectedTypes.length === 0) return true;
-        return selectedTypes.some(t => item.tags?.includes(t) || item.title.includes(t));
+        return selectedTypes.some(t => item.tags?.includes(t) || item.title.toLowerCase().includes(t.toLowerCase()));
       })
       .filter(item => {
         if (selectedBrands.length === 0) return true;
         const make = item.vehicleSpecs?.make || '';
-        return selectedBrands.includes(make);
+        return selectedBrands.some(b => make.toLowerCase().includes(b.toLowerCase()) || item.title.toLowerCase().includes(b.toLowerCase()));
       })
       .filter(item => item.price <= maxPrice)
       .sort((a, b) => {
@@ -83,7 +111,7 @@ function CarRentalsContent() {
         if (sortBy === 'price_desc') return b.price - a.price;
         return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
       });
-  }, [listings, selectedLocation, selectedDriver, selectedTypes, selectedBrands, maxPrice, sortBy]);
+  }, [listings, keyword, selectedLocation, selectedDriver, selectedTypes, selectedBrands, maxPrice, sortBy]);
 
   return (
     <>

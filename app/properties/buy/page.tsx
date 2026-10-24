@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
@@ -13,13 +14,30 @@ import { useStore } from '@/lib/store';
 
 function PropertiesForSaleContent() {
   const { listings } = useStore();
+  const searchParams = useSearchParams();
 
-  const [selectedLocation, setSelectedLocation] = useState<string>('all');
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
+  const initialLocation = searchParams.get('location') || 'all';
+  const initialType = searchParams.get('type');
+  const initialTitle = searchParams.get('title');
+  const initialBeds = searchParams.get('beds') || 'all';
+  const initialKeyword = searchParams.get('q') || '';
+
+  const [selectedLocation, setSelectedLocation] = useState<string>(initialLocation);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(initialType ? [initialType] : []);
+  const [selectedTitles, setSelectedTitles] = useState<string[]>(initialTitle ? [initialTitle] : []);
+  const [selectedBeds, setSelectedBeds] = useState<string>(initialBeds);
+  const [keyword, setKeyword] = useState<string>(initialKeyword);
   const [maxPrice, setMaxPrice] = useState<number>(1200000000);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc'>('recommended');
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  React.useEffect(() => {
+    if (searchParams.get('location')) setSelectedLocation(searchParams.get('location')!);
+    if (searchParams.get('type')) setSelectedTypes([searchParams.get('type')!]);
+    if (searchParams.get('title')) setSelectedTitles([searchParams.get('title')!]);
+    if (searchParams.get('beds')) setSelectedBeds(searchParams.get('beds')!);
+    if (searchParams.get('q')) setKeyword(searchParams.get('q')!);
+  }, [searchParams]);
 
   const toggleType = (t: string) => {
     setSelectedTypes(prev =>
@@ -37,6 +55,8 @@ function PropertiesForSaleContent() {
     setSelectedLocation('all');
     setSelectedTypes([]);
     setSelectedTitles([]);
+    setSelectedBeds('all');
+    setKeyword('');
     setMaxPrice(1200000000);
     setSortBy('recommended');
   };
@@ -45,14 +65,29 @@ function PropertiesForSaleContent() {
     selectedLocation !== 'all' ||
     selectedTypes.length > 0 ||
     selectedTitles.length > 0 ||
+    selectedBeds !== 'all' ||
+    Boolean(keyword) ||
     maxPrice < 1200000000;
 
   const propertiesForSale = useMemo(() => {
     return listings
       .filter(l => l.category === 'property_sale')
       .filter(item => {
-        if (selectedLocation === 'all') return true;
-        return item.location.toLowerCase().includes(selectedLocation.toLowerCase());
+        if (!keyword.trim()) return true;
+        const kw = keyword.toLowerCase();
+        return (
+          item.title.toLowerCase().includes(kw) ||
+          item.description?.toLowerCase().includes(kw) ||
+          item.location.toLowerCase().includes(kw) ||
+          item.tags?.some(t => t.toLowerCase().includes(kw))
+        );
+      })
+      .filter(item => {
+        if (selectedLocation === 'all' || selectedLocation === 'Abuja, FCT') return true;
+        return (
+          item.location.toLowerCase().includes(selectedLocation.toLowerCase()) ||
+          selectedLocation.toLowerCase().includes(item.location.toLowerCase())
+        );
       })
       .filter(item => {
         if (selectedTypes.length === 0) return true;
@@ -64,13 +99,21 @@ function PropertiesForSaleContent() {
         const doc = item.propertySpecs?.titleDocument || '';
         return selectedTitles.some(t => doc.toLowerCase().includes(t.toLowerCase()));
       })
+      .filter(item => {
+        if (selectedBeds === 'all' || selectedBeds === 'Any') return true;
+        const beds = Number(selectedBeds);
+        if (beds >= 5) {
+          return (item.propertySpecs?.bedrooms || 0) >= 5;
+        }
+        return item.propertySpecs?.bedrooms === beds;
+      })
       .filter(item => item.price <= maxPrice)
       .sort((a, b) => {
         if (sortBy === 'price_asc') return a.price - b.price;
         if (sortBy === 'price_desc') return b.price - a.price;
         return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
       });
-  }, [listings, selectedLocation, selectedTypes, selectedTitles, maxPrice, sortBy]);
+  }, [listings, keyword, selectedLocation, selectedTypes, selectedTitles, selectedBeds, maxPrice, sortBy]);
 
   return (
     <>
