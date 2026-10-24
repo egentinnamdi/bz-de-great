@@ -135,10 +135,10 @@ export function ServiceTile({
     <Link
       href={service.href}
       className={cn(
-        "group relative flex min-h-[258px] flex-col justify-between rounded-[16px] p-7 transition-all duration-300",
+        "group relative flex min-h-[258px] flex-col justify-between rounded-[16px] p-7 transition-all duration-300 hover-luxury-lift",
         isFeatured
-          ? "bg-[#81141f] text-white shadow-lg hover:bg-[#6b121c]"
-          : "border border-[#eae3e4] bg-white hover:border-[#81141f]/40 hover:shadow-lg",
+          ? "bg-[#81141f] text-white shadow-lg hover:bg-[#6b121c] hover:shadow-2xl"
+          : "border border-[#eae3e4] bg-white hover:border-[#81141f]/50 hover:shadow-xl",
         className
       )}
     >
@@ -146,7 +146,7 @@ export function ServiceTile({
         {/* Icon box (Figma: [24x52] r=12) */}
         <div
           className={cn(
-            "mb-5 flex h-12 w-12 items-center justify-center rounded-[12px] transition-transform group-hover:scale-105",
+            "mb-5 flex h-12 w-12 items-center justify-center rounded-[12px] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-2 shadow-2xs",
             isFeatured ? "bg-white/15" : "bg-[#fbf3f4]"
           )}
         >
@@ -156,8 +156,8 @@ export function ServiceTile({
         {/* Title (Figma: font=Plus Jakarta Sans 700 22px) */}
         <h3
           className={cn(
-            "font-sans text-[22px] leading-tight font-bold",
-            isFeatured ? "text-white" : "text-[#1b1416]"
+            "font-sans text-[22px] leading-tight font-bold transition-colors duration-200",
+            isFeatured ? "text-white" : "text-[#1b1416] group-hover:text-[#81141f]"
           )}
         >
           {service.title}
@@ -182,7 +182,7 @@ export function ServiceTile({
         )}
       >
         <span>{service.linkText || "Explore"}</span>
-        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+        <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-2" />
       </div>
     </Link>
   )

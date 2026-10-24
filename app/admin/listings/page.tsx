@@ -134,7 +134,7 @@ export default function AdminListingsPage() {
             Listings
           </h1>
           <p className="text-[13px] text-[#716769] font-normal">
-            42 listings · 31 live on the website
+            {items.length} listings · {items.filter(i => i.isOnSite).length} live on the website
           </p>
         </div>
 

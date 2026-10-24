@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 import { SITE_CONFIG } from '@/lib/constants';
 
 interface FaqItem {
@@ -166,202 +167,210 @@ export default function HelpAndLegalPage() {
             {/* ==================================================
                 SECTION 1: FAQs (Frequently asked questions)
                ================================================== */}
-            <section id="faqs" className="space-y-6 scroll-mt-28">
-              <h2 className="font-serif text-[32px] sm:text-[36px] font-semibold text-[#1b1416] tracking-tight">
-                Frequently asked questions
-              </h2>
+            <ScrollReveal animation="fade-in-up">
+              <section id="faqs" className="space-y-6 scroll-mt-28">
+                <h2 className="font-serif text-[32px] sm:text-[36px] font-semibold text-[#1b1416] tracking-tight">
+                  Frequently asked questions
+                </h2>
 
-              <div className="space-y-3.5">
-                {FAQ_ITEMS.map((faq, index) => {
-                  const isOpen = openFaqIndex === index;
-                  return (
-                    <div
-                      key={index}
-                      className={`rounded-[14px] border transition-all ${
-                        isOpen
-                          ? 'border-[#ebc7cb] bg-white shadow-xs'
-                          : 'border-[#eae3e4] bg-white hover:border-[#ebc7cb]'
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleFaq(index)}
-                        className="w-full p-5 sm:px-6 sm:py-5 flex items-center justify-between gap-4 text-left cursor-pointer select-none"
-                        aria-expanded={isOpen}
+                <div className="space-y-3.5">
+                  {FAQ_ITEMS.map((faq, index) => {
+                    const isOpen = openFaqIndex === index;
+                    return (
+                      <div
+                        key={index}
+                        className={`rounded-[14px] border transition-all duration-300 ${
+                          isOpen
+                            ? 'border-[#ebc7cb] bg-white shadow-sm'
+                            : 'border-[#eae3e4] bg-white hover:border-[#ebc7cb]'
+                        }`}
                       >
-                        <span className="text-[16px] font-semibold text-[#1b1416] leading-snug">
-                          {faq.question}
-                        </span>
-
-                        {/* Toggle button: Filled wine with × when open, rose circle with + when closed */}
-                        <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                            isOpen
-                              ? 'bg-[#81141f] text-white'
-                              : 'bg-[#fcf3f4] text-[#81141f] hover:bg-[#f8e5e7]'
-                          }`}
+                        <button
+                          type="button"
+                          onClick={() => toggleFaq(index)}
+                          className="w-full p-5 sm:px-6 sm:py-5 flex items-center justify-between gap-4 text-left cursor-pointer select-none group"
+                          aria-expanded={isOpen}
                         >
-                          {isOpen ? (
-                            <X className="w-4 h-4 stroke-[2.5]" />
-                          ) : (
-                            <Plus className="w-4 h-4 stroke-[2.5]" />
-                          )}
-                        </div>
-                      </button>
+                          <span className={`text-[16px] font-semibold leading-snug transition-colors duration-200 ${isOpen ? 'text-[#81141f]' : 'text-[#1b1416] group-hover:text-[#81141f]'}`}>
+                            {faq.question}
+                          </span>
 
-                      {isOpen && (
-                        <div className="px-5 sm:px-6 pb-6 pt-1 text-[15px] text-[#4a4245] leading-relaxed font-normal border-t border-[#eae3e4]/60">
-                          {faq.answer}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+                          {/* Toggle button: Filled wine with × when open, rose circle with + when closed */}
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
+                              isOpen
+                                ? 'bg-[#81141f] text-white rotate-90'
+                                : 'bg-[#fcf3f4] text-[#81141f] group-hover:bg-[#f8e5e7]'
+                            }`}
+                          >
+                            {isOpen ? (
+                              <X className="w-4 h-4 stroke-[2.5]" />
+                            ) : (
+                              <Plus className="w-4 h-4 stroke-[2.5]" />
+                            )}
+                          </div>
+                        </button>
+
+                        {isOpen && (
+                          <div className="px-5 sm:px-6 pb-6 pt-1 text-[15px] text-[#4a4245] leading-relaxed font-normal border-t border-[#eae3e4]/60 animate-fade-in-up">
+                            {faq.answer}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </ScrollReveal>
 
             {/* ==================================================
                 SECTION 2: Terms of service
                ================================================== */}
-            <section id="terms" className="space-y-6 pt-4 scroll-mt-28">
-              <h2 className="font-serif text-[32px] sm:text-[36px] font-semibold text-[#1b1416] tracking-tight">
-                Terms of service
-              </h2>
+            <ScrollReveal animation="fade-in-up">
+              <section id="terms" className="space-y-6 pt-4 scroll-mt-28">
+                <h2 className="font-serif text-[32px] sm:text-[36px] font-semibold text-[#1b1416] tracking-tight">
+                  Terms of service
+                </h2>
 
-              {/* Legal Notice Banner */}
-              <div className="rounded-[10px] bg-[#fbf0df] border border-[#f5dfb8] px-4 py-3 flex items-center gap-3 text-[13px] text-[#8a4e00]">
-                <ShieldAlert className="w-4 h-4 text-[#8a4e00] shrink-0" />
-                <span>Placeholder — final wording to be supplied by BZ Group's legal adviser.</span>
-              </div>
-
-              {/* 5 Numbered Items */}
-              <div className="space-y-5 text-[#1b1416] pt-1">
-                <div className="space-y-1">
-                  <h3 className="text-[15px] font-bold text-[#1b1416]">
-                    1. Bookings and availability
-                  </h3>
-                  <p className="text-[14px] text-[#716769]">
-                    [How bookings are confirmed, and when a booking becomes binding.]
-                  </p>
+                {/* Legal Notice Banner */}
+                <div className="rounded-[10px] bg-[#fbf0df] border border-[#f5dfb8] px-4 py-3 flex items-center gap-3 text-[13px] text-[#8a4e00]">
+                  <ShieldAlert className="w-4 h-4 text-[#8a4e00] shrink-0" />
+                  <span>Placeholder — final wording to be supplied by BZ Group's legal adviser.</span>
                 </div>
 
-                <div className="space-y-1">
-                  <h3 className="text-[15px] font-bold text-[#1b1416]">
-                    2. Payments and receipts
-                  </h3>
-                  <p className="text-[14px] text-[#716769]">
-                    [Bank transfer terms, receipt verification and refunds.]
-                  </p>
-                </div>
+                {/* 5 Numbered Items */}
+                <div className="space-y-5 text-[#1b1416] pt-1">
+                  <div className="space-y-1">
+                    <h3 className="text-[15px] font-bold text-[#1b1416]">
+                      1. Bookings and availability
+                    </h3>
+                    <p className="text-[14px] text-[#716769]">
+                      [How bookings are confirmed, and when a booking becomes binding.]
+                    </p>
+                  </div>
 
-                <div className="space-y-1">
-                  <h3 className="text-[15px] font-bold text-[#1b1416]">
-                    3. Car rentals
-                  </h3>
-                  <p className="text-[14px] text-[#716769]">
-                    [Licence requirements, caution fee, fuel, damage and late returns.]
-                  </p>
-                </div>
+                  <div className="space-y-1">
+                    <h3 className="text-[15px] font-bold text-[#1b1416]">
+                      2. Payments and receipts
+                    </h3>
+                    <p className="text-[14px] text-[#716769]">
+                      [Bank transfer terms, receipt verification and refunds.]
+                    </p>
+                  </div>
 
-                <div className="space-y-1">
-                  <h3 className="text-[15px] font-bold text-[#1b1416]">
-                    4. Property
-                  </h3>
-                  <p className="text-[14px] text-[#716769]">
-                    [Inspections, offers, title documents and agency terms.]
-                  </p>
-                </div>
+                  <div className="space-y-1">
+                    <h3 className="text-[15px] font-bold text-[#1b1416]">
+                      3. Car rentals
+                    </h3>
+                    <p className="text-[14px] text-[#716769]">
+                      [Licence requirements, caution fee, fuel, damage and late returns.]
+                    </p>
+                  </div>
 
-                <div className="space-y-1">
-                  <h3 className="text-[15px] font-bold text-[#1b1416]">
-                    5. RMB exchange
-                  </h3>
-                  <p className="text-[14px] text-[#716769]">
-                    [Rate locks, payout timelines and limits of liability.]
-                  </p>
+                  <div className="space-y-1">
+                    <h3 className="text-[15px] font-bold text-[#1b1416]">
+                      4. Property
+                    </h3>
+                    <p className="text-[14px] text-[#716769]">
+                      [Inspections, offers, title documents and agency terms.]
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="text-[15px] font-bold text-[#1b1416]">
+                      5. RMB exchange
+                    </h3>
+                    <p className="text-[14px] text-[#716769]">
+                      [Rate locks, payout timelines and limits of liability.]
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </ScrollReveal>
 
             {/* ==================================================
                 SECTION 3: Privacy policy
                ================================================== */}
-            <section id="privacy" className="space-y-6 pt-4 scroll-mt-28">
-              <h2 className="font-serif text-[32px] sm:text-[36px] font-semibold text-[#1b1416] tracking-tight">
-                Privacy policy
-              </h2>
+            <ScrollReveal animation="fade-in-up">
+              <section id="privacy" className="space-y-6 pt-4 scroll-mt-28">
+                <h2 className="font-serif text-[32px] sm:text-[36px] font-semibold text-[#1b1416] tracking-tight">
+                  Privacy policy
+                </h2>
 
-              {/* Legal Notice Banner */}
-              <div className="rounded-[10px] bg-[#fbf0df] border border-[#f5dfb8] px-4 py-3 flex items-center gap-3 text-[13px] text-[#8a4e00]">
-                <ShieldAlert className="w-4 h-4 text-[#8a4e00] shrink-0" />
-                <span>Placeholder — final wording to be supplied by BZ Group's legal adviser.</span>
-              </div>
-
-              {/* 4 Privacy Items */}
-              <div className="space-y-5 text-[#1b1416] pt-1">
-                <div className="space-y-1">
-                  <h3 className="text-[15px] font-bold text-[#1b1416]">
-                    What we collect
-                  </h3>
-                  <p className="text-[14px] text-[#716769]">
-                    [Contact details, ID documents, payment receipts and booking history.]
-                  </p>
+                {/* Legal Notice Banner */}
+                <div className="rounded-[10px] bg-[#fbf0df] border border-[#f5dfb8] px-4 py-3 flex items-center gap-3 text-[13px] text-[#8a4e00]">
+                  <ShieldAlert className="w-4 h-4 text-[#8a4e00] shrink-0" />
+                  <span>Placeholder — final wording to be supplied by BZ Group's legal adviser.</span>
                 </div>
 
-                <div className="space-y-1">
-                  <h3 className="text-[15px] font-bold text-[#1b1416]">
-                    How we use it
-                  </h3>
-                  <p className="text-[14px] text-[#716769]">
-                    [To verify payments, confirm bookings and contact you on WhatsApp or email.]
-                  </p>
-                </div>
+                {/* 4 Privacy Items */}
+                <div className="space-y-5 text-[#1b1416] pt-1">
+                  <div className="space-y-1">
+                    <h3 className="text-[15px] font-bold text-[#1b1416]">
+                      What we collect
+                    </h3>
+                    <p className="text-[14px] text-[#716769]">
+                      [Contact details, ID documents, payment receipts and booking history.]
+                    </p>
+                  </div>
 
-                <div className="space-y-1">
-                  <h3 className="text-[15px] font-bold text-[#1b1416]">
-                    Who we share it with
-                  </h3>
-                  <p className="text-[14px] text-[#716769]">
-                    [Payment partners in China for payouts; never sold to third parties.]
-                  </p>
-                </div>
+                  <div className="space-y-1">
+                    <h3 className="text-[15px] font-bold text-[#1b1416]">
+                      How we use it
+                    </h3>
+                    <p className="text-[14px] text-[#716769]">
+                      [To verify payments, confirm bookings and contact you on WhatsApp or email.]
+                    </p>
+                  </div>
 
-                <div className="space-y-1">
-                  <h3 className="text-[15px] font-bold text-[#1b1416]">
-                    Your rights
-                  </h3>
-                  <p className="text-[14px] text-[#716769]">
-                    [How to request a copy or deletion of your data.]
-                  </p>
+                  <div className="space-y-1">
+                    <h3 className="text-[15px] font-bold text-[#1b1416]">
+                      Who we share it with
+                    </h3>
+                    <p className="text-[14px] text-[#716769]">
+                      [Payment partners in China for payouts; never sold to third parties.]
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="text-[15px] font-bold text-[#1b1416]">
+                      Your rights
+                    </h3>
+                    <p className="text-[14px] text-[#716769]">
+                      [How to request a copy or deletion of your data.]
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </ScrollReveal>
 
             {/* ==================================================
                 SECTION 4: Contact us (Still have a question banner)
                ================================================== */}
-            <section id="contact" className="pt-4 scroll-mt-28">
-              <div className="rounded-[18px] bg-[#4e0b13] text-white p-7 sm:p-9 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-md">
-                <div className="space-y-1.5">
-                  <h3 className="font-serif text-[28px] sm:text-[32px] font-semibold text-white leading-tight">
-                    Still have a question?
-                  </h3>
-                  <p className="text-[14px] text-[#f6e3e5] font-normal">
-                    Talk to the team on WhatsApp or call <strong>0706 448 2628</strong>.
-                  </p>
-                </div>
+            <ScrollReveal animation="fade-in-up">
+              <section id="contact" className="pt-4 scroll-mt-28">
+                <div className="rounded-[18px] bg-[#4e0b13] text-white p-7 sm:p-9 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-md transition-all duration-300 hover:shadow-wine-900/30">
+                  <div className="space-y-1.5">
+                    <h3 className="font-serif text-[28px] sm:text-[32px] font-semibold text-white leading-tight">
+                      Still have a question?
+                    </h3>
+                    <p className="text-[14px] text-[#f6e3e5] font-normal">
+                      Talk to the team on WhatsApp or call <strong>0813 969 0031</strong>.
+                    </p>
+                  </div>
 
-                <a
-                  href={waLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-[8px] bg-white hover:bg-[#f6e3e5] text-[#81141f] font-semibold text-[14px] shadow-sm transition-colors cursor-pointer"
-                >
-                  <span>Chat on WhatsApp</span>
-                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                </a>
-              </div>
-            </section>
+                  <a
+                    href={waLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-[8px] bg-white hover:bg-[#f6e3e5] text-[#81141f] font-semibold text-[14px] shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer"
+                  >
+                    <span>Chat on WhatsApp</span>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  </a>
+                </div>
+              </section>
+            </ScrollReveal>
           </div>
         </div>
       </main>

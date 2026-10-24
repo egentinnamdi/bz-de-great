@@ -24,7 +24,7 @@ interface ActivityItem {
   actionText: string;
   targetDetails: string;
   timestamp: string;
-  dayGroup: 'TODAY' | 'YESTERDAY';
+  dayGroup: 'TODAY' | 'YESTERDAY' | 'EARLIER';
   iconType: 'payment' | 'rate' | 'listing' | 'payout' | 'booking' | 'content';
 }
 
@@ -44,7 +44,13 @@ export default function AdminActivityLogPage() {
       else if (a.category === 'bookings') iconType = 'booking';
       else if (a.category === 'content') iconType = 'content';
 
-      const isYesterday = a.timestamp.toLowerCase().includes('yesterday');
+      const tsLower = (a.timestamp || '').toLowerCase();
+      let dayGroup: 'TODAY' | 'YESTERDAY' | 'EARLIER' = 'EARLIER';
+      if (tsLower.includes('today')) {
+        dayGroup = 'TODAY';
+      } else if (tsLower.includes('yesterday')) {
+        dayGroup = 'YESTERDAY';
+      }
 
       return {
         id: a.id,
@@ -52,8 +58,8 @@ export default function AdminActivityLogPage() {
         actorName: a.actorName,
         actionText: a.action,
         targetDetails: a.target || a.details || 'Record',
-        timestamp: a.timestamp.replace(/^(today|yesterday),\s*/i, ''),
-        dayGroup: isYesterday ? 'YESTERDAY' : 'TODAY',
+        timestamp: a.timestamp ? a.timestamp.replace(/^(today|yesterday),\s*/i, '') : 'Recent',
+        dayGroup,
         iconType
       };
     });
@@ -86,11 +92,20 @@ export default function AdminActivityLogPage() {
     if (filterTab === 'payments' && item.category !== 'payments') return false;
     if (filterTab === 'listings' && item.category !== 'listings') return false;
     if (filterTab === 'rates' && item.category !== 'rates') return false;
+    if (globalSearch.trim()) {
+      const q = globalSearch.toLowerCase();
+      const match =
+        item.actorName.toLowerCase().includes(q) ||
+        item.actionText.toLowerCase().includes(q) ||
+        item.targetDetails.toLowerCase().includes(q);
+      if (!match) return false;
+    }
     return true;
   });
 
   const todayItems = filteredActivities.filter(a => a.dayGroup === 'TODAY');
   const yesterdayItems = filteredActivities.filter(a => a.dayGroup === 'YESTERDAY');
+  const earlierItems = filteredActivities.filter(a => a.dayGroup === 'EARLIER');
 
   const renderIcon = (type: ActivityItem['iconType']) => {
     switch (type) {
@@ -262,6 +277,44 @@ export default function AdminActivityLogPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* EARLIER Section */}
+        {earlierItems.length > 0 && (
+          <div className="space-y-4 pt-4 border-t border-[#eae3e4]">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#716769]">
+              EARLIER AUDIT TRAIL
+            </span>
+            <div className="space-y-3 divide-y divide-[#eae3e4]">
+              {earlierItems.map(item => (
+                <div key={item.id} className="pt-3 first:pt-0 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#fdf3f4] flex items-center justify-center shrink-0">
+                      {renderIcon(item.iconType)}
+                    </div>
+                    <div>
+                      <div className="text-xs text-[#1b1416]">
+                        <span className="font-bold">{item.actorName}</span>{' '}
+                        <span>{item.actionText}</span>
+                      </div>
+                      <div className="text-[11px] text-[#716769] font-mono mt-0.5">
+                        {item.targetDetails}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-xs text-[#716769] shrink-0 font-medium">
+                    {item.timestamp}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {filteredActivities.length === 0 && (
+          <div className="py-12 text-center text-xs text-[#716769]">
+            No activity records found matching this filter.
           </div>
         )}
       </div>

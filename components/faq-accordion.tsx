@@ -63,7 +63,7 @@ export function FAQAccordion({
               <span>{item.question}</span>
               <div
                 className={cn(
-                  'p-1 rounded-full bg-surface-bg text-wine-900 transition-transform duration-200 shrink-0',
+                  'p-1.5 rounded-full bg-surface-bg text-wine-900 transition-transform duration-300 shrink-0',
                   isOpen && 'rotate-180 bg-wine-50 text-wine-800'
                 )}
               >
@@ -72,7 +72,7 @@ export function FAQAccordion({
             </button>
 
             {isOpen && (
-              <div className="px-5 pb-5 text-xs sm:text-sm text-text-secondary leading-relaxed border-t border-border-subtle/50 pt-3 animate-in fade-in">
+              <div className="px-5 pb-5 text-xs sm:text-sm text-text-secondary leading-relaxed border-t border-border-subtle/50 pt-3 animate-fade-in-up">
                 {item.answer}
               </div>
             )}

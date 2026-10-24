@@ -40,6 +40,10 @@ interface PaymentRow {
   type: string;
   amount: number;
   amountFormatted: string;
+  destinationChannel?: string;
+  destinationAccountDetails?: string;
+  senderBank?: string;
+  senderAccountName?: string;
   receiptUrl?: string;
   submittedAt: string;
   status: 'pending' | 'approved' | 'paid_out' | 'rejected';
@@ -53,6 +57,13 @@ export default function AdminPaymentsPage() {
   const [tableSearch, setTableSearch] = useState('');
   const [timeFilter, setTimeFilter] = useState('This week');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'paid_out' | 'rejected'>('all');
+
+  const formatDateDisplay = (dateString?: string) => {
+    if (!dateString) return 'Recently';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return 'Recently';
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
 
   // Interactive state for Pay RMB, get naira requests (middle card)
   const rmbRequests: PayRmbRequest[] = React.useMemo(() => {
@@ -71,7 +82,7 @@ export default function AdminPaymentsPage() {
           customerPhone: r.customerWhatsApp || '0803 *** 4412',
           paysRmb: r.sourceAmount,
           wePayNaira: r.destinationAmount,
-          requestedAt: 'Recently',
+          requestedAt: formatDateDisplay(r.createdAt),
           status
         };
       });
@@ -87,8 +98,12 @@ export default function AdminPaymentsPage() {
       type: r.direction === 'naira_to_rmb' ? 'Naira → RMB' : 'RMB → Naira',
       amount: r.direction === 'naira_to_rmb' ? r.sourceAmount : r.destinationAmount,
       amountFormatted: `₦${Number(r.direction === 'naira_to_rmb' ? r.sourceAmount : r.destinationAmount).toLocaleString('en-NG')}`,
+      destinationChannel: r.destinationChannel,
+      destinationAccountDetails: r.destinationAccountDetails,
+      senderBank: r.senderBank,
+      senderAccountName: r.senderAccountName,
       receiptUrl: r.receiptUrl,
-      submittedAt: 'Recently',
+      submittedAt: formatDateDisplay(r.createdAt),
       status: (r.status === 'approved' ? 'approved' : r.status === 'paid_out' ? 'paid_out' : r.status === 'rejected' ? 'rejected' : 'pending'),
       rejectionReason: r.notes
     }));
@@ -102,13 +117,46 @@ export default function AdminPaymentsPage() {
       amount: b.totalAmount || 0,
       amountFormatted: `₦${Number(b.totalAmount || 0).toLocaleString('en-NG')}`,
       receiptUrl: b.receiptUrl,
-      submittedAt: 'Recently',
+      submittedAt: formatDateDisplay(b.createdAt),
       status: (b.paymentStatus === 'verified' ? 'approved' : b.paymentStatus === 'refunded' ? 'rejected' : 'pending'),
       rejectionReason: b.notes
     }));
 
     return [...rmbRows, ...bookingRows];
   }, [storeRmb, storeBookings]);
+
+  // Dynamic live aggregations for payments
+  const paymentMetrics = React.useMemo(() => {
+    const pendingList = payments.filter(p => p.status === 'pending');
+    const awaitingReviewSum = pendingList.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const awaitingReviewCount = pendingList.length;
+
+    const approvedList = payments.filter(p => p.status === 'approved' || p.status === 'paid_out');
+    const confirmedSum = approvedList.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const confirmedCount = approvedList.length;
+
+    const paidOutRmbList = storeRmb.filter(r => r.direction === 'naira_to_rmb' && (r.status === 'paid_out' || r.status === 'approved'));
+    const paidOutRmbSum = paidOutRmbList.reduce((sum, r) => sum + (Number(r.destinationAmount) || 0), 0);
+    const paidOutRmbCount = paidOutRmbList.length;
+
+    const rejectedList = payments.filter(p => p.status === 'rejected');
+    const rejectedCount = rejectedList.length;
+    const latestRejectionReason = rejectedList[0]?.rejectionReason || 'Transfer verification failed';
+
+    const rmbActionCount = rmbRequests.filter(r => r.status === 'new' || r.status === 'account_sent' || r.status === 'rmb_received').length;
+
+    return {
+      awaitingReviewSum,
+      awaitingReviewCount,
+      confirmedSum,
+      confirmedCount,
+      paidOutRmbSum,
+      paidOutRmbCount,
+      rejectedCount,
+      latestRejectionReason,
+      rmbActionCount
+    };
+  }, [payments, storeRmb, rmbRequests]);
 
   // Modal inspection state
   const [selectedReceipt, setSelectedReceipt] = useState<PaymentRow | null>(null);
@@ -266,51 +314,67 @@ export default function AdminPaymentsPage() {
       {/* Top 4 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Awaiting review */}
-        <div className="bg-white rounded-xl border border-[#eae3e4] p-5 shadow-xs">
+        <div className="hover-luxury-lift bg-white rounded-xl border border-[#eae3e4] p-5 shadow-xs transition-all duration-300">
           <div className="flex items-center justify-between text-xs text-[#716769]">
             <span className="font-medium">Awaiting review</span>
             <div className="w-6 h-6 rounded-full bg-[#fdf5e8] text-[#b45309] flex items-center justify-center">
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-bold font-serif text-[#1b1416] mt-2">₦6.3M</div>
-          <div className="text-[11px] text-[#b45309] font-medium mt-1">6 receipts to check</div>
+          <div className="text-2xl font-bold font-serif text-[#1b1416] mt-2">
+            ₦{paymentMetrics.awaitingReviewSum >= 1_000_000 ? `${(paymentMetrics.awaitingReviewSum / 1_000_000).toFixed(1)}M` : paymentMetrics.awaitingReviewSum.toLocaleString('en-NG')}
+          </div>
+          <div className="text-[11px] text-[#b45309] font-medium mt-1">
+            {paymentMetrics.awaitingReviewCount} receipt{paymentMetrics.awaitingReviewCount === 1 ? '' : 's'} to check
+          </div>
         </div>
 
         {/* Confirmed today */}
-        <div className="bg-white rounded-xl border border-[#eae3e4] p-5 shadow-xs">
+        <div className="hover-luxury-lift bg-white rounded-xl border border-[#eae3e4] p-5 shadow-xs transition-all duration-300">
           <div className="flex items-center justify-between text-xs text-[#716769]">
-            <span className="font-medium">Confirmed today</span>
+            <span className="font-medium">Verified / Cleared</span>
             <div className="w-6 h-6 rounded-full bg-[#ecfdf5] text-[#059669] flex items-center justify-center">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-bold font-serif text-[#1b1416] mt-2">₦18.4M</div>
-          <div className="text-[11px] text-[#059669] font-medium mt-1">11 payments</div>
+          <div className="text-2xl font-bold font-serif text-[#1b1416] mt-2">
+            ₦{paymentMetrics.confirmedSum >= 1_000_000 ? `${(paymentMetrics.confirmedSum / 1_000_000).toFixed(1)}M` : paymentMetrics.confirmedSum.toLocaleString('en-NG')}
+          </div>
+          <div className="text-[11px] text-[#059669] font-medium mt-1">
+            {paymentMetrics.confirmedCount} payment{paymentMetrics.confirmedCount === 1 ? '' : 's'} verified
+          </div>
         </div>
 
         {/* Paid out this week */}
-        <div className="bg-white rounded-xl border border-[#eae3e4] p-5 shadow-xs">
+        <div className="hover-luxury-lift bg-white rounded-xl border border-[#eae3e4] p-5 shadow-xs transition-all duration-300">
           <div className="flex items-center justify-between text-xs text-[#716769]">
-            <span className="font-medium">Paid out this week</span>
+            <span className="font-medium">RMB Disbursed</span>
             <div className="w-6 h-6 rounded-full bg-[#fdf3f4] text-[#7A0C1A] flex items-center justify-center text-xs font-bold">
               ¥
             </div>
           </div>
-          <div className="text-2xl font-bold font-serif text-[#1b1416] mt-2">¥184,500</div>
-          <div className="text-[11px] text-[#716769] font-medium mt-1">23 RMB orders</div>
+          <div className="text-2xl font-bold font-serif text-[#1b1416] mt-2">
+            ¥{paymentMetrics.paidOutRmbSum.toLocaleString()}
+          </div>
+          <div className="text-[11px] text-[#716769] font-medium mt-1">
+            {paymentMetrics.paidOutRmbCount} RMB order{paymentMetrics.paidOutRmbCount === 1 ? '' : 's'}
+          </div>
         </div>
 
         {/* Rejected */}
-        <div className="bg-white rounded-xl border border-[#eae3e4] p-5 shadow-xs">
+        <div className="hover-luxury-lift bg-white rounded-xl border border-[#eae3e4] p-5 shadow-xs transition-all duration-300">
           <div className="flex items-center justify-between text-xs text-[#716769]">
-            <span className="font-medium">Rejected</span>
+            <span className="font-medium">Flagged / Rejected</span>
             <div className="w-6 h-6 rounded-full bg-[#fef2f2] text-[#dc2626] flex items-center justify-center">
               <XCircle className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-bold font-serif text-[#1b1416] mt-2">1</div>
-          <div className="text-[11px] text-[#dc2626] font-medium mt-1">Amount mismatch</div>
+          <div className="text-2xl font-bold font-serif text-[#1b1416] mt-2">
+            {paymentMetrics.rejectedCount}
+          </div>
+          <div className="text-[11px] text-[#dc2626] font-medium mt-1 truncate max-w-[170px]" title={paymentMetrics.latestRejectionReason}>
+            {paymentMetrics.rejectedCount > 0 ? paymentMetrics.latestRejectionReason : 'No errors flagged'}
+          </div>
         </div>
       </div>
 
@@ -321,7 +385,7 @@ export default function AdminPaymentsPage() {
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold text-[#1b1416]">Pay RMB, get naira · requests</h2>
               <span className="px-2 py-0.5 rounded-full bg-[#fdf5e8] text-[#b45309] text-[10px] font-bold">
-                2 need action
+                {paymentMetrics.rmbActionCount} need action
               </span>
             </div>
             <p className="text-xs text-[#716769] mt-0.5">
@@ -700,6 +764,31 @@ export default function AdminPaymentsPage() {
                   <span className="text-[11px] text-[#716769]">{selectedReceipt.type}</span>
                 </div>
               </div>
+
+              {/* RMB Payout Target or Bank Destination */}
+              {(selectedReceipt.destinationAccountDetails || selectedReceipt.destinationChannel) && (
+                <div className="p-3 rounded-lg bg-[#f8f5f5] border border-[#eae3e4] text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#716769] text-[10px] uppercase font-semibold">Payout Destination</span>
+                    <span className="px-2 py-0.5 rounded bg-[#7A0C1A] text-white font-bold text-[10px]">
+                      {selectedReceipt.destinationChannel || 'Disbursement Desk'}
+                    </span>
+                  </div>
+                  <div className="font-mono font-bold text-[#1b1416] text-[13px] break-all">
+                    {selectedReceipt.destinationAccountDetails || 'Confirmed on WhatsApp'}
+                  </div>
+                </div>
+              )}
+
+              {/* Sender Bank details if available */}
+              {(selectedReceipt.senderBank || selectedReceipt.senderAccountName) && (
+                <div className="p-2.5 rounded-lg bg-[#faf7f7] border border-[#eae3e4] text-xs flex items-center justify-between">
+                  <span className="text-[#716769]">Sender Account:</span>
+                  <span className="font-semibold text-[#1b1416]">
+                    {selectedReceipt.senderAccountName || selectedReceipt.customerName} ({selectedReceipt.senderBank || 'Direct Transfer'})
+                  </span>
+                </div>
+              )}
 
               {/* Receipt slip simulation image */}
               <div className="border border-[#eae3e4] rounded-xl p-4 bg-[#fdfbfb] space-y-3">

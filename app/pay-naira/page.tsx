@@ -11,8 +11,12 @@ function PayNairaContent() {
   const searchParams = useSearchParams();
   const { rmbRequests, rmbRates } = useStore();
 
-  const orderId = searchParams.get('order') || 'RMB-0142';
-  const targetRequest = rmbRequests.find(r => r.id === orderId);
+  const directionParam = searchParams.get('direction');
+  const direction: 'rmb_to_naira' | 'naira_to_rmb' =
+    directionParam === 'naira_to_rmb' ? 'naira_to_rmb' : 'rmb_to_naira';
+
+  const orderId = searchParams.get('order') || null;
+  const targetRequest = orderId ? rmbRequests.find(r => r.id === orderId) : null;
 
   const paramSource = searchParams.get('source') ? Number(searchParams.get('source')) : null;
   const paramDest = searchParams.get('dest') ? Number(searchParams.get('dest')) : null;
@@ -20,17 +24,39 @@ function PayNairaContent() {
   const paramEmail = searchParams.get('email') || null;
   const paramPhone = searchParams.get('phone') || null;
 
-  // Exact Figma Order RMB-0142 defaults: ₦2,154,000 for ¥10,000 at 215.40
-  const sourceAmount = targetRequest?.sourceAmount || paramSource || 2154000;
-  const rateApplied = targetRequest?.rateApplied || rmbRates.payNairaRate || 215.40;
-  const destinationAmount = targetRequest?.destinationAmount || paramDest || 10000;
-  const customerName = targetRequest?.customerName || paramName || 'Chidi Okafor';
-  const customerEmail = targetRequest?.customerEmail || paramEmail || 'chidi.o@email.com';
-  const customerPhone = targetRequest?.customerWhatsApp || paramPhone || '0803 000 0000';
+  // Defaults based on direction:
+  // If rmb_to_naira: source default 10,000 RMB, dest default 2,050,000 NGN
+  // If naira_to_rmb: source default 2,154,000 NGN, dest default 10,000 RMB
+  const sourceAmount =
+    targetRequest?.sourceAmount ||
+    paramSource ||
+    (direction === 'rmb_to_naira' ? 10000 : 2154000);
+
+  const rateApplied =
+    targetRequest?.rateApplied ||
+    (direction === 'rmb_to_naira'
+      ? paramSource && paramDest
+        ? Number((paramDest / paramSource).toFixed(2))
+        : rmbRates.payRmbRate
+      : paramSource && paramDest
+      ? Number((paramSource / paramDest).toFixed(2))
+      : rmbRates.payNairaRate);
+
+  const destinationAmount =
+    targetRequest?.destinationAmount ||
+    paramDest ||
+    (direction === 'rmb_to_naira'
+      ? Math.round(sourceAmount * rateApplied)
+      : Math.round(sourceAmount / rateApplied));
+
+  const customerName = targetRequest?.customerName || paramName || '';
+  const customerEmail = targetRequest?.customerEmail || paramEmail || '';
+  const customerPhone = targetRequest?.customerWhatsApp || paramPhone || '';
 
   return (
     <PayNairaView
-      orderId={orderId}
+      orderId={orderId || undefined}
+      direction={direction}
       sourceAmount={sourceAmount}
       rateApplied={rateApplied}
       destinationAmount={destinationAmount}

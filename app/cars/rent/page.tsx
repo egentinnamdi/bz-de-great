@@ -9,6 +9,7 @@ import { SiteFooter } from '@/components/site-footer';
 import { CatalogHeader } from '@/components/catalog-header';
 import { CardCar } from '@/components/card-car';
 import { Button } from '@/components/ui/button';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 import { useStore } from '@/lib/store';
 
 function CarRentalsContent() {
@@ -288,8 +289,15 @@ function CarRentalsContent() {
             {/* 2-Column Cards Grid (Figma: Row 1, Row 2, Row 3) */}
             {filteredCars.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
-                {filteredCars.map(car => (
-                  <CardCar key={car.id} car={car} className="max-w-none w-full" />
+                {filteredCars.map((car, idx) => (
+                  <ScrollReveal
+                    key={car.id}
+                    animation="fade-in-up"
+                    delayMs={Math.min(idx * 60, 300)}
+                    className="w-full flex justify-center"
+                  >
+                    <CardCar car={car} className="max-w-none w-full" />
+                  </ScrollReveal>
                 ))}
               </div>
             ) : (

@@ -23,6 +23,7 @@ import { BrandLogo } from '@/components/brand-logo';
 import { cn } from '@/lib/utils';
 import { AdminAuthProvider, useAdminAuth } from '@/lib/admin-auth';
 import { useToast } from '@/components/toast-provider';
+import { useStore } from '@/lib/store';
 
 interface NavItem {
   label: string;
@@ -31,37 +32,49 @@ interface NavItem {
   badge?: string | number;
 }
 
-const NAV_GROUPS: { group: string; items: NavItem[] }[] = [
-  {
-    group: 'MAIN',
-    items: [
-      { label: 'Overview', href: '/admin', icon: LayoutGrid },
-      { label: 'Listings', href: '/admin/listings', icon: CarFront },
-      { label: 'Bookings', href: '/admin/bookings', icon: CalendarDays },
-    ]
-  },
-  {
-    group: 'MONEY',
-    items: [
-      { label: 'Payments', href: '/admin/payments', icon: CreditCard, badge: 6 },
-      { label: 'RMB rate', href: '/admin/rmb-rate', icon: JapaneseYen }
-    ]
-  },
-  {
-    group: 'MANAGE',
-    items: [
-      { label: 'Customers', href: '/admin/customers', icon: Users },
-      { label: 'Website content', href: '/admin/website-content', icon: ImageIcon },
-      { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
-      { label: 'Activity log', href: '/admin/activity-log', icon: History }
-    ]
-  }
-];
-
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, isLoading, user, logout } = useAdminAuth();
+  const { bookings, rmbRequests } = useStore();
+
+  const pendingPaymentsCount = React.useMemo(() => {
+    const pendingBookings = bookings.filter(b => b.paymentStatus === 'receipt_uploaded' || b.paymentStatus === 'pending').length;
+    const pendingRmb = rmbRequests.filter(r => r.status === 'receipt_received' || r.status === 'requested').length;
+    return pendingBookings + pendingRmb;
+  }, [bookings, rmbRequests]);
+
+  const navGroups = React.useMemo(() => [
+    {
+      group: 'MAIN',
+      items: [
+        { label: 'Overview', href: '/admin', icon: LayoutGrid },
+        { label: 'Listings', href: '/admin/listings', icon: CarFront },
+        { label: 'Bookings', href: '/admin/bookings', icon: CalendarDays },
+      ]
+    },
+    {
+      group: 'MONEY',
+      items: [
+        {
+          label: 'Payments',
+          href: '/admin/payments',
+          icon: CreditCard,
+          badge: pendingPaymentsCount > 0 ? pendingPaymentsCount : undefined
+        },
+        { label: 'RMB rate', href: '/admin/rmb-rate', icon: JapaneseYen }
+      ]
+    },
+    {
+      group: 'MANAGE',
+      items: [
+        { label: 'Customers', href: '/admin/customers', icon: Users },
+        { label: 'Website content', href: '/admin/website-content', icon: ImageIcon },
+        { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
+        { label: 'Activity log', href: '/admin/activity-log', icon: History }
+      ]
+    }
+  ], [pendingPaymentsCount]);
 
   const isLoginPage = pathname === '/admin/login';
 
@@ -126,7 +139,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
           {/* Navigation Groups */}
           <nav className="space-y-5">
-            {NAV_GROUPS.map(grp => (
+            {navGroups.map(grp => (
               <div key={grp.group} className="space-y-1.5">
                 <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-white/50 block">
                   {grp.group}
@@ -226,7 +239,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Navigation Strip */}
         <div className="md:hidden flex items-center gap-2 p-2 bg-[#f8f5f5] border-b border-[#eae3e4] overflow-x-auto no-scrollbar">
-          {NAV_GROUPS.flatMap(g => g.items).map(item => {
+          {navGroups.flatMap(g => g.items).map(item => {
             const isActive = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
             return (
               <Link

@@ -8,6 +8,7 @@ import { SiteFooter } from '@/components/site-footer';
 import { CatalogHeader } from '@/components/catalog-header';
 import { CardProperty } from '@/components/card-property';
 import { Button } from '@/components/ui/button';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 import { useStore } from '@/lib/store';
 
 function HomesForRentContent() {
@@ -237,8 +238,15 @@ function HomesForRentContent() {
             {/* 2-Column Cards Grid (Figma: Row 1, Row 2, Row 3) */}
             {homesForRent.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
-                {homesForRent.map(home => (
-                  <CardProperty key={home.id} property={home} className="max-w-none w-full" />
+                {homesForRent.map((home, idx) => (
+                  <ScrollReveal
+                    key={home.id}
+                    animation="fade-in-up"
+                    delayMs={Math.min(idx * 60, 300)}
+                    className="w-full flex justify-center"
+                  >
+                    <CardProperty property={home} className="max-w-none w-full" />
+                  </ScrollReveal>
                 ))}
               </div>
             ) : (

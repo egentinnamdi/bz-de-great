@@ -33,19 +33,14 @@ export function RmbCalculator({
       : 0;
 
   const handleGetAccount = () => {
-    if (onOpenGetAccount) {
-      onOpenGetAccount(direction, sourceAmount, destinationAmount);
-      return;
-    }
-
-    // Direct navigation to the settlement desk as requested by user
+    // Direct navigation to the settlement desk as requested by user: http://localhost:3000/pay-naira?direction=...&source=...&dest=...
     router.push(`/pay-naira?direction=${direction}&source=${sourceAmount}&dest=${destinationAmount}`);
   };
 
   return (
     <div
       className={cn(
-        'w-full max-w-[440px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-4 text-left border border-[#eae3e4]',
+        'w-full max-w-[440px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-4 text-left border border-[#eae3e4] hover-luxury-lift',
         className
       )}
     >
@@ -55,6 +50,7 @@ export function RmbCalculator({
           RMB exchange
         </h3>
         <div className="flex items-center gap-1.5 text-xs text-[#716769]">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-subtle shrink-0" />
           <Clock className="w-3.5 h-3.5 text-[#716769]" />
           <span>Rates updated {rmbRates.updatedAt || 'today'}</span>
         </div>
@@ -69,7 +65,7 @@ export function RmbCalculator({
             if (sourceAmount === 2000000) setSourceAmount(10000);
           }}
           className={cn(
-            'flex-1 h-8 rounded-lg text-xs font-semibold transition-all cursor-pointer',
+            'flex-1 h-8 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer active:scale-95',
             direction === 'rmb_to_naira'
               ? 'bg-[#7A0C1A] text-white shadow-xs'
               : 'text-[#716769] hover:text-[#1b1416]'
@@ -84,7 +80,7 @@ export function RmbCalculator({
             if (sourceAmount === 10000) setSourceAmount(2000000);
           }}
           className={cn(
-            'flex-1 h-8 rounded-lg text-xs font-semibold transition-all cursor-pointer',
+            'flex-1 h-8 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer active:scale-95',
             direction === 'naira_to_rmb'
               ? 'bg-[#7A0C1A] text-white shadow-xs'
               : 'text-[#716769] hover:text-[#1b1416]'
@@ -95,7 +91,7 @@ export function RmbCalculator({
       </div>
 
       {/* You pay */}
-      <div className="rounded-xl bg-[#f8f5f5] p-3.5 flex flex-col justify-between border border-[#eae3e4]/60 focus-within:border-[#7A0C1A]">
+      <div className="rounded-xl bg-[#f8f5f5] p-3.5 flex flex-col justify-between border border-[#eae3e4]/60 focus-within:border-[#7A0C1A] transition-colors">
         <span className="text-[11px] font-medium text-[#716769]">You pay</span>
         <div className="flex items-center justify-between gap-3 mt-1">
           <input
@@ -137,10 +133,10 @@ export function RmbCalculator({
       <button
         type="button"
         onClick={handleGetAccount}
-        className="w-full py-3 rounded-xl bg-[#7A0C1A] hover:bg-[#600814] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer mt-1"
+        className="group w-full py-3 rounded-xl bg-[#7A0C1A] hover:bg-[#600814] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all duration-200 active:scale-[0.98] cursor-pointer mt-1"
       >
         <span>Get account</span>
-        <ArrowRight className="w-3.5 h-3.5" />
+        <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
       </button>
 
       {/* Footnote */}

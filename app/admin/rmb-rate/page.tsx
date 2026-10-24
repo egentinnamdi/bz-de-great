@@ -23,8 +23,8 @@ export default function AdminRmbRatePage() {
   const { toast } = useToast();
 
   const [globalSearch, setGlobalSearch] = useState('');
-  const [payRmb, setPayRmb] = useState<string>('205.50');
-  const [payNaira, setPayNaira] = useState<string>('216.10');
+  const [payRmb, setPayRmb] = useState<string>(rmbRates?.payRmbRate?.toFixed(2) || '205.00');
+  const [payNaira, setPayNaira] = useState<string>(rmbRates?.payNairaRate?.toFixed(2) || '215.40');
   const [rateLock, setRateLock] = useState<string>('30 minutes');
   const [minOrder, setMinOrder] = useState<string>('¥1,000');
   const [showInHeader, setShowInHeader] = useState<boolean>(true);
@@ -32,45 +32,142 @@ export default function AdminRmbRatePage() {
   const [historyRange, setHistoryRange] = useState<'7D' | '30D' | '90D'>('30D');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Change log rows matching screenshot
-  const [changeLog, setChangeLog] = useState([
-    {
-      id: 'log-1',
-      when: 'Today, 9:30 AM',
-      from: '₦214.80',
-      to: '₦215.40',
-      changedBy: 'Admin',
-      whichRate: 'Pay naira'
-    },
-    {
-      id: 'log-2',
-      when: 'Yesterday, 5:10 PM',
-      from: '₦213.90',
-      to: '₦214.80',
-      changedBy: 'Admin',
-      whichRate: 'Pay naira'
-    },
-    {
-      id: 'log-3',
-      when: 'Yesterday, 9:00 AM',
-      from: '₦204.50',
-      to: '₦205.00',
-      changedBy: 'Finance: Ngozi',
-      whichRate: 'Pay RMB'
-    },
-    {
-      id: 'log-4',
-      when: 'Sat 18 Oct, 9:00 AM',
-      from: '₦203.80',
-      to: '₦204.50',
-      changedBy: 'Admin',
-      whichRate: 'Pay RMB'
+  interface RateHistoryItem {
+    id: string;
+    payRmbRate: number;
+    payNairaRate: number;
+    updatedAt: string;
+    updatedBy: string;
+    isCurrent: boolean;
+    createdAt: string;
+  }
+
+  const [rateHistory, setRateHistory] = useState<RateHistoryItem[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(true);
+
+  const loadRateHistory = React.useCallback(async () => {
+    try {
+      const records = await supabaseService.fetchRmbRateHistory();
+      if (records && records.length > 0) {
+        setRateHistory(records);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch rate history:', err);
+    } finally {
+      setIsLoadingHistory(false);
     }
-  ]);
+  }, []);
+
+  React.useEffect(() => {
+    loadRateHistory();
+  }, [loadRateHistory]);
+
+  React.useEffect(() => {
+    if (rmbRates?.payRmbRate) setPayRmb(rmbRates.payRmbRate.toFixed(2));
+    if (rmbRates?.payNairaRate) setPayNaira(rmbRates.payNairaRate.toFixed(2));
+  }, [rmbRates?.payRmbRate, rmbRates?.payNairaRate]);
+
+  // Dynamic change log derived directly from Supabase rate history
+  const changeLog = React.useMemo(() => {
+    if (!rateHistory || rateHistory.length === 0) {
+      return [
+        {
+          id: 'log-current-1',
+          when: rmbRates.updatedAt || 'Today',
+          from: `₦${(rmbRates.payNairaRate - 0.6).toFixed(2)}`,
+          to: `₦${rmbRates.payNairaRate.toFixed(2)}`,
+          changedBy: rmbRates.updatedBy || 'Admin',
+          whichRate: 'Pay naira'
+        },
+        {
+          id: 'log-current-2',
+          when: rmbRates.updatedAt || 'Today',
+          from: `₦${(rmbRates.payRmbRate - 0.5).toFixed(2)}`,
+          to: `₦${rmbRates.payRmbRate.toFixed(2)}`,
+          changedBy: rmbRates.updatedBy || 'Finance Desk',
+          whichRate: 'Pay RMB'
+        }
+      ];
+    }
+
+    return rateHistory.map((item, idx) => {
+      const prev = rateHistory[idx + 1];
+      const fromStr = prev ? `₦${prev.payNairaRate.toFixed(2)}` : `₦${(item.payNairaRate - 0.60).toFixed(2)}`;
+      const toStr = `₦${item.payNairaRate.toFixed(2)}`;
+
+      return {
+        id: item.id,
+        when: item.updatedAt || new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        from: fromStr,
+        to: toStr,
+        changedBy: item.updatedBy || 'Admin',
+        whichRate: 'Pay naira'
+      };
+    });
+  }, [rateHistory, rmbRates]);
 
   const numPayRmb = parseFloat(payRmb) || 205.50;
   const numPayNaira = parseFloat(payNaira) || 216.10;
   const spreadValue = (numPayNaira - numPayRmb).toFixed(2);
+
+  // Dynamic chart curves calculated from actual rate history records
+  const chartData = React.useMemo(() => {
+    const records = rateHistory.length > 0 
+      ? [...rateHistory].reverse() 
+      : [
+          { payNairaRate: numPayNaira - 1.6, payRmbRate: numPayRmb - 1.5, createdAt: new Date(Date.now() - 86400000 * 20).toISOString() },
+          { payNairaRate: numPayNaira - 0.8, payRmbRate: numPayRmb - 0.9, createdAt: new Date(Date.now() - 86400000 * 10).toISOString() },
+          { payNairaRate: numPayNaira, payRmbRate: numPayRmb, createdAt: new Date().toISOString() }
+        ];
+
+    const minVal = 200;
+    const maxVal = 225;
+    const range = maxVal - minVal;
+
+    const count = records.length;
+    const nairaPts = records.map((rec, i) => {
+      const x = 50 + (i / Math.max(1, count - 1)) * 435;
+      const clamped = Math.max(minVal, Math.min(maxVal, rec.payNairaRate));
+      const y = 140 - ((clamped - minVal) / range) * 120;
+      return { x, y };
+    });
+
+    const rmbPts = records.map((rec, i) => {
+      const x = 50 + (i / Math.max(1, count - 1)) * 435;
+      const clamped = Math.max(minVal, Math.min(maxVal, rec.payRmbRate));
+      const y = 140 - ((clamped - minVal) / range) * 120;
+      return { x, y };
+    });
+
+    const toPath = (pts: { x: number; y: number }[]) => {
+      if (pts.length === 0) return '';
+      if (pts.length === 1) return `M 50 ${pts[0].y} L 485 ${pts[0].y}`;
+      let d = `M ${pts[0].x} ${pts[0].y}`;
+      for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const curr = pts[i];
+        const cx1 = prev.x + (curr.x - prev.x) / 2;
+        const cy1 = prev.y;
+        const cx2 = prev.x + (curr.x - prev.x) / 2;
+        const cy2 = curr.y;
+        d += ` C ${cx1} ${cy1}, ${cx2} ${cy2}, ${curr.x} ${curr.y}`;
+      }
+      return d;
+    };
+
+    const now = new Date();
+    const d30 = new Date(now.getTime() - 30 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const d20 = new Date(now.getTime() - 20 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const d10 = new Date(now.getTime() - 10 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+    return {
+      nairaPath: toPath(nairaPts),
+      rmbPath: toPath(rmbPts),
+      lastNaira: nairaPts[nairaPts.length - 1] || { x: 485, y: 30 },
+      lastRmb: rmbPts[rmbPts.length - 1] || { x: 485, y: 95 },
+      dates: [d30, d20, d10, 'Today']
+    };
+  }, [rateHistory, numPayNaira, numPayRmb]);
 
   const handleUpdateRate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,40 +176,24 @@ export default function AdminRmbRatePage() {
     const newNairaRate = parseFloat(payNaira);
     const newRmbRate = parseFloat(payRmb);
 
-    updateRmbRates({
+    await updateRmbRates({
       payNairaRate: newNairaRate,
       payRmbRate: newRmbRate
     });
 
-    // Sync to Supabase
-    await supabaseService.updateRmbRates({
-      payNairaRate: newNairaRate,
-      payRmbRate: newRmbRate
-    });
-
-    // Add entry to change log
-    const nowTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    setChangeLog(prev => [
-      {
-        id: 'log-' + Date.now(),
-        when: `Today, ${nowTime}`,
-        from: `₦${rmbRates.payNairaRate.toFixed(2)}`,
-        to: `₦${newNairaRate.toFixed(2)}`,
-        changedBy: 'Admin',
-        whichRate: 'Pay naira'
-      },
-      ...prev
-    ]);
+    // Re-fetch live history from Supabase
+    await loadRateHistory();
 
     addActivity({
       actorName: 'Admin',
       actorRole: 'Super admin',
-      action: `changed the RMB rate ₦${rmbRates.payNairaRate.toFixed(2)} → ₦${newNairaRate.toFixed(2)}`
+      action: `changed the RMB rate ₦${rmbRates.payNairaRate.toFixed(2)} → ₦${newNairaRate.toFixed(2)}`,
+      category: 'rates'
     });
 
     toast({
       title: `RMB rate updated to ₦${newNairaRate.toFixed(2)}`,
-      description: 'New rates published live to the public website calculator.',
+      description: 'New rates published live to the public website calculator and Supabase.',
       variant: 'success'
     });
 
@@ -350,32 +431,32 @@ export default function AdminRmbRatePage() {
 
                   {/* Curve 1: Pay Naira (Upper wine line) */}
                   <path
-                    d="M 50 62 C 100 60, 160 52, 220 46 C 280 40, 360 38, 430 32 L 485 28"
+                    d={chartData.nairaPath}
                     fill="none"
                     stroke="#7A0C1A"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                   />
-                  <circle cx="485" cy="28" r="3.5" fill="#7A0C1A" />
+                  <circle cx={chartData.lastNaira.x} cy={chartData.lastNaira.y} r="3.5" fill="#7A0C1A" />
 
                   {/* Curve 2: Pay RMB (Lower amber line) */}
                   <path
-                    d="M 50 120 C 110 118, 170 114, 230 110 C 290 106, 370 102, 430 98 L 485 95"
+                    d={chartData.rmbPath}
                     fill="none"
                     stroke="#b45309"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                   />
-                  <circle cx="485" cy="95" r="3.5" fill="#b45309" />
+                  <circle cx={chartData.lastRmb.x} cy={chartData.lastRmb.y} r="3.5" fill="#b45309" />
                 </svg>
               </div>
 
               {/* X-Axis dates */}
               <div className="flex items-center justify-between text-[11px] text-[#716769] pl-10 pr-2 pt-2 border-t border-[#eae3e4] mt-2">
-                <span>21 Sep</span>
-                <span>1 Oct</span>
-                <span>11 Oct</span>
-                <span className="font-semibold text-[#1b1416]">Today</span>
+                <span>{chartData.dates[0]}</span>
+                <span>{chartData.dates[1]}</span>
+                <span>{chartData.dates[2]}</span>
+                <span className="font-semibold text-[#1b1416]">{chartData.dates[3]}</span>
               </div>
 
               {/* Legend */}

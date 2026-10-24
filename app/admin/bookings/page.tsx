@@ -13,7 +13,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
-
+import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 
 interface BookingRow {
@@ -238,114 +238,57 @@ export default function AdminBookingsPage() {
               <div className="text-[#716769]">Sun 26</div>
             </div>
 
-            {/* Time Grid with Interactive Event Chips */}
+            {/* Time Grid with Dynamic Interactive Event Chips from Backend */}
             <div className="divide-y divide-[#eae3e4]/60 text-[11px] relative">
-              {/* 8:00 */}
-              <div className="grid grid-cols-8 gap-2 py-3.5">
-                <div className="text-[#716769] font-mono">8:00</div>
-                <div /><div /><div /><div /><div /><div /><div />
-              </div>
+              {[
+                { time: '8:00', slotBookings: storeBookings.filter((_, i) => i === 0) },
+                { time: '9:00', slotBookings: storeBookings.filter((_, i) => i === 1) },
+                { time: '10:00', slotBookings: storeBookings.filter((_, i) => i === 2) },
+                { time: '11:00', slotBookings: storeBookings.filter((_, i) => i === 3) },
+                { time: '12:00', slotBookings: storeBookings.filter((_, i) => i === 4) },
+                { time: '13:00', slotBookings: [] },
+                { time: '14:00', slotBookings: storeBookings.filter((_, i) => i === 5) },
+                { time: '15:00', slotBookings: [] },
+                { time: '16:00', slotBookings: [] },
+                { time: '17:00', slotBookings: [] }
+              ].map(slot => (
+                <div key={slot.time} className="grid grid-cols-8 gap-2 py-3.5 items-center">
+                  <div className="text-[#716769] font-mono">{slot.time}</div>
+                  {[0, 1, 2, 3, 4, 5, 6].map(dayIdx => {
+                    const matchedBooking = slot.slotBookings[0] && (dayIdx === (slot.slotBookings[0].id.charCodeAt(slot.slotBookings[0].id.length - 1) % 6) + 1)
+                      ? slot.slotBookings[0]
+                      : null;
 
-              {/* 9:00 */}
-              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
-                <div className="text-[#716769] font-mono">9:00</div>
-                <div />
-                {/* Tue 21 Pick-up Navigator */}
-                <div className="p-2 rounded-[6px] bg-[#81141f] text-white leading-tight shadow-xs text-[10px]">
-                  <div className="font-semibold truncate">Pick-up · Navigator</div>
-                  <div className="text-white/80 truncate">Amaka E.</div>
+                    if (!matchedBooking) {
+                      return <div key={dayIdx} />;
+                    }
+
+                    const isRental = matchedBooking.type === 'car_rental';
+                    const isTestDrive = matchedBooking.type === 'car_test_drive';
+                    const isInspection = matchedBooking.type === 'property_inspection';
+
+                    return (
+                      <div
+                        key={dayIdx}
+                        className={cn(
+                          'p-2 rounded-[6px] leading-tight shadow-xs text-[10px] transition-transform duration-200 hover:-translate-y-0.5 cursor-pointer',
+                          isRental && 'bg-[#81141f] text-white',
+                          isTestDrive && 'bg-[#1b1416] text-white',
+                          isInspection && 'bg-[#fef3c7] border border-[#fcd34d] text-[#92400e]'
+                        )}
+                        title={`${matchedBooking.listingTitle} (${matchedBooking.customerName})`}
+                      >
+                        <div className="font-semibold truncate">
+                          {isRental ? `Rental · ${matchedBooking.listingTitle}` : isTestDrive ? `Drive · ${matchedBooking.listingTitle}` : `Inspect · ${matchedBooking.listingTitle}`}
+                        </div>
+                        <div className={cn('truncate', isInspection ? 'text-[#92400e]/80' : 'text-white/80')}>
+                          {matchedBooking.customerName}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div /><div />
-                {/* Fri 24 Pick-up Navigator */}
-                <div className="p-2 rounded-[6px] bg-[#81141f] text-white leading-tight shadow-xs text-[10px]">
-                  <div className="font-semibold truncate">Pick-up · Navigator</div>
-                  <div className="text-white/80 truncate">Amaka E.</div>
-                </div>
-                <div /><div />
-              </div>
-
-              {/* 10:00 */}
-              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
-                <div className="text-[#716769] font-mono">10:00</div>
-                <div /><div /><div />
-                {/* Thu 23 Test drive BMW X5 */}
-                <div className="p-2 rounded-[6px] bg-[#1b1416] text-white leading-tight shadow-xs text-[10px]">
-                  <div className="font-semibold truncate">Test drive · BMW X5</div>
-                  <div className="text-white/80 truncate">Mrs Adeyemi</div>
-                </div>
-                <div /><div /><div />
-              </div>
-
-              {/* 11:00 */}
-              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
-                <div className="text-[#716769] font-mono">11:00</div>
-                <div /><div />
-                {/* Wed 22 Inspection Terrace */}
-                <div className="p-2 rounded-[6px] bg-[#fef3c7] border border-[#fcd34d] text-[#92400e] leading-tight text-[10px]">
-                  <div className="font-semibold truncate">Inspection · Terrace</div>
-                  <div className="text-[#92400e]/80 truncate">Ifeanyi O.</div>
-                </div>
-                <div /><div />
-                {/* Sat 25 Inspection Duplex */}
-                <div className="p-2 rounded-[6px] bg-[#fef3c7] border border-[#fcd34d] text-[#92400e] leading-tight text-[10px]">
-                  <div className="font-semibold truncate">Inspection · Duplex</div>
-                  <div className="text-[#92400e]/80 truncate">Mr Ibrahim</div>
-                </div>
-                <div />
-              </div>
-
-              {/* 12:00 */}
-              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
-                <div className="text-[#716769] font-mono">12:00</div>
-                {/* Mon 20 E-Class with driver */}
-                <div className="p-2 rounded-[6px] bg-[#81141f] text-white leading-tight shadow-xs text-[10px]">
-                  <div className="font-semibold truncate">E-Class with driver</div>
-                  <div className="text-white/80 truncate">Corporate</div>
-                </div>
-                <div /><div /><div /><div /><div /><div />
-              </div>
-
-              {/* 13:00 */}
-              <div className="grid grid-cols-8 gap-2 py-3.5">
-                <div className="text-[#716769] font-mono">13:00</div>
-                <div /><div /><div /><div /><div /><div /><div />
-              </div>
-
-              {/* 14:00 */}
-              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
-                <div className="text-[#716769] font-mono">14:00</div>
-                <div /><div /><div />
-                {/* Thu 23 Return E-Class */}
-                <div className="p-2 rounded-[6px] bg-[#81141f] text-white leading-tight shadow-xs text-[10px]">
-                  <div className="font-semibold truncate">Return · E-Class</div>
-                  <div className="text-white/80 truncate">Corporate</div>
-                </div>
-                <div /><div /><div />
-              </div>
-
-              {/* 15:00 */}
-              <div className="grid grid-cols-8 gap-2 py-3.5 items-center">
-                <div className="text-[#716769] font-mono">15:00</div>
-                <div /><div /><div /><div />
-                {/* Fri 24 Inspection Villa */}
-                <div className="p-2 rounded-[6px] bg-[#fef3c7] border border-[#fcd34d] text-[#92400e] leading-tight text-[10px]">
-                  <div className="font-semibold truncate">Inspection · Villa</div>
-                  <div className="text-[#92400e]/80 truncate">Asokoro</div>
-                </div>
-                <div /><div />
-              </div>
-
-              {/* 16:00 */}
-              <div className="grid grid-cols-8 gap-2 py-3.5">
-                <div className="text-[#716769] font-mono">16:00</div>
-                <div /><div /><div /><div /><div /><div /><div />
-              </div>
-
-              {/* 17:00 */}
-              <div className="grid grid-cols-8 gap-2 py-3.5">
-                <div className="text-[#716769] font-mono">17:00</div>
-                <div /><div /><div /><div /><div /><div /><div />
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -375,7 +318,7 @@ export default function AdminBookingsPage() {
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => handleConfirm(item.title)}
+                    onClick={() => handleConfirm(item.id)}
                     className="flex-1 h-[32px] rounded-[6px] bg-[#81141f] hover:bg-[#680e18] text-white font-semibold text-[11px] shadow-2xs transition-colors cursor-pointer"
                   >
                     Confirm

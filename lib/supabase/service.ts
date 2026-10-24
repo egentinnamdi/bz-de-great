@@ -272,6 +272,39 @@ export const supabaseService = {
     }
   },
 
+  async fetchRmbRateHistory(): Promise<Array<{
+    id: string;
+    payRmbRate: number;
+    payNairaRate: number;
+    updatedAt: string;
+    updatedBy: string;
+    isCurrent: boolean;
+    createdAt: string;
+  }> | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const { data, error } = await supabase
+        .from('rmb_rates')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error || !data) return null;
+
+      return data.map(row => ({
+        id: row.id,
+        payRmbRate: Number(row.pay_rmb_rate),
+        payNairaRate: Number(row.pay_naira_rate),
+        updatedAt: row.updated_at_display || 'Recently',
+        updatedBy: row.updated_by || 'Admin',
+        isCurrent: Boolean(row.is_current),
+        createdAt: row.created_at || new Date().toISOString()
+      }));
+    } catch (err) {
+      return null;
+    }
+  },
+
   // ============================================================================
   // 4. RMB EXCHANGE REQUESTS
   // ============================================================================

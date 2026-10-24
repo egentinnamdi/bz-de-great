@@ -30,6 +30,7 @@ export default function AdminWebsiteContentPage() {
 
   const [announcementEnabled, setAnnouncementEnabled] = useState(websiteContent.announcementEnabled);
   const [announcementText, setAnnouncementText] = useState(websiteContent.announcementText);
+  const [lastPublishedText, setLastPublishedText] = useState('Synced live with Supabase BaaS');
 
   // Featured items on homepage
   const [featuredItems, setFeaturedItems] = useState(websiteContent.featuredItems);
@@ -78,6 +79,7 @@ export default function AdminWebsiteContentPage() {
       announcementText,
       featuredItems
     });
+    setLastPublishedText(`Published today at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} by Admin`);
     await addActivity({
       actorName: 'Admin',
       actorRole: 'Master Admin',
@@ -331,7 +333,7 @@ export default function AdminWebsiteContentPage() {
           {/* Publish Changes Card */}
           <div className="space-y-2">
             <p className="text-xs text-[#716769] text-center">
-              Last published today at 9:30 AM by Admin
+              {lastPublishedText}
             </p>
             <button
               type="submit"

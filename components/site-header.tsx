@@ -92,7 +92,7 @@ export function SiteHeader() {
           <div className="hidden sm:flex items-center">
             <Link href="/cars/rent">
               <Button
-                className="h-11 px-5 rounded-lg bg-[#81141f] hover:bg-[#6b121c] text-white font-semibold text-sm shadow-xs transition-colors cursor-pointer"
+                className="h-11 px-5 rounded-lg bg-[#81141f] hover:bg-[#6b121c] text-white font-semibold text-sm shadow-xs transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer"
               >
                 <span>Book inspection</span>
               </Button>
@@ -104,10 +104,10 @@ export function SiteHeader() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-[#1b1416] hover:bg-[#f8f5f5] border border-[#eae3e4]"
+              className="p-2 rounded-lg text-[#1b1416] hover:bg-[#f8f5f5] border border-[#eae3e4] transition-colors active:scale-95"
               aria-label="Toggle Navigation Menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6 text-[#1b1416]" />}
+              {mobileMenuOpen ? <X className="w-6 h-6 animate-scale-in" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
@@ -115,7 +115,7 @@ export function SiteHeader() {
 
       {/* 3. Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-[#eae3e4] bg-white px-4 pt-3 pb-6 space-y-3 animate-in slide-in-from-top-3">
+        <div className="lg:hidden border-b border-[#eae3e4] bg-white px-4 pt-3 pb-6 space-y-3 animate-fade-in-down duration-200">
           <div className="flex flex-col space-y-1">
             {NAV_LINKS.map(link => (
               <Link

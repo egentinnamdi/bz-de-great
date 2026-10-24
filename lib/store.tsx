@@ -109,11 +109,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       if (remoteRates) setRmbRates(remoteRates);
-      if (remoteListings && remoteListings.length > 0) setListings(remoteListings);
-      if (remoteBookings && remoteBookings.length > 0) setBookings(remoteBookings);
-      if (remoteRmb && remoteRmb.length > 0) setRmbRequests(remoteRmb);
-      if (remoteCustomers && remoteCustomers.length > 0) setCustomers(remoteCustomers);
-      if (remoteActivities && remoteActivities.length > 0) setActivities(remoteActivities);
+      if (remoteListings !== null) setListings(remoteListings);
+      if (remoteBookings !== null) setBookings(remoteBookings);
+      if (remoteRmb !== null) setRmbRequests(remoteRmb);
+      if (remoteCustomers !== null) setCustomers(remoteCustomers);
+      if (remoteActivities !== null) setActivities(remoteActivities);
       if (remoteContent) setWebsiteContent(remoteContent);
     } catch (err) {
       console.warn('Error fetching Supabase data:', err);

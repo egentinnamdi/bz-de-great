@@ -27,9 +27,27 @@ export default function AdminDashboardPage() {
   const { user } = useAdminAuth();
 
   const activeRentals = bookings.filter(b => b.type === 'car_rental' && b.bookingStatus === 'confirmed');
-  const pendingReceipts = bookings.filter(b => b.paymentStatus === 'receipt_uploaded');
+  const pendingReceipts = bookings.filter(b => b.paymentStatus === 'receipt_uploaded' || b.paymentStatus === 'pending');
   const pendingRmb = rmbRequests.filter(r => r.status === 'receipt_received' || r.status === 'requested');
   const scheduledInspections = bookings.filter(b => b.type === 'property_inspection' || b.type === 'car_test_drive');
+
+  const pendingOrRecentBookings = React.useMemo(() => {
+    return [...bookings].sort((a, b) => {
+      const aPending = a.paymentStatus === 'receipt_uploaded' || a.paymentStatus === 'pending' ? 1 : 0;
+      const bPending = b.paymentStatus === 'receipt_uploaded' || b.paymentStatus === 'pending' ? 1 : 0;
+      if (bPending !== aPending) return bPending - aPending;
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    }).slice(0, 5);
+  }, [bookings]);
+
+  const pendingOrRecentRmb = React.useMemo(() => {
+    return [...rmbRequests].sort((a, b) => {
+      const aPending = a.status === 'receipt_received' || a.status === 'requested' ? 1 : 0;
+      const bPending = b.status === 'receipt_received' || b.status === 'requested' ? 1 : 0;
+      if (bPending !== aPending) return bPending - aPending;
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    }).slice(0, 5);
+  }, [rmbRequests]);
 
   const handleApproveBookingPayment = (bookingId: string) => {
     updateBooking(bookingId, {
@@ -108,45 +126,45 @@ export default function AdminDashboardPage() {
 
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="p-5 rounded-2xl bg-white border border-border-subtle shadow-xs space-y-2">
+        <div className="hover-luxury-lift p-5 rounded-2xl bg-white border border-border-subtle shadow-xs space-y-2 transition-all duration-300 animate-fade-in-up delay-75">
           <div className="flex items-center justify-between text-xs text-text-subtle font-semibold">
             <span>Active Car Rentals</span>
-            <Car className="w-4 h-4 text-wine-800" />
+            <Car className="w-4 h-4 text-wine-800 transition-transform duration-300 group-hover:scale-110" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-wine-900">
+          <div className="text-2xl sm:text-3xl font-extrabold text-wine-900 tracking-tight">
             {activeRentals.length}
           </div>
           <div className="text-[11px] text-emerald-700 font-medium">Fleet deployed on road</div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-border-subtle shadow-xs space-y-2">
+        <div className="hover-luxury-lift p-5 rounded-2xl bg-white border border-border-subtle shadow-xs space-y-2 transition-all duration-300 animate-fade-in-up delay-150">
           <div className="flex items-center justify-between text-xs text-text-subtle font-semibold">
             <span>Pending Payment Receipts</span>
-            <CreditCard className="w-4 h-4 text-amber-600" />
+            <CreditCard className="w-4 h-4 text-amber-600 transition-transform duration-300 group-hover:scale-110" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-amber-900">
+          <div className="text-2xl sm:text-3xl font-extrabold text-amber-900 tracking-tight">
             {pendingReceipts.length}
           </div>
           <div className="text-[11px] text-amber-700 font-medium">Require review & verification</div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-border-subtle shadow-xs space-y-2">
+        <div className="hover-luxury-lift p-5 rounded-2xl bg-white border border-border-subtle shadow-xs space-y-2 transition-all duration-300 animate-fade-in-up delay-200">
           <div className="flex items-center justify-between text-xs text-text-subtle font-semibold">
             <span>Scheduled Inspections</span>
-            <CalendarCheck className="w-4 h-4 text-wine-800" />
+            <CalendarCheck className="w-4 h-4 text-wine-800 transition-transform duration-300 group-hover:scale-110" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-wine-900">
+          <div className="text-2xl sm:text-3xl font-extrabold text-wine-900 tracking-tight">
             {scheduledInspections.length}
           </div>
           <div className="text-[11px] text-text-subtle font-medium">Walkthroughs & test drives</div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-border-subtle shadow-xs space-y-2">
+        <div className="hover-luxury-lift p-5 rounded-2xl bg-white border border-border-subtle shadow-xs space-y-2 transition-all duration-300 animate-fade-in-up delay-300">
           <div className="flex items-center justify-between text-xs text-text-subtle font-semibold">
             <span>Pending RMB Inflows</span>
-            <TrendingUp className="w-4 h-4 text-emerald-600" />
+            <TrendingUp className="w-4 h-4 text-emerald-600 transition-transform duration-300 group-hover:scale-110" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-900">
+          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-900 tracking-tight">
             {pendingRmb.length}
           </div>
           <div className="text-[11px] text-emerald-700 font-medium">WeChat / Alipay settlements</div>
@@ -174,8 +192,8 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="divide-y divide-border-subtle overflow-x-auto">
-              {bookings.slice(0, 4).map(b => (
-                <div key={b.id} className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-surface-bg/50 transition-colors">
+              {pendingOrRecentBookings.map(b => (
+                <div key={b.id} className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-[#fbf3f4]/60 transition-colors duration-200">
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <strong className="text-xs font-mono font-bold text-wine-900">{b.id}</strong>
@@ -192,7 +210,7 @@ export default function AdminDashboardPage() {
                       <Button
                         size="xs"
                         onClick={() => handleApproveBookingPayment(b.id)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Verify & Approve</span>
@@ -221,8 +239,8 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="divide-y divide-border-subtle overflow-x-auto">
-              {rmbRequests.slice(0, 3).map(r => (
-                <div key={r.id} className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-surface-bg/50 transition-colors">
+              {pendingOrRecentRmb.map(r => (
+                <div key={r.id} className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-[#fbf3f4]/60 transition-colors duration-200">
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <strong className="text-xs font-mono font-bold text-wine-900">{r.id}</strong>
@@ -241,7 +259,7 @@ export default function AdminDashboardPage() {
                       <Button
                         size="xs"
                         onClick={() => handleApproveRmbRequest(r.id)}
-                        className="bg-wine-800 text-white font-bold"
+                        className="bg-wine-800 text-white font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
                       >
                         Approve Payout
                       </Button>

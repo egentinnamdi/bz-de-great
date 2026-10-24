@@ -41,19 +41,47 @@ import { useStore } from '@/lib/store';
 
 export default function AdminCustomersPage() {
   const { toast } = useToast();
-  const { customers: storeCustomers, updateCustomerNotes, addActivity } = useStore();
+  const { customers: storeCustomers, bookings: storeBookings, rmbRequests: storeRmb, updateCustomerNotes, addActivity } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'cars' | 'property' | 'rmb' | 'vip'>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
   const [noteContent, setNoteContent] = useState('');
 
-  // Derive customer rows directly from Supabase
+  // Derive customer rows directly from Supabase with live transactional cross-aggregation
   const customers: CustomerRecord[] = React.useMemo(() => {
     return storeCustomers.map(c => {
       const maskedPhone = c.phone.length > 7
         ? `${c.phone.slice(0, 4)} *** ${c.phone.slice(-4)}`
         : c.phone;
+
+      // Cross-match live bookings from backend
+      const matchBookings = storeBookings.filter(b => 
+        (c.email && b.customerEmail && b.customerEmail.toLowerCase() === c.email.toLowerCase()) ||
+        (b.customerName && b.customerName.toLowerCase() === c.name.toLowerCase())
+      );
+      // Cross-match live RMB trades from backend
+      const matchRmb = storeRmb.filter(r =>
+        (c.email && r.customerEmail && r.customerEmail.toLowerCase() === c.email.toLowerCase()) ||
+        (r.customerName && r.customerName.toLowerCase() === c.name.toLowerCase())
+      );
+
+      const dynamicBookingCount = (c.bookingsCount || c.totalBookings || 0) + matchBookings.length;
+      const dynamicBookingSpend = matchBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
+      const dynamicRmbNgn = matchRmb.reduce((sum, r) => sum + (r.direction === 'naira_to_rmb' ? Number(r.sourceAmount) : Number(r.destinationAmount)), 0);
+      const dynamicRmbYen = matchRmb.reduce((sum, r) => sum + (r.direction === 'rmb_to_naira' ? Number(r.sourceAmount) : Number(r.destinationAmount)), 0);
+
+      const totalSpentNgn = (Number(c.lifetimeSpendNgn) || 0) + dynamicBookingSpend + dynamicRmbNgn;
+
+      let totalSpentStr = c.totalSpentDisplay;
+      if (totalSpentNgn > 0) {
+        totalSpentStr = totalSpentNgn >= 1_000_000 ? `₦${(totalSpentNgn / 1_000_000).toFixed(1)}M` : `₦${totalSpentNgn.toLocaleString('en-NG')}`;
+      }
+
+      let rmbSentStr = c.rmbSentDisplay;
+      if (dynamicRmbYen > 0) {
+        rmbSentStr = `¥${dynamicRmbYen.toLocaleString()}`;
+      }
 
       return {
         id: c.id,
@@ -63,16 +91,16 @@ export default function AdminCustomersPage() {
         email: c.email,
         phoneMasked: maskedPhone,
         phoneFull: c.phoneFull || c.phone,
-        uses: c.uses || 'Cars',
-        bookingsCount: c.bookingsCount ?? c.totalBookings ?? 0,
-        rmbSentDisplay: c.rmbSentDisplay || '—',
-        totalSpentDisplay: c.totalSpentDisplay || (c.lifetimeSpendNgn ? `₦${(c.lifetimeSpendNgn / 1000000).toFixed(1)}M` : '—'),
+        uses: c.uses || (matchRmb.length > 0 ? 'RMB' : 'Cars'),
+        bookingsCount: dynamicBookingCount,
+        rmbSentDisplay: rmbSentStr || '—',
+        totalSpentDisplay: totalSpentStr || '—',
         lastActive: c.lastActive || 'Today',
         joinedDate: c.joinedAt ? new Date(c.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '2024',
         notes: c.notes || ''
       };
     });
-  }, [storeCustomers]);
+  }, [storeCustomers, storeBookings, storeRmb]);
 
   const handleOpenCustomer = (c: CustomerRecord) => {
     setSelectedCustomer(c);
@@ -149,7 +177,9 @@ export default function AdminCustomersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-serif font-bold text-[#1b1416]">Customers</h1>
-          <p className="text-xs text-[#716769] mt-0.5">1,284 customers · 96 new this month</p>
+          <p className="text-xs text-[#716769] mt-0.5">
+            {customers.length} registered clients · {customers.filter(c => c.isVip).length} VIP accounts
+          </p>
         </div>
 
         <div className="flex items-center gap-3">

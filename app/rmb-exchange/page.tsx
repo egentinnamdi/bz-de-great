@@ -13,27 +13,11 @@ import {
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { RmbCalculator } from '@/components/rmb-calculator';
-import { GetAccountModal } from '@/components/get-account-modal';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
 import { useStore } from '@/lib/store';
 
 export default function RmbExchangeLandingPage() {
   const { rmbRates } = useStore();
-
-  const [accountModalOpen, setAccountModalOpen] = useState(false);
-  const [accountDirection, setAccountDirection] = useState<'rmb_to_naira' | 'naira_to_rmb'>('rmb_to_naira');
-  const [accountSourceAmount, setAccountSourceAmount] = useState(10000);
-  const [accountDestAmount, setAccountDestAmount] = useState(2050000);
-
-  const handleOpenAccountModal = (
-    direction: 'rmb_to_naira' | 'naira_to_rmb',
-    sourceAmount: number,
-    destAmount: number
-  ) => {
-    setAccountDirection(direction);
-    setAccountSourceAmount(sourceAmount);
-    setAccountDestAmount(destAmount);
-    setAccountModalOpen(true);
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#1b1416] font-sans">
@@ -46,7 +30,7 @@ export default function RmbExchangeLandingPage() {
           <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px]">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
               {/* Left Column: Heading, Subtitle & Rate Cards */}
-              <div className="lg:col-span-7 space-y-6">
+              <div className="lg:col-span-7 space-y-6 animate-fade-in-up">
                 {/* Breadcrumbs */}
                 <div className="flex items-center gap-2 text-xs text-[#ebc7cb]">
                   <Link href="/" className="hover:text-white transition-colors">
@@ -74,7 +58,7 @@ export default function RmbExchangeLandingPage() {
 
                 {/* Two Rate Preview Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="rounded-xl border border-white/15 bg-white/5 p-4.5 backdrop-blur-xs">
+                  <div className="rounded-xl border border-white/15 bg-white/5 p-4.5 backdrop-blur-xs hover-luxury-lift hover:border-white/30">
                     <span className="text-xs text-[#ebc7cb] block font-medium">
                       Pay RMB, get naira
                     </span>
@@ -83,7 +67,7 @@ export default function RmbExchangeLandingPage() {
                     </span>
                   </div>
 
-                  <div className="rounded-xl border border-white/15 bg-white/5 p-4.5 backdrop-blur-xs">
+                  <div className="rounded-xl border border-white/15 bg-white/5 p-4.5 backdrop-blur-xs hover-luxury-lift hover:border-white/30">
                     <span className="text-xs text-[#ebc7cb] block font-medium">
                       Pay naira, get RMB
                     </span>
@@ -101,8 +85,8 @@ export default function RmbExchangeLandingPage() {
               </div>
 
               {/* Right Column: Live Interactive RMB Calculator */}
-              <div className="lg:col-span-5 flex justify-center lg:justify-end">
-                <RmbCalculator onOpenGetAccount={handleOpenAccountModal} />
+              <div className="lg:col-span-5 flex justify-center lg:justify-end animate-fade-in-up delay-150">
+                <RmbCalculator />
               </div>
             </div>
           </div>
@@ -111,164 +95,176 @@ export default function RmbExchangeLandingPage() {
         {/* 3. "HOW IT WORKS" / "Two ways to exchange" matching Screenshot 2 */}
         <section className="py-20 lg:py-24 bg-white">
           <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px] space-y-12">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#7A0C1A] block mb-2">
-                HOW IT WORKS
-              </span>
-              <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-[#1b1416]">
-                Two ways to exchange
-              </h2>
-              <p className="text-xs sm:text-sm text-[#716769] leading-relaxed mt-1">
-                Start with the calculator, tap Get account, and add your name, email and WhatsApp number.
-              </p>
-            </div>
+            <ScrollReveal animation="fade-in-up">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#7A0C1A] block mb-2">
+                  HOW IT WORKS
+                </span>
+                <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-[#1b1416]">
+                  Two ways to exchange
+                </h2>
+                <p className="text-xs sm:text-sm text-[#716769] leading-relaxed mt-1">
+                  Start with the calculator, tap Get account, and add your name, email and WhatsApp number.
+                </p>
+              </div>
+            </ScrollReveal>
 
             {/* Two Side-by-Side Step Comparison Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Card 1: Pay RMB, get naira */}
-              <div className="rounded-2xl border border-[#eae3e4] bg-[#faf7f7] p-7 sm:p-8 space-y-6 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-serif font-bold text-xl text-[#1b1416]">
-                    Pay RMB, get naira
-                  </h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#7A0C1A] text-white text-[11px] font-bold">
-                    ¥ → ₦
-                  </span>
+              <ScrollReveal animation="fade-in-up" delayMs={60}>
+                <div className="rounded-2xl border border-[#eae3e4] bg-[#faf7f7] p-7 sm:p-8 space-y-6 shadow-xs hover-luxury-lift hover:border-[#7A0C1A]/30">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-serif font-bold text-xl text-[#1b1416]">
+                      Pay RMB, get naira
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#7A0C1A] text-white text-[11px] font-bold">
+                      ¥ → ₦
+                    </span>
+                  </div>
+
+                  <div className="space-y-4 text-xs text-[#1b1416]">
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        1
+                      </span>
+                      <span>Calculate with today&apos;s rate</span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        2
+                      </span>
+                      <span>Tap Get account</span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        3
+                      </span>
+                      <span>Enter your name, email and WhatsApp number</span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        4
+                      </span>
+                      <span>We send our RMB account to your WhatsApp</span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        5
+                      </span>
+                      <span>Pay the RMB and send us the screenshot</span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        6
+                      </span>
+                      <span>Receive naira in your bank account</span>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="space-y-4 text-xs text-[#1b1416]">
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      1
-                    </span>
-                    <span>Calculate with today&apos;s rate</span>
-                  </div>
-
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      2
-                    </span>
-                    <span>Tap Get account</span>
-                  </div>
-
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      3
-                    </span>
-                    <span>Enter your name, email and WhatsApp number</span>
-                  </div>
-
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      4
-                    </span>
-                    <span>We send our RMB account to your WhatsApp</span>
-                  </div>
-
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      5
-                    </span>
-                    <span>Pay the RMB and send us the screenshot</span>
-                  </div>
-
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      6
-                    </span>
-                    <span>Receive naira in your bank account</span>
-                  </div>
-                </div>
-              </div>
+              </ScrollReveal>
 
               {/* Card 2: Pay naira, get RMB */}
-              <div className="rounded-2xl border border-[#eae3e4] bg-[#faf7f7] p-7 sm:p-8 space-y-6 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-serif font-bold text-xl text-[#1b1416]">
-                    Pay naira, get RMB
-                  </h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#7A0C1A] text-white text-[11px] font-bold">
-                    ₦ → ¥
-                  </span>
+              <ScrollReveal animation="fade-in-up" delayMs={140}>
+                <div className="rounded-2xl border border-[#eae3e4] bg-[#faf7f7] p-7 sm:p-8 space-y-6 shadow-xs hover-luxury-lift hover:border-[#7A0C1A]/30">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-serif font-bold text-xl text-[#1b1416]">
+                      Pay naira, get RMB
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#7A0C1A] text-white text-[11px] font-bold">
+                      ₦ → ¥
+                    </span>
+                  </div>
+
+                  <div className="space-y-4 text-xs text-[#1b1416]">
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        1
+                      </span>
+                      <span>Calculate with today&apos;s rate</span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        2
+                      </span>
+                      <span>Tap Get account</span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        3
+                      </span>
+                      <span>Enter your name, email and WhatsApp number</span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        4
+                      </span>
+                      <span>See our company account and pay the naira</span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        5
+                      </span>
+                      <span>Upload your receipt</span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
+                        6
+                      </span>
+                      <span>Receive RMB via Alipay, WeChat Pay or bank</span>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="space-y-4 text-xs text-[#1b1416]">
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      1
-                    </span>
-                    <span>Calculate with today&apos;s rate</span>
-                  </div>
-
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      2
-                    </span>
-                    <span>Tap Get account</span>
-                  </div>
-
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      3
-                    </span>
-                    <span>Enter your name, email and WhatsApp number</span>
-                  </div>
-
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      4
-                    </span>
-                    <span>See our company account and pay the naira</span>
-                  </div>
-
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      5
-                    </span>
-                    <span>Upload your receipt</span>
-                  </div>
-
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-5 h-5 rounded-full border border-[#eae3e4] bg-white text-[#716769] font-bold text-[10px] flex items-center justify-center shrink-0">
-                      6
-                    </span>
-                    <span>Receive RMB via Alipay, WeChat Pay or bank</span>
-                  </div>
-                </div>
-              </div>
+              </ScrollReveal>
             </div>
 
             {/* 4. Three Feature Benefit Cards matching Screenshot 2 bottom */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-              <div className="rounded-2xl border border-[#eae3e4] bg-white p-6 space-y-2.5 shadow-xs">
-                <div className="w-9 h-9 rounded-full bg-[#fdf3f4] text-[#7A0C1A] flex items-center justify-center mb-3">
-                  <TrendingUp className="w-4 h-4" />
+              <ScrollReveal animation="fade-in-up" delayMs={60}>
+                <div className="group rounded-2xl border border-[#eae3e4] bg-white p-6 space-y-2.5 shadow-xs hover-luxury-lift hover:border-[#7A0C1A]/30">
+                  <div className="w-9 h-9 rounded-full bg-[#fdf3f4] text-[#7A0C1A] flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-sm text-[#1b1416]">Rates set every morning</h4>
+                  <p className="text-xs text-[#716769] leading-relaxed">
+                    Both rates are shown before you commit.
+                  </p>
                 </div>
-                <h4 className="font-bold text-sm text-[#1b1416]">Rates set every morning</h4>
-                <p className="text-xs text-[#716769] leading-relaxed">
-                  Both rates are shown before you commit.
-                </p>
-              </div>
+              </ScrollReveal>
 
-              <div className="rounded-2xl border border-[#eae3e4] bg-white p-6 space-y-2.5 shadow-xs">
-                <div className="w-9 h-9 rounded-full bg-[#fdf3f4] text-[#7A0C1A] flex items-center justify-center mb-3">
-                  <ShieldCheck className="w-4 h-4" />
+              <ScrollReveal animation="fade-in-up" delayMs={120}>
+                <div className="group rounded-2xl border border-[#eae3e4] bg-white p-6 space-y-2.5 shadow-xs hover-luxury-lift hover:border-[#7A0C1A]/30">
+                  <div className="w-9 h-9 rounded-full bg-[#fdf3f4] text-[#7A0C1A] flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-sm text-[#1b1416]">Checked by our team</h4>
+                  <p className="text-xs text-[#716769] leading-relaxed">
+                    Every payment is confirmed by a person before we pay out.
+                  </p>
                 </div>
-                <h4 className="font-bold text-sm text-[#1b1416]">Checked by our team</h4>
-                <p className="text-xs text-[#716769] leading-relaxed">
-                  Every payment is confirmed by a person before we pay out.
-                </p>
-              </div>
+              </ScrollReveal>
 
-              <div className="rounded-2xl border border-[#eae3e4] bg-white p-6 space-y-2.5 shadow-xs">
-                <div className="w-9 h-9 rounded-full bg-[#fdf3f4] text-[#7A0C1A] flex items-center justify-center mb-3">
-                  <MessageSquare className="w-4 h-4" />
+              <ScrollReveal animation="fade-in-up" delayMs={180}>
+                <div className="group rounded-2xl border border-[#eae3e4] bg-white p-6 space-y-2.5 shadow-xs hover-luxury-lift hover:border-[#7A0C1A]/30">
+                  <div className="w-9 h-9 rounded-full bg-[#fdf3f4] text-[#7A0C1A] flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-sm text-[#1b1416]">Real people on WhatsApp</h4>
+                  <p className="text-xs text-[#716769] leading-relaxed">
+                    Ask anything before, during or after your exchange.
+                  </p>
                 </div>
-                <h4 className="font-bold text-sm text-[#1b1416]">Real people on WhatsApp</h4>
-                <p className="text-xs text-[#716769] leading-relaxed">
-                  Ask anything before, during or after your exchange.
-                </p>
-              </div>
+              </ScrollReveal>
             </div>
           </div>
         </section>
@@ -276,15 +272,6 @@ export default function RmbExchangeLandingPage() {
 
       {/* 5. Global Site Footer */}
       <SiteFooter />
-
-      {/* 6. Get Account Modal */}
-      <GetAccountModal
-        isOpen={accountModalOpen}
-        onClose={() => setAccountModalOpen(false)}
-        direction={accountDirection}
-        sourceAmount={accountSourceAmount}
-        destinationAmount={accountDestAmount}
-      />
     </div>
   );
 }

@@ -37,7 +37,7 @@ export function CardCar({ car, className }: CardCarProps) {
   return (
     <div
       className={cn(
-        'group flex flex-col rounded-[16px] bg-white border border-[#eae3e4] hover:shadow-xl hover:border-[#81141f]/40 transition-all duration-300 overflow-hidden w-full max-w-[384px]',
+        'group flex flex-col rounded-[16px] bg-white border border-[#eae3e4] hover-luxury-lift hover:border-[#81141f]/50 overflow-hidden w-full max-w-[384px]',
         className
       )}
     >
@@ -48,7 +48,7 @@ export function CardCar({ car, className }: CardCarProps) {
           alt={car.title}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 384px"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-106"
         />
 
         {/* Badge (Figma: [69x28] r=6 fill=#ffffff text=#81141f font=500 12px) */}
@@ -62,10 +62,10 @@ export function CardCar({ car, className }: CardCarProps) {
         <button
           type="button"
           onClick={handleToggleSave}
-          className="absolute top-3 right-3 z-10 w-[38px] h-[38px] rounded-full bg-white/95 hover:bg-white text-[#716769] hover:text-[#81141f] flex items-center justify-center shadow-xs transition-transform active:scale-90 cursor-pointer"
+          className="absolute top-3 right-3 z-10 w-[38px] h-[38px] rounded-full bg-white/95 hover:bg-white text-[#716769] hover:text-[#81141f] flex items-center justify-center shadow-xs transition-transform duration-150 active:scale-75 cursor-pointer"
           aria-label="Save car"
         >
-          <Heart className={cn('w-[18px] h-[18px] transition-colors', saved && 'fill-[#81141f] text-[#81141f]')} />
+          <Heart className={cn('w-[18px] h-[18px] transition-colors duration-200', saved && 'fill-[#81141f] text-[#81141f]')} />
         </button>
       </div>
 
@@ -73,7 +73,7 @@ export function CardCar({ car, className }: CardCarProps) {
       <div className="flex flex-col justify-between p-5 min-h-[183px] bg-white">
         <div>
           {/* Title (Figma: font=Plus Jakarta Sans 600 18px text=#1b1416) */}
-          <h3 className="font-sans font-semibold text-[18px] text-[#1b1416] group-hover:text-[#81141f] transition-colors line-clamp-1">
+          <h3 className="font-sans font-semibold text-[18px] text-[#1b1416] group-hover:text-[#81141f] transition-colors duration-200 line-clamp-1">
             {car.title}
           </h3>
 
@@ -118,10 +118,10 @@ export function CardCar({ car, className }: CardCarProps) {
 
           <Link
             href={detailUrl}
-            className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#81141f] hover:underline"
+            className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#81141f] group/link hover:underline"
           >
             <span>View</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
         </div>
       </div>

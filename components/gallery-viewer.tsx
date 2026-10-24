@@ -52,7 +52,7 @@ export function GalleryViewer({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex flex-col justify-between bg-black/95 backdrop-blur-md animate-in fade-in"
+      className="fixed inset-0 z-50 flex flex-col justify-between bg-black/95 backdrop-blur-md animate-fade-in"
     >
       {/* Top Bar */}
       <div className="flex items-center justify-between p-4 sm:p-6 text-white z-10">
@@ -79,19 +79,19 @@ export function GalleryViewer({
         <button
           type="button"
           onClick={handlePrev}
-          className="absolute left-4 sm:left-8 z-10 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all cursor-pointer backdrop-blur-xs"
+          className="absolute left-4 sm:left-8 z-10 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all cursor-pointer backdrop-blur-xs active:scale-90"
           aria-label="Previous Photo"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
 
         {/* Current Image */}
-        <div className="relative w-full max-w-5xl h-[65vh] flex items-center justify-center">
+        <div key={currentIndex} className="relative w-full max-w-5xl h-[65vh] flex items-center justify-center animate-scale-in">
           <Image
             src={images[currentIndex]}
             alt={title ? `${title} photo ${currentIndex + 1}` : `Gallery photo ${currentIndex + 1}`}
             fill
-            className="object-contain transition-opacity duration-300"
+            className="object-contain"
             priority
           />
         </div>
@@ -100,7 +100,7 @@ export function GalleryViewer({
         <button
           type="button"
           onClick={handleNext}
-          className="absolute right-4 sm:right-8 z-10 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all cursor-pointer backdrop-blur-xs"
+          className="absolute right-4 sm:right-8 z-10 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all cursor-pointer backdrop-blur-xs active:scale-90"
           aria-label="Next Photo"
         >
           <ChevronRight className="w-6 h-6" />
