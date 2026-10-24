@@ -53,6 +53,7 @@ export interface RmbRateConfig {
 
 export interface RmbExchangeRequest {
   id: string; // e.g. "RMB-0142"
+  reference?: string;
   direction: 'rmb_to_naira' | 'naira_to_rmb';
   sourceAmount: number;
   rateApplied: number;
@@ -60,6 +61,7 @@ export interface RmbExchangeRequest {
   customerName: string;
   customerEmail: string;
   customerWhatsApp: string;
+  destinationChannel?: string;
   notes?: string;
   receiptUrl?: string;
   status: 'requested' | 'account_sent' | 'receipt_received' | 'approved' | 'paid_out' | 'rejected';
@@ -69,6 +71,7 @@ export interface RmbExchangeRequest {
 
 export interface Booking {
   id: string; // e.g. "BK-2292", "INS-0318", "TD-0091"
+  reference?: string;
   type: 'car_rental' | 'car_test_drive' | 'property_inspection';
   listingId: string;
   listingTitle: string;
@@ -93,10 +96,18 @@ export interface Customer {
   name: string;
   email: string;
   phone: string;
+  phoneFull?: string;
+  initials?: string;
   location: string;
+  uses?: 'RMB' | 'Cars' | 'Property';
+  bookingsCount?: number;
   totalBookings: number;
+  rmbSentDisplay?: string;
+  totalSpentDisplay?: string;
   lifetimeSpendNgn: number;
   joinedAt: string;
+  lastActive?: string;
+  isVip?: boolean;
   status: 'active' | 'vip' | 'inactive';
   notes?: string;
 }
@@ -107,5 +118,24 @@ export interface StaffActivity {
   actorRole: string;
   action: string;
   targetId?: string;
+  target?: string;
+  details?: string;
   timestamp: string;
+  category?: 'payments' | 'listings' | 'rates' | 'content' | 'bookings';
+}
+
+export interface WebsiteContentConfig {
+  heroHeadline: string;
+  heroEyebrow: string;
+  heroSupportingText: string;
+  founderBio: string;
+  announcementEnabled: boolean;
+  announcementText: string;
+  featuredItems: Array<{
+    id: string;
+    title: string;
+    image: string;
+    category: string;
+    active: boolean;
+  }>;
 }

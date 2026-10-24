@@ -15,6 +15,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
+import { useStore } from '@/lib/store';
 
 interface PayNairaViewProps {
   orderId?: string;
@@ -36,6 +37,7 @@ export function PayNairaView({
   customerPhone = '0803 000 0000'
 }: PayNairaViewProps) {
   const { toast } = useToast();
+  const { updateRmbRequest, addActivity } = useStore();
 
   // Rate lock countdown timer (defaults to 24:18 = 1458 seconds)
   const [secondsLeft, setSecondsLeft] = useState(1458);
@@ -97,7 +99,7 @@ export function PayNairaView({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!receiptFile) {
       toast({
@@ -114,6 +116,23 @@ export function PayNairaView({
         variant: 'warning'
       });
       return;
+    }
+
+    try {
+      await updateRmbRequest(orderId, {
+        status: 'receipt_received',
+        notes: `Sender: ${senderName} (${sendingBank})`
+      });
+      await addActivity({
+        actorName: customerName,
+        actorRole: 'Customer',
+        action: 'uploaded payment receipt',
+        target: `${orderId} · ₦${sourceAmount.toLocaleString('en-NG')}`,
+        details: `${sendingBank} transfer by ${senderName}`,
+        category: 'payments'
+      });
+    } catch (e) {
+      // Ignore background sync errors
     }
 
     setIsSubmitted(true);

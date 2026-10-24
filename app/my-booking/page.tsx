@@ -33,6 +33,12 @@ export default function MyBookingPage() {
     bookings.find(b => b.id === 'BK-2292') || bookings[0]
   );
 
+  React.useEffect(() => {
+    if (!selectedBooking && bookings.length > 0) {
+      setSelectedBooking(bookings.find(b => b.id === searchTicket) || bookings[0]);
+    }
+  }, [bookings, selectedBooking, searchTicket]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const found = bookings.find(

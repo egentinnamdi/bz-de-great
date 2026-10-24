@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
 
+import { useStore } from '@/lib/store';
+
 interface BookingRow {
   id: string;
   reference: string;
@@ -24,85 +26,65 @@ interface BookingRow {
   status: 'Pending' | 'Approved' | 'In progress' | 'Declined';
 }
 
-const INITIAL_BOOKINGS: BookingRow[] = [
-  {
-    id: 'b-01',
-    reference: 'BK-2292',
-    customer: 'Amaka Eze',
-    listing: 'Lincoln Navigator 2022',
-    when: 'Fri 24 → Mon 27 Oct',
-    type: 'Car rental',
-    status: 'Pending'
-  },
-  {
-    id: 'b-02',
-    reference: 'INS-0318',
-    customer: 'Mr Ibrahim',
-    listing: '5-Bedroom Detached Duplex',
-    when: 'Sat 25 Oct, 11:00',
-    type: 'Inspection',
-    status: 'Pending'
-  },
-  {
-    id: 'b-03',
-    reference: 'BK-2290',
-    customer: 'Fatima Sule',
-    listing: '3-Bed Serviced Apartment',
-    when: '1 yr from 1 Nov',
-    type: 'Apartment',
-    status: 'Approved'
-  },
-  {
-    id: 'b-04',
-    reference: 'BK-2288',
-    customer: 'Corporate client',
-    listing: 'Mercedes E-Class + driver',
-    when: 'Mon 20 → Thu 23 Oct',
-    type: 'Car rental',
-    status: 'In progress'
-  },
-  {
-    id: 'b-05',
-    reference: 'TD-0091',
-    customer: 'Mrs Adeyemi',
-    listing: 'BMW X5 xDrive40i 2021',
-    when: 'Thu 23 Oct, 10:00',
-    type: 'Test drive',
-    status: 'Pending'
-  }
-];
-
 export default function AdminBookingsPage() {
   const { toast } = useToast();
+  const { bookings: storeBookings, updateBooking, addActivity } = useStore();
   const [timeFilter, setTimeFilter] = useState<'This week' | 'Next week' | 'This month'>('This week');
-  const [bookings, setBookings] = useState<BookingRow[]>(INITIAL_BOOKINGS);
   const [searchQuery, setSearchQuery] = useState('');
-  const [needsConfirmation, setNeedsConfirmation] = useState([
-    {
-      id: 'nc-1',
-      title: 'Lincoln Navigator · 3 days',
-      customerDate: 'Amaka Eze · Fri 24 → Mon 27',
-      timeAgo: '12 min ago'
-    },
-    {
-      id: 'nc-2',
-      title: 'Inspection · 5-Bed Duplex',
-      customerDate: 'Mr Ibrahim · Sat 25, 11:00 AM',
-      timeAgo: '40 min ago'
-    },
-    {
-      id: 'nc-3',
-      title: 'Test drive · BMW X5 2021',
-      customerDate: 'Mrs Adeyemi · Thu 23, 10:00 AM',
-      timeAgo: '2 hrs ago'
-    }
-  ]);
 
-  const handleConfirm = (refOrId: string) => {
-    setBookings(prev =>
-      prev.map(b => (b.reference === refOrId || b.id === refOrId ? { ...b, status: 'Approved' } : b))
-    );
-    setNeedsConfirmation(prev => prev.filter(c => !c.title.includes(refOrId)));
+  const bookings: BookingRow[] = useMemo(() => {
+    return storeBookings.map(b => {
+      let mappedType: BookingRow['type'] = 'Car rental';
+      if (b.type === 'car_rental') mappedType = 'Car rental';
+      else if (b.type === 'car_test_drive') mappedType = 'Test drive';
+      else if (b.type === 'property_inspection') mappedType = 'Inspection';
+      else if (b.listingTitle.toLowerCase().includes('apartment')) mappedType = 'Apartment';
+
+      let mappedStatus: BookingRow['status'] = 'Pending';
+      if (b.bookingStatus === 'confirmed') mappedStatus = 'Approved';
+      else if (b.bookingStatus === 'active') mappedStatus = 'In progress';
+      else if (b.bookingStatus === 'declined') mappedStatus = 'Declined';
+      else mappedStatus = 'Pending';
+
+      const whenStr = b.endDate ? `${b.startDate} → ${b.endDate}` : b.startDate;
+
+      return {
+        id: b.id,
+        reference: b.reference || b.id,
+        customer: b.customerName,
+        listing: b.listingTitle,
+        when: whenStr,
+        type: mappedType,
+        status: mappedStatus
+      };
+    });
+  }, [storeBookings]);
+
+  const needsConfirmation = useMemo(() => {
+    return storeBookings
+      .filter(b => b.bookingStatus === 'requested')
+      .map(b => ({
+        id: b.id,
+        reference: b.reference || b.id,
+        title: b.listingTitle,
+        customerDate: `${b.customerName} · ${b.startDate}${b.endDate ? ` → ${b.endDate}` : ''}`,
+        timeAgo: 'Just now'
+      }));
+  }, [storeBookings]);
+
+  const handleConfirm = async (refOrId: string) => {
+    const target = storeBookings.find(b => b.id === refOrId || b.reference === refOrId);
+    if (target) {
+      await updateBooking(target.id, { bookingStatus: 'confirmed' });
+      await addActivity({
+        actorName: 'Admin',
+        actorRole: 'Master Admin',
+        action: 'confirmed booking',
+        target: `${target.reference || target.id} · ${target.customerName}`,
+        details: target.listingTitle,
+        category: 'bookings'
+      });
+    }
     toast({
       title: 'Booking confirmed',
       description: `Notification sent to client.`,
@@ -110,8 +92,19 @@ export default function AdminBookingsPage() {
     });
   };
 
-  const handleDecline = (id: string, title: string) => {
-    setNeedsConfirmation(prev => prev.filter(c => c.id !== id));
+  const handleDecline = async (id: string, title: string) => {
+    const target = storeBookings.find(b => b.id === id || b.reference === id);
+    if (target) {
+      await updateBooking(target.id, { bookingStatus: 'declined' });
+      await addActivity({
+        actorName: 'Admin',
+        actorRole: 'Master Admin',
+        action: 'declined booking',
+        target: `${target.reference || target.id} · ${target.customerName}`,
+        details: title,
+        category: 'bookings'
+      });
+    }
     toast({
       title: 'Booking declined',
       description: title,

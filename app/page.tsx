@@ -36,7 +36,7 @@ import { Listing } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 export default function HomePage() {
-  const { listings } = useStore()
+  const { listings, websiteContent } = useStore()
 
   // Modals state
   const [galleryOpen, setGalleryOpen] = useState(false)
@@ -63,91 +63,45 @@ export default function HomePage() {
     setSavedFavorites((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
-  // 3 Featured Cars matching Screenshot 3
-  const featuredCars = [
-    {
-      id: "car-rent-1",
-      title: "Lincoln Navigator 2022",
-      badge: "For rent",
-      location: "Wuse 2, Abuja",
-      seats: 7,
-      transmission: "Automatic",
-      fuel: "Petrol",
-      price: "₦180,000",
-      period: "/ day",
-      image: "/photos/car-suv-white.jpg",
-      href: "/cars/rent/car-rent-1",
-    },
-    {
-      id: "car-rent-2",
-      title: "Mercedes-Benz E-Class 2022",
-      badge: "For rent",
-      location: "Central Area, Abuja",
-      seats: 5,
-      transmission: "Automatic",
-      fuel: "Petrol",
-      price: "₦120,000",
-      period: "/ day",
-      image: "/photos/car-sedan-black.jpg",
-      href: "/cars/rent/car-rent-2",
-    },
-    {
-      id: "car-sale-1",
-      title: "BMW X5 xDrive40i 2021",
-      badge: "For sale",
-      location: "Asokoro, Abuja",
-      seats: 5,
-      transmission: "Automatic",
-      fuel: "Petrol",
-      price: "₦85,000,000",
-      period: "",
-      image: "/photos/car-suv-grey.jpg",
-      href: "/cars/buy/car-sale-1",
-    },
-  ]
+  // Featured Cars derived dynamically from Supabase listings
+  const featuredCars = React.useMemo(() => {
+    const cars = listings.filter((l) => l.category.startsWith("car"))
+    const featured = cars.filter((l) => l.featured)
+    const pool = featured.length > 0 ? featured : cars
+    return pool.slice(0, 3).map((l) => ({
+      id: l.id,
+      title: l.title,
+      badge: l.category.includes("rent") ? "For rent" : "For sale",
+      location: l.location,
+      seats: l.vehicleSpecs?.seats || 5,
+      transmission: l.vehicleSpecs?.transmission || "Automatic",
+      fuel: l.vehicleSpecs?.fuelType || "Petrol",
+      price: `₦${Number(l.price).toLocaleString("en-NG")}`,
+      period: l.pricePeriod === "/day" ? "/ day" : (l.pricePeriod === "/year" ? "/ year" : ""),
+      image: (l.images && l.images[0]) || "/photos/car-suv-white.jpg",
+      href: l.category.includes("rent") ? `/cars/rent/${l.id}` : `/cars/buy/${l.id}`,
+    }))
+  }, [listings])
 
-  // 3 Featured Properties matching Screenshot 4
-  const featuredProperties = [
-    {
-      id: "prop-sale-1",
-      title: "5-Bedroom Detached Duplex",
-      badge: "For sale",
-      location: "Maitama, Abuja",
-      beds: 5,
-      baths: 6,
-      sqm: "620 m²",
-      price: "₦650,000,000",
-      period: "",
-      image: "/photos/house-duplex.jpg",
-      href: "/properties/buy/prop-sale-1",
-    },
-    {
-      id: "home-rent-1",
-      title: "3-Bedroom Serviced Apartment",
-      badge: "For rent",
-      location: "Jabi, Abuja",
-      beds: 3,
-      baths: 3,
-      sqm: "210 m²",
-      price: "₦12,000,000",
-      period: "/ year",
-      image: "/photos/apartment-interior.jpg",
-      href: "/homes/rent/home-rent-1",
-    },
-    {
-      id: "prop-sale-3",
-      title: "4-Bedroom Terrace",
-      badge: "For sale",
-      location: "Guzape, Abuja",
-      beds: 4,
-      baths: 5,
-      sqm: "380 m²",
-      price: "₦280,000,000",
-      period: "",
-      image: "/photos/house-terrace.jpg",
-      href: "/properties/buy/prop-sale-3",
-    },
-  ]
+  // Featured Properties derived dynamically from Supabase listings
+  const featuredProperties = React.useMemo(() => {
+    const props = listings.filter((l) => !l.category.startsWith("car"))
+    const featured = props.filter((l) => l.featured)
+    const pool = featured.length > 0 ? featured : props
+    return pool.slice(0, 3).map((l) => ({
+      id: l.id,
+      title: l.title,
+      badge: l.category.includes("rent") ? "For rent" : "For sale",
+      location: l.location,
+      beds: l.propertySpecs?.bedrooms || 3,
+      baths: l.propertySpecs?.bathrooms || 3,
+      sqm: l.propertySpecs?.areaSqm ? `${l.propertySpecs.areaSqm} m²` : "450 m²",
+      price: `₦${Number(l.price).toLocaleString("en-NG")}`,
+      period: l.pricePeriod === "/year" ? "/ year" : "",
+      image: (l.images && l.images[0]) || "/photos/house-duplex.jpg",
+      href: l.category.includes("rent") ? `/homes/rent/${l.id}` : `/properties/buy/${l.id}`,
+    }))
+  }, [listings])
 
   const galleryImages = [
     "/figma-images/665d90e743a205c06abfb1aeff42229068a3c479.jpg",
@@ -198,20 +152,17 @@ export default function HomePage() {
             <div className="flex max-w-[620px] flex-col space-y-6">
               {/* Eyebrow */}
               <div className="text-[12px] font-bold tracking-widest text-white/80 uppercase">
-                INVEST IN VALUE · LIVE THE FUTURE
+                {websiteContent.heroEyebrow}
               </div>
 
               {/* Headline */}
               <h1 className="font-serif text-5xl leading-[1.05] font-semibold tracking-tight text-white sm:text-6xl lg:text-[76px]">
-                Drive it. Live in it.
-                <br />
-                Own it.
+                {websiteContent.heroHeadline}
               </h1>
 
               {/* Subtitle */}
               <p className="max-w-[540px] font-sans text-[16px] leading-relaxed text-white/90 sm:text-[18px]">
-                Rent or buy premium cars and homes, and change RMB and naira at
-                a clear daily rate — all through one trusted team.
+                {websiteContent.heroSupportingText}
               </p>
 
               {/* Action Buttons */}

@@ -25,136 +25,78 @@ interface AdminListingItem {
   slug: string;
 }
 
-const INITIAL_ADMIN_LISTINGS: AdminListingItem[] = [
-  {
-    id: 'l-01',
-    title: 'Lincoln Navigator 2022',
-    location: 'Wuse 2, Abuja',
-    image: '/photos/car-suv-white.jpg',
-    category: 'Car',
-    mode: 'Rent',
-    priceDisplay: '₦180,000 / day',
-    status: 'Available',
-    isOnSite: true,
-    updatedTime: '2 hrs ago',
-    slug: '/cars/rent'
-  },
-  {
-    id: 'l-02',
-    title: 'Mercedes-Benz E-Class 2022',
-    location: 'Central Area, Abuja',
-    image: '/photos/car-sedan-black.jpg',
-    category: 'Car',
-    mode: 'Rent',
-    priceDisplay: '₦120,000 / day',
-    status: 'Booked',
-    isOnSite: true,
-    updatedTime: 'Today',
-    slug: '/cars/rent'
-  },
-  {
-    id: 'l-03',
-    title: 'BMW X5 xDrive40i 2021',
-    location: 'Asokoro, Abuja',
-    image: '/photos/car-suv-grey.jpg',
-    category: 'Car',
-    mode: 'Sale',
-    priceDisplay: '₦85,000,000',
-    status: 'Available',
-    isOnSite: true,
-    updatedTime: 'Yesterday',
-    slug: '/cars/buy'
-  },
-  {
-    id: 'l-04',
-    title: '5-Bedroom Detached Duplex',
-    location: 'Maitama, Abuja',
-    image: '/photos/house-duplex.jpg',
-    category: 'House',
-    mode: 'Sale',
-    priceDisplay: '₦650,000,000',
-    status: 'Available',
-    isOnSite: true,
-    updatedTime: 'Yesterday',
-    slug: '/properties/buy'
-  },
-  {
-    id: 'l-05',
-    title: '3-Bedroom Serviced Apartment',
-    location: 'Jabi, Abuja',
-    image: '/photos/apartment-interior.jpg',
-    category: 'Apartment',
-    mode: 'Rent',
-    priceDisplay: '₦12,000,000 / yr',
-    status: 'Booked',
-    isOnSite: true,
-    updatedTime: '3 days ago',
-    slug: '/homes/rent'
-  },
-  {
-    id: 'l-06',
-    title: '4-Bedroom Terrace',
-    location: 'Guzape, Abuja',
-    image: '/photos/house-terrace.jpg',
-    category: 'House',
-    mode: 'Sale',
-    priceDisplay: '₦280,000,000',
-    status: 'Sold',
-    isOnSite: false,
-    updatedTime: '1 week ago',
-    slug: '/properties/buy'
-  },
-  {
-    id: 'l-07',
-    title: 'Agidigba Garden City — Plots',
-    location: 'Okpanam, Asaba',
-    image: '/photos/land-estate.jpg',
-    category: 'Land',
-    mode: 'Sale',
-    priceDisplay: '₦20,000,000 / plot',
-    status: 'Available',
-    isOnSite: true,
-    updatedTime: '1 week ago',
-    slug: '/properties/buy'
-  },
-  {
-    id: 'l-08',
-    title: 'Luxury 5-Bedroom Villa',
-    location: 'Asokoro, Abuja',
-    image: '/photos/hero-villa-suv.jpg',
-    category: 'House',
-    mode: 'Sale',
-    priceDisplay: '₦1,200,000,000',
-    status: 'Available',
-    isOnSite: true,
-    updatedTime: '2 weeks ago',
-    slug: '/properties/buy'
-  }
-];
+import { useStore } from '@/lib/store';
 
 export default function AdminListingsPage() {
   const { toast } = useToast();
-  const [items, setItems] = useState<AdminListingItem[]>(INITIAL_ADMIN_LISTINGS);
+  const { listings, updateListing, addActivity } = useStore();
   const [activeFilter, setActiveFilter] = useState<'All' | 'Cars' | 'Property' | 'Land' | 'Drafts'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Available' | 'Booked' | 'Sold'>('All');
 
-  const toggleOnSite = (id: string) => {
-    setItems(prev =>
-      prev.map(item => {
-        if (item.id === id) {
-          const nextState = !item.isOnSite;
-          toast({
-            title: nextState ? 'Listing Live On Website' : 'Listing Deactivated From Website',
-            description: item.title,
-            variant: 'default'
-          });
-          return { ...item, isOnSite: nextState };
+  const items: AdminListingItem[] = useMemo(() => {
+    return listings.map(l => {
+      const isCar = l.category.startsWith('car');
+      const isRent = l.category.includes('rent');
+
+      let category: AdminListingItem['category'] = 'Car';
+      if (!isCar) {
+        if (l.title.toLowerCase().includes('apartment') || l.propertySpecs?.type === 'Apartment') {
+          category = 'Apartment';
+        } else if (l.title.toLowerCase().includes('plot') || l.propertySpecs?.type === 'Land & plots') {
+          category = 'Land';
+        } else {
+          category = 'House';
         }
-        return item;
-      })
-    );
+      }
+
+      let status: AdminListingItem['status'] = 'Available';
+      if (l.status === 'draft') status = 'Booked';
+
+      const priceDisplay = `₦${Number(l.price).toLocaleString('en-NG')}${l.pricePeriod === '/day' ? ' / day' : (l.pricePeriod === '/year' ? ' / yr' : '')}`;
+
+      let slugPath = '/cars/rent';
+      if (isCar) {
+        slugPath = isRent ? `/cars/rent/${l.id}` : `/cars/buy/${l.id}`;
+      } else {
+        slugPath = isRent ? `/homes/rent/${l.id}` : `/properties/buy/${l.id}`;
+      }
+
+      return {
+        id: l.id,
+        title: l.title,
+        location: l.location,
+        image: (l.images && l.images[0]) || '/photos/car-suv-white.jpg',
+        category,
+        mode: isRent ? 'Rent' : 'Sale',
+        priceDisplay,
+        status,
+        isOnSite: l.status === 'published',
+        updatedTime: 'Recently',
+        slug: slugPath
+      };
+    });
+  }, [listings]);
+
+  const toggleOnSite = async (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    const nextState = !item.isOnSite;
+    await updateListing(id, { status: nextState ? 'published' : 'draft' });
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Master Admin',
+      action: nextState ? 'published listing live' : 'deactivated listing from site',
+      target: item.title,
+      category: 'listings'
+    });
+    toast({
+      title: nextState ? 'Listing Live On Website' : 'Listing Deactivated From Website',
+      description: item.title,
+      variant: 'default'
+    });
   };
+
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {

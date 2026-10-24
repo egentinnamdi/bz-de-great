@@ -37,156 +37,59 @@ interface CustomerRecord {
   joinedDate?: string;
 }
 
+import { useStore } from '@/lib/store';
+
 export default function AdminCustomersPage() {
   const { toast } = useToast();
+  const { customers: storeCustomers, updateCustomerNotes, addActivity } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'cars' | 'property' | 'rmb' | 'vip'>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
   const [noteContent, setNoteContent] = useState('');
 
-  // Initial customer rows matching Screenshot 2 exactly
-  const [customers, setCustomers] = useState<CustomerRecord[]>([
-    {
-      id: 'cust-1',
-      initials: 'CO',
-      name: 'Chidi Okafor',
-      isVip: true,
-      email: 'chidi.o@email.com',
-      phoneMasked: '0803 *** 4412',
-      phoneFull: '+234 803 441 2099',
-      uses: 'RMB',
-      bookingsCount: 0,
-      rmbSentDisplay: '¥86,000',
-      totalSpentDisplay: '₦18.5M',
-      lastActive: 'Today',
-      joinedDate: 'March 2024',
-      notes: 'High volume RMB trader. Preferred destination account: ICBC Guangzhou. Always verify large transactions with client via voice call.'
-    },
-    {
-      id: 'cust-2',
-      initials: 'AE',
-      name: 'Amaka Eze',
-      isVip: true,
-      email: 'amaka.eze@email.com',
-      phoneMasked: '0816 *** 2290',
-      phoneFull: '+234 816 229 0112',
-      uses: 'Cars',
-      bookingsCount: 6,
-      rmbSentDisplay: '—',
-      totalSpentDisplay: '₦3.9M',
-      lastActive: 'Today',
-      joinedDate: 'January 2024',
-      notes: 'Prefers luxury SUVs with executive driver for airport transfers and state functions in Abuja.'
-    },
-    {
-      id: 'cust-3',
-      initials: 'TB',
-      name: 'Tunde Bello',
-      isVip: true,
-      email: 'tunde@company.ng',
-      phoneMasked: '0809 *** 7781',
-      phoneFull: '+234 809 778 1234',
-      uses: 'RMB',
-      bookingsCount: 0,
-      rmbSentDisplay: '¥140,000',
-      totalSpentDisplay: '₦30.2M',
-      lastActive: '1 hr ago',
-      joinedDate: 'November 2023',
-      notes: 'Corporate procurement director. Regular weekly transactions of ₦5M+.'
-    },
-    {
-      id: 'cust-4',
-      initials: 'FS',
-      name: 'Fatima Sule',
-      isVip: false,
-      email: 'fatima.s@email.com',
-      phoneMasked: '0812 *** 0034',
-      phoneFull: '+234 812 003 4599',
-      uses: 'Property',
-      bookingsCount: 1,
-      rmbSentDisplay: '—',
-      totalSpentDisplay: '₦12.0M',
-      lastActive: '3 hrs ago',
-      joinedDate: 'May 2024',
-      notes: 'Currently leasing serviced apartment in Maitama. Considering long-term purchase option.'
-    },
-    {
-      id: 'cust-5',
-      initials: 'IO',
-      name: 'Ifeanyi Obi',
-      isVip: false,
-      email: 'ifeanyi.obi@email.com',
-      phoneMasked: '0803 *** 1120',
-      phoneFull: '+234 803 112 0891',
-      uses: 'Property',
-      bookingsCount: 0,
-      rmbSentDisplay: '—',
-      totalSpentDisplay: '—',
-      lastActive: 'Today',
-      joinedDate: 'October 2026',
-      notes: 'Inquired about Agidigba Garden City commercial plots. Inspection scheduled.'
-    },
-    {
-      id: 'cust-6',
-      initials: 'KM',
-      name: 'Kelechi Madu',
-      isVip: false,
-      email: 'kelechi.m@email.com',
-      phoneMasked: '0705 *** 6618',
-      phoneFull: '+234 705 661 8820',
-      uses: 'Cars',
-      bookingsCount: 2,
-      rmbSentDisplay: '—',
-      totalSpentDisplay: '₦240K',
-      lastActive: '2 hrs ago',
-      joinedDate: 'August 2024',
-      notes: 'Self-drive customer. Driver license and ID verified on file.'
-    },
-    {
-      id: 'cust-7',
-      initials: 'ZA',
-      name: 'Zainab Abdullahi',
-      isVip: false,
-      email: 'zainab.a@email.com',
-      phoneMasked: '0802 *** 9045',
-      phoneFull: '+234 802 904 5510',
-      uses: 'Property',
-      bookingsCount: 0,
-      rmbSentDisplay: '—',
-      totalSpentDisplay: '—',
-      lastActive: 'Yesterday',
-      joinedDate: 'September 2024',
-      notes: 'Interested in 4-bedroom duplex in Guzape. Requested brochure on WhatsApp.'
-    },
-    {
-      id: 'cust-8',
-      initials: 'EN',
-      name: 'Emeka Nwosu',
-      isVip: false,
-      email: 'emeka.n@email.com',
-      phoneMasked: '0817 *** 3302',
-      phoneFull: '+234 817 330 2211',
-      uses: 'RMB',
-      bookingsCount: 0,
-      rmbSentDisplay: '¥5,000',
-      totalSpentDisplay: '₦1.1M',
-      lastActive: 'Yesterday',
-      joinedDate: 'June 2024',
-      notes: 'E-commerce merchant sourcing electronics from Shenzhen.'
-    }
-  ]);
+  // Derive customer rows directly from Supabase
+  const customers: CustomerRecord[] = React.useMemo(() => {
+    return storeCustomers.map(c => {
+      const maskedPhone = c.phone.length > 7
+        ? `${c.phone.slice(0, 4)} *** ${c.phone.slice(-4)}`
+        : c.phone;
+
+      return {
+        id: c.id,
+        initials: c.initials || c.name.slice(0, 2).toUpperCase(),
+        name: c.name,
+        isVip: c.isVip ?? false,
+        email: c.email,
+        phoneMasked: maskedPhone,
+        phoneFull: c.phoneFull || c.phone,
+        uses: c.uses || 'Cars',
+        bookingsCount: c.bookingsCount ?? c.totalBookings ?? 0,
+        rmbSentDisplay: c.rmbSentDisplay || '—',
+        totalSpentDisplay: c.totalSpentDisplay || (c.lifetimeSpendNgn ? `₦${(c.lifetimeSpendNgn / 1000000).toFixed(1)}M` : '—'),
+        lastActive: c.lastActive || 'Today',
+        joinedDate: c.joinedAt ? new Date(c.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '2024',
+        notes: c.notes || ''
+      };
+    });
+  }, [storeCustomers]);
 
   const handleOpenCustomer = (c: CustomerRecord) => {
     setSelectedCustomer(c);
     setNoteContent(c.notes || '');
   };
 
-  const handleSaveNotes = () => {
+  const handleSaveNotes = async () => {
     if (!selectedCustomer) return;
-    setCustomers(prev =>
-      prev.map(c => (c.id === selectedCustomer.id ? { ...c, notes: noteContent } : c))
-    );
+    await updateCustomerNotes(selectedCustomer.id, noteContent);
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Master Admin',
+      action: 'updated customer dossier',
+      target: selectedCustomer.name,
+      details: noteContent.slice(0, 50),
+      category: 'content'
+    });
     setSelectedCustomer(prev => (prev ? { ...prev, notes: noteContent } : null));
     toast({
       title: 'Note saved to customer profile',

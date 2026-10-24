@@ -1,13 +1,22 @@
 import { supabase, isSupabaseConfigured } from './client';
-import type { Listing, Booking, RmbExchangeRequest, RmbRateConfig, Customer } from '@/lib/types';
+import type {
+  Listing,
+  Booking,
+  RmbExchangeRequest,
+  RmbRateConfig,
+  Customer,
+  StaffActivity,
+  WebsiteContentConfig
+} from '@/lib/types';
 
 /**
- * Service methods to synchronize application state with Supabase BaaS.
- * Each method gracefully logs and returns null if Supabase is offline or not yet configured.
+ * Robust, production-grade service layer connecting BZ Group to Supabase BaaS.
+ * Serves as the single source of truth for all public pages and admin operations.
  */
-
 export const supabaseService = {
-  // 1. Listings
+  // ============================================================================
+  // 1. LISTINGS (Cars & Properties)
+  // ============================================================================
   async fetchListings(): Promise<Listing[] | null> {
     if (!isSupabaseConfigured()) return null;
     try {
@@ -21,24 +30,36 @@ export const supabaseService = {
         return null;
       }
 
-      return data.map(row => ({
-        id: row.id,
-        category: (row.category === 'cars' ? (row.mode === 'rent' ? 'car_rent' : 'car_sale') : (row.mode === 'rent' ? 'property_rent' : 'property_sale')) as any,
-        title: row.title,
-        subtitle: row.subtitle,
-        slug: row.slug,
-        description: row.description,
-        price: row.price,
-        currency: 'NGN',
-        pricePeriod: (row.price_unit === '/ day' ? '/day' : 'total') as any,
-        location: row.location,
-        images: Array.isArray(row.images) ? (row.images as string[]) : ['/photos/car-suv-white.jpg'],
-        status: (row.status === 'available' ? 'published' : 'draft') as any,
-        featured: row.featured,
-        vehicleSpecs: (row.specs && typeof row.specs === 'object' && 'make' in row.specs ? (row.specs as any) : undefined),
-        propertySpecs: (row.specs && typeof row.specs === 'object' && 'bedrooms' in row.specs ? (row.specs as any) : undefined),
-        createdAt: row.created_at
-      }));
+      return data.map(row => {
+        let categoryMapped = 'car_rent';
+        if (row.category === 'cars') {
+          categoryMapped = row.mode === 'rent' ? 'car_rent' : 'car_sale';
+        } else {
+          categoryMapped = row.mode === 'rent' ? 'property_rent' : 'property_sale';
+        }
+
+        return {
+          id: row.id,
+          category: categoryMapped as any,
+          title: row.title,
+          subtitle: row.subtitle || undefined,
+          slug: row.slug,
+          description: row.description,
+          price: Number(row.price),
+          currency: (row.currency as any) || 'NGN',
+          pricePeriod: row.price_unit === '/ day' ? '/day' : (row.price_unit === '/ year' ? '/year' : 'total'),
+          location: row.location,
+          images: Array.isArray(row.images) && row.images.length > 0
+            ? (row.images as string[])
+            : ['/photos/car-suv-white.jpg'],
+          status: (row.status === 'available' ? 'published' : 'draft') as any,
+          featured: Boolean(row.featured),
+          tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+          vehicleSpecs: (row.specs && typeof row.specs === 'object' && 'make' in row.specs ? (row.specs as any) : undefined),
+          propertySpecs: (row.specs && typeof row.specs === 'object' && ('bedrooms' in row.specs || 'amenities' in row.specs) ? (row.specs as any) : undefined),
+          createdAt: row.created_at || new Date().toISOString()
+        };
+      });
     } catch (err) {
       console.warn('Supabase fetchListings exception:', err);
       return null;
@@ -48,26 +69,39 @@ export const supabaseService = {
   async insertListing(listing: Listing): Promise<boolean> {
     if (!isSupabaseConfigured()) return false;
     try {
+      const isCar = listing.category.startsWith('car');
+      const isRent = listing.category.includes('rent');
+
       const { error } = await supabase.from('listings').insert({
         id: listing.id,
-        category: listing.category.startsWith('car') ? 'cars' : 'properties',
-        mode: listing.category.includes('rent') ? 'rent' : 'buy',
+        category: isCar ? 'cars' : 'properties',
+        mode: isRent ? 'rent' : 'buy',
         title: listing.title,
         subtitle: listing.subtitle || '',
         slug: listing.slug || listing.id,
         price: listing.price,
-        price_unit: listing.pricePeriod === '/day' ? '/ day' : '',
-        price_formatted: `₦${listing.price.toLocaleString('en-NG')}`,
+        price_unit: listing.pricePeriod === '/day' ? '/ day' : (listing.pricePeriod === '/year' ? '/ year' : ''),
+        price_formatted: `₦${Number(listing.price).toLocaleString('en-NG')}`,
+        currency: listing.currency || 'NGN',
+        caution_fee: 0,
         images: listing.images as any,
         location: listing.location,
+        state: 'Abuja',
         status: listing.status === 'published' ? 'available' : 'reserved',
-        featured: !!listing.featured,
+        featured: Boolean(listing.featured),
+        tags: (listing.tags || []) as any,
         description: listing.description,
-        specs: (listing.vehicleSpecs || listing.propertySpecs || {}) as any
+        specs: (listing.vehicleSpecs || listing.propertySpecs || {}) as any,
+        features: [] as any
       });
-      return !error;
+
+      if (error) {
+        console.warn('Supabase insertListing error:', error.message);
+        return false;
+      }
+      return true;
     } catch (err) {
-      console.warn('Supabase insertListing error:', err);
+      console.warn('Supabase insertListing exception:', err);
       return false;
     }
   },
@@ -76,11 +110,20 @@ export const supabaseService = {
     if (!isSupabaseConfigured()) return false;
     try {
       const dbUpdates: Record<string, any> = {};
-      if (updates.title) dbUpdates.title = updates.title;
-      if (updates.description) dbUpdates.description = updates.description;
-      if (updates.price) dbUpdates.price = updates.price;
-      if (updates.location) dbUpdates.location = updates.location;
-      if (updates.status) dbUpdates.status = updates.status === 'published' ? 'available' : 'reserved';
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.subtitle !== undefined) dbUpdates.subtitle = updates.subtitle;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.price !== undefined) {
+        dbUpdates.price = updates.price;
+        dbUpdates.price_formatted = `₦${Number(updates.price).toLocaleString('en-NG')}`;
+      }
+      if (updates.location !== undefined) dbUpdates.location = updates.location;
+      if (updates.status !== undefined) dbUpdates.status = updates.status === 'published' ? 'available' : 'reserved';
+      if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
+      if (updates.images !== undefined) dbUpdates.images = updates.images;
+      if (updates.vehicleSpecs || updates.propertySpecs) {
+        dbUpdates.specs = updates.vehicleSpecs || updates.propertySpecs;
+      }
 
       const { error } = await supabase.from('listings').update(dbUpdates).eq('id', id);
       return !error;
@@ -89,7 +132,19 @@ export const supabaseService = {
     }
   },
 
-  // 2. Bookings
+  async deleteListing(id: string): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { error } = await supabase.from('listings').delete().eq('id', id);
+      return !error;
+    } catch (err) {
+      return false;
+    }
+  },
+
+  // ============================================================================
+  // 2. BOOKINGS
+  // ============================================================================
   async fetchBookings(): Promise<Booking[] | null> {
     if (!isSupabaseConfigured()) return null;
     try {
@@ -102,6 +157,7 @@ export const supabaseService = {
 
       return data.map(row => ({
         id: row.id,
+        reference: row.reference || row.id,
         type: row.type,
         listingId: row.listing_id || '',
         listingTitle: row.listing_title,
@@ -113,12 +169,12 @@ export const supabaseService = {
         endDate: row.end_date || undefined,
         driverOption: (row.driver_option as any) || 'Self-drive',
         pickupLocation: row.pickup_location || undefined,
-        totalAmount: row.total_amount,
+        totalAmount: Number(row.total_amount) || 0,
         paymentStatus: row.payment_status,
         bookingStatus: row.booking_status,
         receiptUrl: row.receipt_url || undefined,
         notes: row.notes || undefined,
-        createdAt: row.created_at
+        createdAt: row.created_at || new Date().toISOString()
       }));
     } catch (err) {
       return null;
@@ -130,6 +186,7 @@ export const supabaseService = {
     try {
       const { error } = await supabase.from('bookings').insert({
         id: booking.id,
+        reference: booking.reference || booking.id,
         type: booking.type,
         listing_id: booking.listingId || null,
         listing_title: booking.listingTitle,
@@ -159,7 +216,8 @@ export const supabaseService = {
       const dbUpdates: Record<string, any> = {};
       if (updates.bookingStatus) dbUpdates.booking_status = updates.bookingStatus;
       if (updates.paymentStatus) dbUpdates.payment_status = updates.paymentStatus;
-      if (updates.notes) dbUpdates.notes = updates.notes;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+      if (updates.receiptUrl !== undefined) dbUpdates.receipt_url = updates.receiptUrl;
 
       const { error } = await supabase.from('bookings').update(dbUpdates).eq('id', id);
       return !error;
@@ -168,7 +226,9 @@ export const supabaseService = {
     }
   },
 
-  // 3. RMB Rates
+  // ============================================================================
+  // 3. RMB RATES
+  // ============================================================================
   async fetchRmbRates(): Promise<RmbRateConfig | null> {
     if (!isSupabaseConfigured()) return null;
     try {
@@ -183,10 +243,10 @@ export const supabaseService = {
       if (error || !data) return null;
 
       return {
-        payRmbRate: data.pay_rmb_rate,
-        payNairaRate: data.pay_naira_rate,
-        updatedAt: data.updated_at_display,
-        updatedBy: data.updated_by
+        payRmbRate: Number(data.pay_rmb_rate),
+        payNairaRate: Number(data.pay_naira_rate),
+        updatedAt: data.updated_at_display || 'Today',
+        updatedBy: data.updated_by || 'Admin (Treasury Desk)'
       };
     } catch (err) {
       return null;
@@ -196,14 +256,13 @@ export const supabaseService = {
   async updateRmbRates(rates: { payRmbRate: number; payNairaRate: number }): Promise<boolean> {
     if (!isSupabaseConfigured()) return false;
     try {
-      // Mark old as false
       await supabase.from('rmb_rates').update({ is_current: false }).eq('is_current', true);
 
-      // Insert new current rate
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ' Today';
       const { error } = await supabase.from('rmb_rates').insert({
         pay_rmb_rate: rates.payRmbRate,
         pay_naira_rate: rates.payNairaRate,
-        updated_at_display: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ' Today',
+        updated_at_display: timeStr,
         updated_by: 'Admin (Treasury Desk)',
         is_current: true
       });
@@ -213,22 +272,218 @@ export const supabaseService = {
     }
   },
 
-  // 4. RMB Exchange Requests
+  // ============================================================================
+  // 4. RMB EXCHANGE REQUESTS
+  // ============================================================================
+  async fetchRmbRequests(): Promise<RmbExchangeRequest[] | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const { data, error } = await supabase
+        .from('rmb_exchange_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error || !data) return null;
+
+      return data.map(row => ({
+        id: row.id,
+        reference: row.reference || row.id,
+        direction: row.direction,
+        sourceAmount: Number(row.source_amount),
+        rateApplied: Number(row.rate_applied),
+        destinationAmount: Number(row.destination_amount),
+        customerName: row.customer_name,
+        customerEmail: row.customer_email,
+        customerWhatsApp: row.customer_whatsapp,
+        destinationChannel: row.destination_channel,
+        receiptUrl: row.receipt_url || undefined,
+        status: row.status,
+        notes: row.notes || undefined,
+        createdAt: row.created_at || new Date().toISOString(),
+        updatedAt: row.updated_at || new Date().toISOString()
+      }));
+    } catch (err) {
+      return null;
+    }
+  },
+
   async insertRmbRequest(req: RmbExchangeRequest): Promise<boolean> {
     if (!isSupabaseConfigured()) return false;
     try {
       const { error } = await supabase.from('rmb_exchange_requests').insert({
         id: req.id,
+        reference: req.reference || req.id,
         direction: req.direction,
         source_amount: req.sourceAmount,
         rate_applied: req.rateApplied,
         destination_amount: req.destinationAmount,
+        destination_channel: req.destinationChannel || 'Alipay, WeChat Pay or bank',
         customer_name: req.customerName,
         customer_email: req.customerEmail,
         customer_whatsapp: req.customerWhatsApp,
         receipt_url: req.receiptUrl || null,
         status: req.status,
         notes: req.notes || null
+      });
+      return !error;
+    } catch (err) {
+      return false;
+    }
+  },
+
+  async updateRmbRequest(id: string, updates: Partial<RmbExchangeRequest>): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const dbUpdates: Record<string, any> = {};
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+      if (updates.receiptUrl !== undefined) dbUpdates.receipt_url = updates.receiptUrl;
+
+      const { error } = await supabase.from('rmb_exchange_requests').update(dbUpdates).eq('id', id);
+      return !error;
+    } catch (err) {
+      return false;
+    }
+  },
+
+  // ============================================================================
+  // 5. CUSTOMERS CRM
+  // ============================================================================
+  async fetchCustomers(): Promise<Customer[] | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('joined_at', { ascending: false });
+
+      if (error || !data) return null;
+
+      return data.map(row => ({
+        id: row.id,
+        name: row.name,
+        initials: row.initials || row.name.slice(0, 2).toUpperCase(),
+        email: row.email,
+        phone: row.phone,
+        phoneFull: row.phone_full || row.phone,
+        location: row.location || 'Abuja, FCT',
+        uses: (row.uses as any) || 'Cars',
+        bookingsCount: row.bookings_count || 0,
+        totalBookings: row.bookings_count || 0,
+        rmbSentDisplay: row.rmb_sent_display || '¥0',
+        totalSpentDisplay: row.total_spent_display || '₦0',
+        lifetimeSpendNgn: Number(row.lifetime_spend_ngn) || 0,
+        isVip: Boolean(row.is_vip),
+        status: (row.status as any) || 'active',
+        notes: row.notes || undefined,
+        lastActive: row.last_active || 'Today',
+        joinedAt: row.joined_at || new Date().toISOString()
+      }));
+    } catch (err) {
+      return null;
+    }
+  },
+
+  async updateCustomerNotes(id: string, notes: string): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { error } = await supabase.from('customers').update({ notes }).eq('id', id);
+      return !error;
+    } catch (err) {
+      return false;
+    }
+  },
+
+  // ============================================================================
+  // 6. WEBSITE CONTENT (CMS)
+  // ============================================================================
+  async fetchWebsiteContent(): Promise<WebsiteContentConfig | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const { data, error } = await supabase
+        .from('website_content')
+        .select('*')
+        .eq('id', 'global_config')
+        .single();
+
+      if (error || !data) return null;
+
+      return {
+        heroHeadline: data.hero_headline || 'Drive it. Live in it. Own it.',
+        heroEyebrow: data.hero_eyebrow || 'Invest in value · Live the future',
+        heroSupportingText: data.hero_supporting_text || 'Rent or buy premium cars and homes, and change RMB and naira — all through one trusted team.',
+        founderBio: data.founder_bio || 'BZ De Great is a realtor, investment broker and entrepreneur working across four industries — real estate, automobiles, fashion and technology.',
+        announcementEnabled: Boolean(data.announcement_enabled),
+        announcementText: data.announcement_text || '',
+        featuredItems: Array.isArray(data.featured_items) ? data.featured_items : []
+      };
+    } catch (err) {
+      return null;
+    }
+  },
+
+  async updateWebsiteContent(config: Partial<WebsiteContentConfig>): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const dbUpdates: Record<string, any> = {};
+      if (config.heroHeadline !== undefined) dbUpdates.hero_headline = config.heroHeadline;
+      if (config.heroEyebrow !== undefined) dbUpdates.hero_eyebrow = config.heroEyebrow;
+      if (config.heroSupportingText !== undefined) dbUpdates.hero_supporting_text = config.heroSupportingText;
+      if (config.founderBio !== undefined) dbUpdates.founder_bio = config.founderBio;
+      if (config.announcementEnabled !== undefined) dbUpdates.announcement_enabled = config.announcementEnabled;
+      if (config.announcementText !== undefined) dbUpdates.announcement_text = config.announcementText;
+      if (config.featuredItems !== undefined) dbUpdates.featured_items = config.featuredItems;
+
+      const { error } = await supabase
+        .from('website_content')
+        .upsert({ id: 'global_config', ...dbUpdates });
+
+      return !error;
+    } catch (err) {
+      return false;
+    }
+  },
+
+  // ============================================================================
+  // 7. STAFF ACTIVITIES (AUDIT TRAIL)
+  // ============================================================================
+  async fetchActivities(): Promise<StaffActivity[] | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const { data, error } = await supabase
+        .from('staff_activities')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error || !data) return null;
+
+      return data.map(row => ({
+        id: row.id,
+        actorName: row.staff_name,
+        actorRole: 'Staff',
+        action: row.action,
+        target: row.target,
+        details: row.details || undefined,
+        timestamp: row.timestamp_display || 'Today',
+        category: (row.category as any) || 'payments'
+      }));
+    } catch (err) {
+      return null;
+    }
+  },
+
+  async insertActivity(act: StaffActivity): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { error } = await supabase.from('staff_activities').insert({
+        id: act.id,
+        category: act.category || 'payments',
+        staff_name: act.actorName,
+        action: act.action,
+        target: act.target || act.targetId || 'Record',
+        details: act.details || '',
+        timestamp_display: act.timestamp || 'Today'
       });
       return !error;
     } catch (err) {

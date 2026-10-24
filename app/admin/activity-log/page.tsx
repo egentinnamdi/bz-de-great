@@ -28,83 +28,36 @@ interface ActivityItem {
   iconType: 'payment' | 'rate' | 'listing' | 'payout' | 'booking' | 'content';
 }
 
+import { useStore } from '@/lib/store';
+
 export default function AdminActivityLogPage() {
   const { toast } = useToast();
+  const { activities: storeActivities } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'payments' | 'listings' | 'rates'>('all');
 
-  const [activities, setActivities] = useState<ActivityItem[]>([
-    {
-      id: 'act-1',
-      category: 'payments',
-      actorName: 'Admin',
-      actionText: 'approved payment',
-      targetDetails: 'RMB-0141 · ₦4,308,000',
-      timestamp: '10:41 AM',
-      dayGroup: 'TODAY',
-      iconType: 'payment'
-    },
-    {
-      id: 'act-2',
-      category: 'rates',
-      actorName: 'Admin',
-      actionText: 'changed the RMB rate',
-      targetDetails: '₦214.80 → ₦215.40',
-      timestamp: '9:30 AM',
-      dayGroup: 'TODAY',
-      iconType: 'rate'
-    },
-    {
-      id: 'act-3',
-      category: 'listings',
-      actorName: 'David Ola',
-      actionText: 'added a listing',
-      targetDetails: 'Toyota Land Cruiser 2023',
-      timestamp: '9:12 AM',
-      dayGroup: 'TODAY',
-      iconType: 'listing'
-    },
-    {
-      id: 'act-4',
-      category: 'payments',
-      actorName: 'Ngozi Uche',
-      actionText: 'marked as paid out',
-      targetDetails: 'RMB-0140 · ¥15,000',
-      timestamp: '8:55 AM',
-      dayGroup: 'TODAY',
-      iconType: 'payout'
-    },
-    {
-      id: 'act-5',
-      category: 'bookings',
-      actorName: 'Blessing Okon',
-      actionText: 'confirmed a booking',
-      targetDetails: 'BK-2290 · 3-Bed Serviced Apartment',
-      timestamp: '6:20 PM',
-      dayGroup: 'YESTERDAY',
-      iconType: 'booking'
-    },
-    {
-      id: 'act-6',
-      category: 'rates',
-      actorName: 'Admin',
-      actionText: 'changed the RMB rate',
-      targetDetails: '₦213.90 → ₦214.80',
-      timestamp: '5:10 PM',
-      dayGroup: 'YESTERDAY',
-      iconType: 'rate'
-    },
-    {
-      id: 'act-7',
-      category: 'content',
-      actorName: 'Blessing Okon',
-      actionText: 'updated website content',
-      targetDetails: 'Homepage hero headline',
-      timestamp: '11:30 AM',
-      dayGroup: 'YESTERDAY',
-      iconType: 'content'
-    }
-  ]);
+  const activities: ActivityItem[] = React.useMemo(() => {
+    return storeActivities.map(a => {
+      let iconType: ActivityItem['iconType'] = 'payment';
+      if (a.category === 'rates') iconType = 'rate';
+      else if (a.category === 'listings') iconType = 'listing';
+      else if (a.category === 'bookings') iconType = 'booking';
+      else if (a.category === 'content') iconType = 'content';
+
+      const isYesterday = a.timestamp.toLowerCase().includes('yesterday');
+
+      return {
+        id: a.id,
+        category: a.category || 'payments',
+        actorName: a.actorName,
+        actionText: a.action,
+        targetDetails: a.target || a.details || 'Record',
+        timestamp: a.timestamp.replace(/^(today|yesterday),\s*/i, ''),
+        dayGroup: isYesterday ? 'YESTERDAY' : 'TODAY',
+        iconType
+      };
+    });
+  }, [storeActivities]);
 
   const handleExport = () => {
     const csvContent =

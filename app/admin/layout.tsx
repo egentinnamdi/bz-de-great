@@ -22,6 +22,7 @@ import {
 import { BrandLogo } from '@/components/brand-logo';
 import { cn } from '@/lib/utils';
 import { AdminAuthProvider, useAdminAuth } from '@/lib/admin-auth';
+import { useToast } from '@/components/toast-provider';
 
 interface NavItem {
   label: string;
@@ -178,20 +179,31 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           {/* Authenticated Staff User */}
           <div className="flex items-center justify-between gap-2 pt-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-white/10 text-white font-bold flex items-center justify-center text-xs border border-white/20 shrink-0">
+              <div className="w-9 h-9 rounded-full bg-white/10 text-white font-bold flex items-center justify-center text-xs border border-white/20 shrink-0">
                 {user?.avatarInitials || 'AD'}
               </div>
               <div className="flex flex-col text-[12px] leading-tight min-w-0">
                 <span className="font-semibold text-white truncate">{user?.name || 'Operations Desk'}</span>
-                <span className="text-[10px] text-white/60 truncate">{user?.role || 'Staff Member'}</span>
+                <span className={cn(
+                  'inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide w-fit mt-0.5 border',
+                  user?.role === 'Treasury Desk'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    : user?.role === 'Concierge Lead'
+                    ? 'bg-sky-500/20 text-sky-300 border-sky-500/30'
+                    : 'bg-amber-500/20 text-amber-200 border-amber-500/30'
+                )}>
+                  {user?.role || 'Master Admin'}
+                </span>
               </div>
             </div>
 
             <button
               type="button"
-              onClick={logout}
-              className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-[6px] transition-colors cursor-pointer"
-              title="Sign Out"
+              onClick={async () => {
+                await logout();
+              }}
+              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-[8px] transition-colors cursor-pointer"
+              title="Sign Out of Operations Desk"
               aria-label="Sign Out"
             >
               <LogOut className="w-4 h-4" />

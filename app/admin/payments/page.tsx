@@ -48,165 +48,81 @@ interface PaymentRow {
 
 export default function AdminPaymentsPage() {
   const { toast } = useToast();
+  const { rmbRequests: storeRmb, bookings: storeBookings, updateRmbRequest, updateBooking, addActivity } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [tableSearch, setTableSearch] = useState('');
   const [timeFilter, setTimeFilter] = useState('This week');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'paid_out' | 'rejected'>('all');
 
   // Interactive state for Pay RMB, get naira requests (middle card)
-  const [rmbRequests, setRmbRequests] = useState<PayRmbRequest[]>([
-    {
-      id: 'req-1',
-      reference: 'RMB-0144',
-      customerName: 'Chidi Okafor',
-      customerPhone: '0803 *** 4412',
-      paysRmb: 10000,
-      wePayNaira: 2050000,
-      requestedAt: '10 min ago',
-      status: 'new'
-    },
-    {
-      id: 'req-2',
-      reference: 'RMB-0145',
-      customerName: 'Kemi Lawal',
-      customerPhone: '0805 *** 7712',
-      paysRmb: 3000,
-      wePayNaira: 615900,
-      requestedAt: '25 min ago',
-      status: 'account_sent'
-    },
-    {
-      id: 'req-3',
-      reference: 'RMB-0137',
-      customerName: 'Uche Ojo',
-      customerPhone: '0701 *** 4420',
-      paysRmb: 8000,
-      wePayNaira: 1640000,
-      requestedAt: 'Yesterday',
-      status: 'rmb_received'
-    },
-    {
-      id: 'req-4',
-      reference: 'RMB-0136',
-      customerName: 'Musa Aliyu',
-      customerPhone: '0806 *** 1290',
-      paysRmb: 20000,
-      wePayNaira: 4100000,
-      requestedAt: 'Mon',
-      status: 'naira_paid'
-    }
-  ]);
+  const rmbRequests: PayRmbRequest[] = React.useMemo(() => {
+    return storeRmb
+      .filter(r => r.direction === 'rmb_to_naira')
+      .map(r => {
+        let status: PayRmbRequest['status'] = 'new';
+        if (r.status === 'account_sent') status = 'account_sent';
+        else if (r.status === 'receipt_received') status = 'rmb_received';
+        else if (r.status === 'paid_out') status = 'naira_paid';
+
+        return {
+          id: r.id,
+          reference: r.reference || r.id,
+          customerName: r.customerName,
+          customerPhone: r.customerWhatsApp || '0803 *** 4412',
+          paysRmb: r.sourceAmount,
+          wePayNaira: r.destinationAmount,
+          requestedAt: 'Recently',
+          status
+        };
+      });
+  }, [storeRmb]);
 
   // Interactive state for All payments table
-  const [payments, setPayments] = useState<PaymentRow[]>([
-    {
-      id: 'pay-1',
-      reference: 'RMB-0142',
-      customerName: 'Chidi Okafor',
-      customerPhone: '0803 441 2099',
-      type: 'Naira → RMB',
-      amount: 2154000,
-      amountFormatted: '₦2,154,000',
-      submittedAt: '10 min ago',
-      status: 'pending'
-    },
-    {
-      id: 'pay-2',
-      reference: 'BK-2291',
-      customerName: 'Amaka Eze',
-      customerPhone: '0816 229 0112',
-      type: 'Car rental',
-      amount: 750000,
-      amountFormatted: '₦750,000',
-      submittedAt: '30 min ago',
-      status: 'pending'
-    },
-    {
-      id: 'pay-3',
-      reference: 'RMB-0143',
-      customerName: 'Ngozi Ojo',
-      customerPhone: '0802 881 3320',
-      type: 'Naira → RMB',
-      amount: 861600,
-      amountFormatted: '₦861,600',
-      submittedAt: '45 min ago',
-      status: 'pending'
-    },
-    {
-      id: 'pay-4',
-      reference: 'INS-0317',
-      customerName: 'Musa Bello',
-      customerPhone: '0703 119 2200',
-      type: 'Property deposit',
-      amount: 2500000,
-      amountFormatted: '₦2,500,000',
-      submittedAt: '1 hr ago',
-      status: 'pending'
-    },
-    {
-      id: 'pay-5',
-      reference: 'RMB-0141',
-      customerName: 'Tunde Bello',
-      customerPhone: '0809 778 1234',
-      type: 'Naira → RMB',
-      amount: 4308000,
-      amountFormatted: '₦4,308,000',
-      submittedAt: '1 hr ago',
-      status: 'approved'
-    },
-    {
-      id: 'pay-6',
-      reference: 'BK-2290',
-      customerName: 'Fatima Sule',
-      customerPhone: '0812 003 4599',
-      type: 'Apartment rental',
-      amount: 12000000,
-      amountFormatted: '₦12,000,000',
-      submittedAt: '3 hrs ago',
-      status: 'approved'
-    },
-    {
-      id: 'pay-7',
-      reference: 'RMB-0140',
-      customerName: 'Ada Nnamani',
-      customerPhone: '0803 772 1190',
-      type: 'Naira → RMB',
-      amount: 3231000,
-      amountFormatted: '₦3,231,000',
-      submittedAt: 'Yesterday',
-      status: 'paid_out'
-    },
-    {
-      id: 'pay-8',
-      reference: 'RMB-0139',
-      customerName: 'Emeka Nwosu',
-      customerPhone: '0817 330 2211',
-      type: 'Naira → RMB',
-      amount: 1077000,
-      amountFormatted: '₦1,077,000',
-      submittedAt: 'Yesterday',
-      status: 'paid_out'
-    },
-    {
-      id: 'pay-9',
-      reference: 'RMB-0138',
-      customerName: 'Bola Ade',
-      customerPhone: '0805 119 4432',
-      type: 'Naira → RMB',
-      amount: 540000,
-      amountFormatted: '₦540,000',
-      submittedAt: 'Mon',
-      status: 'rejected',
-      rejectionReason: 'Bank transfer slip amount does not match invoice total.'
-    }
-  ]);
+  const payments: PaymentRow[] = React.useMemo(() => {
+    const rmbRows: PaymentRow[] = storeRmb.map(r => ({
+      id: r.id,
+      reference: r.reference || r.id,
+      customerName: r.customerName,
+      customerPhone: r.customerWhatsApp,
+      type: r.direction === 'naira_to_rmb' ? 'Naira → RMB' : 'RMB → Naira',
+      amount: r.direction === 'naira_to_rmb' ? r.sourceAmount : r.destinationAmount,
+      amountFormatted: `₦${Number(r.direction === 'naira_to_rmb' ? r.sourceAmount : r.destinationAmount).toLocaleString('en-NG')}`,
+      receiptUrl: r.receiptUrl,
+      submittedAt: 'Recently',
+      status: (r.status === 'approved' ? 'approved' : r.status === 'paid_out' ? 'paid_out' : r.status === 'rejected' ? 'rejected' : 'pending'),
+      rejectionReason: r.notes
+    }));
+
+    const bookingRows: PaymentRow[] = storeBookings.map(b => ({
+      id: b.id,
+      reference: b.reference || b.id,
+      customerName: b.customerName,
+      customerPhone: b.customerPhone,
+      type: b.type === 'car_rental' ? 'Car rental' : (b.type === 'car_test_drive' ? 'Test drive' : 'Property inspection'),
+      amount: b.totalAmount || 0,
+      amountFormatted: `₦${Number(b.totalAmount || 0).toLocaleString('en-NG')}`,
+      receiptUrl: b.receiptUrl,
+      submittedAt: 'Recently',
+      status: (b.paymentStatus === 'verified' ? 'approved' : b.paymentStatus === 'refunded' ? 'rejected' : 'pending'),
+      rejectionReason: b.notes
+    }));
+
+    return [...rmbRows, ...bookingRows];
+  }, [storeRmb, storeBookings]);
 
   // Modal inspection state
   const [selectedReceipt, setSelectedReceipt] = useState<PaymentRow | null>(null);
 
   // Actions for middle card
-  const handleSendRmbAccount = (req: PayRmbRequest) => {
-    setRmbRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'account_sent' } : r));
+  const handleSendRmbAccount = async (req: PayRmbRequest) => {
+    await updateRmbRequest(req.id, { status: 'account_sent' });
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Treasury Desk',
+      action: 'sent RMB collection account',
+      target: `${req.reference} · ${req.customerName}`,
+      category: 'payments'
+    });
     toast({
       title: "RMB account sent to customer's WhatsApp",
       description: `Sent corporate ICBC credentials for ${req.reference} to ${req.customerName}.`,
@@ -214,8 +130,15 @@ export default function AdminPaymentsPage() {
     });
   };
 
-  const handleMarkRmbReceived = (req: PayRmbRequest) => {
-    setRmbRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'rmb_received' } : r));
+  const handleMarkRmbReceived = async (req: PayRmbRequest) => {
+    await updateRmbRequest(req.id, { status: 'receipt_received' });
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Treasury Desk',
+      action: 'confirmed RMB payment received',
+      target: `${req.reference} · ¥${req.paysRmb.toLocaleString()}`,
+      category: 'payments'
+    });
     toast({
       title: 'RMB received',
       description: `Confirmed ¥${req.paysRmb.toLocaleString()} received for ${req.reference}.`,
@@ -223,8 +146,15 @@ export default function AdminPaymentsPage() {
     });
   };
 
-  const handleMarkNairaPaid = (req: PayRmbRequest) => {
-    setRmbRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'naira_paid' } : r));
+  const handleMarkNairaPaid = async (req: PayRmbRequest) => {
+    await updateRmbRequest(req.id, { status: 'paid_out' });
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Treasury Desk',
+      action: 'paid out Naira to customer',
+      target: `${req.reference} · ₦${req.wePayNaira.toLocaleString()}`,
+      category: 'payments'
+    });
     toast({
       title: 'Naira paid out',
       description: `Sent ₦${req.wePayNaira.toLocaleString()} to ${req.customerName}. Order complete.`,
@@ -233,8 +163,19 @@ export default function AdminPaymentsPage() {
   };
 
   // Actions for bottom table
-  const handleApprove = (payment: PaymentRow) => {
-    setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: 'approved' } : p));
+  const handleApprove = async (payment: PaymentRow) => {
+    if (payment.reference.startsWith('RMB')) {
+      await updateRmbRequest(payment.id, { status: 'approved' });
+    } else {
+      await updateBooking(payment.id, { paymentStatus: 'verified', bookingStatus: 'confirmed' });
+    }
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Treasury Desk',
+      action: 'approved payment',
+      target: `${payment.reference} · ${payment.amountFormatted}`,
+      category: 'payments'
+    });
     toast({
       title: 'Payment approved',
       description: `${payment.reference} (${payment.amountFormatted}) confirmed and verified.`,
@@ -243,8 +184,19 @@ export default function AdminPaymentsPage() {
     if (selectedReceipt?.id === payment.id) setSelectedReceipt(null);
   };
 
-  const handleReject = (payment: PaymentRow) => {
-    setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: 'rejected', rejectionReason: 'Transfer receipt verification failed' } : p));
+  const handleReject = async (payment: PaymentRow) => {
+    if (payment.reference.startsWith('RMB')) {
+      await updateRmbRequest(payment.id, { status: 'rejected', notes: 'Transfer receipt verification failed' });
+    } else {
+      await updateBooking(payment.id, { paymentStatus: 'refunded', notes: 'Transfer receipt verification failed' });
+    }
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Treasury Desk',
+      action: 'rejected payment',
+      target: `${payment.reference} · ${payment.amountFormatted}`,
+      category: 'payments'
+    });
     toast({
       title: 'Payment rejected',
       description: `${payment.reference} marked as rejected. Notified customer.`,
@@ -253,8 +205,17 @@ export default function AdminPaymentsPage() {
     if (selectedReceipt?.id === payment.id) setSelectedReceipt(null);
   };
 
-  const handleMarkPaidOut = (payment: PaymentRow) => {
-    setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: 'paid_out' } : p));
+  const handleMarkPaidOut = async (payment: PaymentRow) => {
+    if (payment.reference.startsWith('RMB')) {
+      await updateRmbRequest(payment.id, { status: 'paid_out' });
+    }
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Treasury Desk',
+      action: 'marked as paid out',
+      target: `${payment.reference} · ${payment.amountFormatted}`,
+      category: 'payments'
+    });
     toast({
       title: 'Marked as paid out',
       description: `${payment.reference} payout verified successfully.`,

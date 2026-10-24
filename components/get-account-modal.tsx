@@ -37,7 +37,7 @@ export function GetAccountModal({
 
   const rate = direction === 'rmb_to_naira' ? rmbRates.payRmbRate : rmbRates.payNairaRate;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !whatsApp) {
       toast({
@@ -48,7 +48,7 @@ export function GetAccountModal({
       return;
     }
 
-    const req = createRmbRequest({
+    const req = await createRmbRequest({
       direction,
       sourceAmount,
       rateApplied: rate,

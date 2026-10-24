@@ -20,66 +20,33 @@ import { cn } from '@/lib/utils';
 
 export default function AdminWebsiteContentPage() {
   const { toast } = useToast();
-  const { addActivity } = useStore();
+  const { websiteContent, updateWebsiteContent, addActivity } = useStore();
 
   const [globalSearch, setGlobalSearch] = useState('');
-  const [headline, setHeadline] = useState('Drive it. Live in it. Own it.');
-  const [eyebrow, setEyebrow] = useState('Invest in value · Live the future');
-  const [supportingText, setSupportingText] = useState(
-    'Rent or buy premium cars and homes, and change RMB and naira — all through one trusted team.'
-  );
-  const [founderBio, setFounderBio] = useState(
-    'BZ De Great is a realtor, investment broker and entrepreneur working across four industries — real estate, automobiles, fashion and technology.'
-  );
+  const [headline, setHeadline] = useState(websiteContent.heroHeadline);
+  const [eyebrow, setEyebrow] = useState(websiteContent.heroEyebrow);
+  const [supportingText, setSupportingText] = useState(websiteContent.heroSupportingText);
+  const [founderBio, setFounderBio] = useState(websiteContent.founderBio);
 
-  const [announcementEnabled, setAnnouncementEnabled] = useState(false);
-  const [announcementText, setAnnouncementText] = useState('');
+  const [announcementEnabled, setAnnouncementEnabled] = useState(websiteContent.announcementEnabled);
+  const [announcementText, setAnnouncementText] = useState(websiteContent.announcementText);
 
   // Featured items on homepage
-  const [featuredItems, setFeaturedItems] = useState([
-    {
-      id: 'feat-1',
-      title: 'Lincoln Navigator 2022',
-      image: '/photos/car-suv-white.jpg',
-      category: 'Car',
-      active: true
-    },
-    {
-      id: 'feat-2',
-      title: 'Mercedes-Benz S-Class 2022',
-      image: '/photos/car-sclass-black.jpg',
-      category: 'Car',
-      active: true
-    },
-    {
-      id: 'feat-3',
-      title: 'BMW 50i xDrive 2021',
-      image: '/photos/car-bmw-sedan.jpg',
-      category: 'Car',
-      active: true
-    },
-    {
-      id: 'feat-4',
-      title: '5-Bedroom Detached Duplex',
-      image: '/photos/prop-villa-1.jpg',
-      category: 'Property',
-      active: false
-    },
-    {
-      id: 'feat-5',
-      title: '3-Bed Serviced Apartment',
-      image: '/photos/prop-penthouse-1.jpg',
-      category: 'Property',
-      active: true
-    },
-    {
-      id: 'feat-6',
-      title: '4-Bedroom Terrace',
-      image: '/photos/prop-mansion-1.jpg',
-      category: 'Property',
-      active: true
+  const [featuredItems, setFeaturedItems] = useState(websiteContent.featuredItems);
+
+  React.useEffect(() => {
+    if (websiteContent) {
+      setHeadline(websiteContent.heroHeadline);
+      setEyebrow(websiteContent.heroEyebrow);
+      setSupportingText(websiteContent.heroSupportingText);
+      setFounderBio(websiteContent.founderBio);
+      setAnnouncementEnabled(websiteContent.announcementEnabled);
+      setAnnouncementText(websiteContent.announcementText);
+      if (websiteContent.featuredItems && websiteContent.featuredItems.length > 0) {
+        setFeaturedItems(websiteContent.featuredItems);
+      }
     }
-  ]);
+  }, [websiteContent]);
 
   // Gallery photos
   const galleryPhotos = [
@@ -100,12 +67,23 @@ export default function AdminWebsiteContentPage() {
     );
   };
 
-  const handlePublish = (e: React.FormEvent) => {
+  const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
-    addActivity({
+    await updateWebsiteContent({
+      heroHeadline: headline,
+      heroEyebrow: eyebrow,
+      heroSupportingText: supportingText,
+      founderBio,
+      announcementEnabled,
+      announcementText,
+      featuredItems
+    });
+    await addActivity({
       actorName: 'Admin',
-      actorRole: 'Super admin',
-      action: 'updated website content (hero headline & featured listings)'
+      actorRole: 'Master Admin',
+      action: 'updated website content',
+      target: 'Hero headline & CMS',
+      category: 'content'
     });
     toast({
       title: 'Changes published',

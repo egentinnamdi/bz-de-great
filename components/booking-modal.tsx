@@ -44,7 +44,7 @@ export function BookingModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !phone) {
       toast({
@@ -55,7 +55,7 @@ export function BookingModal({
       return;
     }
 
-    const booking = createBooking({
+    const booking = await createBooking({
       type: defaultType,
       listingId: listing.id,
       listingTitle: listing.title,

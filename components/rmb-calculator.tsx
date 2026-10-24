@@ -56,7 +56,7 @@ export function RmbCalculator({
         </h3>
         <div className="flex items-center gap-1.5 text-xs text-[#716769]">
           <Clock className="w-3.5 h-3.5 text-[#716769]" />
-          <span>Rates updated 9:30 AM</span>
+          <span>Rates updated {rmbRates.updatedAt || 'today'}</span>
         </div>
       </div>
 
