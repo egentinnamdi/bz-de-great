@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   Clock,
@@ -13,10 +13,27 @@ import {
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { RmbCalculator } from '@/components/rmb-calculator';
+import { GetAccountModal } from '@/components/get-account-modal';
 import { useStore } from '@/lib/store';
 
 export default function RmbExchangeLandingPage() {
   const { rmbRates } = useStore();
+
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const [accountDirection, setAccountDirection] = useState<'rmb_to_naira' | 'naira_to_rmb'>('rmb_to_naira');
+  const [accountSourceAmount, setAccountSourceAmount] = useState(10000);
+  const [accountDestAmount, setAccountDestAmount] = useState(2050000);
+
+  const handleOpenAccountModal = (
+    direction: 'rmb_to_naira' | 'naira_to_rmb',
+    sourceAmount: number,
+    destAmount: number
+  ) => {
+    setAccountDirection(direction);
+    setAccountSourceAmount(sourceAmount);
+    setAccountDestAmount(destAmount);
+    setAccountModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#1b1416] font-sans">
@@ -85,7 +102,7 @@ export default function RmbExchangeLandingPage() {
 
               {/* Right Column: Live Interactive RMB Calculator */}
               <div className="lg:col-span-5 flex justify-center lg:justify-end">
-                <RmbCalculator />
+                <RmbCalculator onOpenGetAccount={handleOpenAccountModal} />
               </div>
             </div>
           </div>
@@ -259,6 +276,15 @@ export default function RmbExchangeLandingPage() {
 
       {/* 5. Global Site Footer */}
       <SiteFooter />
+
+      {/* 6. Get Account Modal */}
+      <GetAccountModal
+        isOpen={accountModalOpen}
+        onClose={() => setAccountModalOpen(false)}
+        direction={accountDirection}
+        sourceAmount={accountSourceAmount}
+        destinationAmount={accountDestAmount}
+      />
     </div>
   );
 }

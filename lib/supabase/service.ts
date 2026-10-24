@@ -296,6 +296,9 @@ export const supabaseService = {
         customerEmail: row.customer_email,
         customerWhatsApp: row.customer_whatsapp,
         destinationChannel: row.destination_channel,
+        destinationAccountDetails: row.destination_account_details || undefined,
+        senderBank: row.sender_bank || undefined,
+        senderAccountName: row.sender_account_name || undefined,
         receiptUrl: row.receipt_url || undefined,
         status: row.status,
         notes: row.notes || undefined,
@@ -318,9 +321,12 @@ export const supabaseService = {
         rate_applied: req.rateApplied,
         destination_amount: req.destinationAmount,
         destination_channel: req.destinationChannel || 'Alipay, WeChat Pay or bank',
+        destination_account_details: req.destinationAccountDetails || null,
         customer_name: req.customerName,
         customer_email: req.customerEmail,
         customer_whatsapp: req.customerWhatsApp,
+        sender_bank: req.senderBank || null,
+        sender_account_name: req.senderAccountName || null,
         receipt_url: req.receiptUrl || null,
         status: req.status,
         notes: req.notes || null
@@ -338,6 +344,10 @@ export const supabaseService = {
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
       if (updates.receiptUrl !== undefined) dbUpdates.receipt_url = updates.receiptUrl;
+      if (updates.senderBank !== undefined) dbUpdates.sender_bank = updates.senderBank;
+      if (updates.senderAccountName !== undefined) dbUpdates.sender_account_name = updates.senderAccountName;
+      if (updates.destinationAccountDetails !== undefined) dbUpdates.destination_account_details = updates.destinationAccountDetails;
+      if (updates.destinationChannel !== undefined) dbUpdates.destination_channel = updates.destinationChannel;
 
       const { error } = await supabase.from('rmb_exchange_requests').update(dbUpdates).eq('id', id);
       return !error;

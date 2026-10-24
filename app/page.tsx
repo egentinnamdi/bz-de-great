@@ -77,9 +77,16 @@ export default function HomePage() {
       transmission: l.vehicleSpecs?.transmission || "Automatic",
       fuel: l.vehicleSpecs?.fuelType || "Petrol",
       price: `₦${Number(l.price).toLocaleString("en-NG")}`,
-      period: l.pricePeriod === "/day" ? "/ day" : (l.pricePeriod === "/year" ? "/ year" : ""),
+      period:
+        l.pricePeriod === "/day"
+          ? "/ day"
+          : l.pricePeriod === "/year"
+            ? "/ year"
+            : "",
       image: (l.images && l.images[0]) || "/photos/car-suv-white.jpg",
-      href: l.category.includes("rent") ? `/cars/rent/${l.id}` : `/cars/buy/${l.id}`,
+      href: l.category.includes("rent")
+        ? `/cars/rent/${l.id}`
+        : `/cars/buy/${l.id}`,
     }))
   }, [listings])
 
@@ -95,11 +102,15 @@ export default function HomePage() {
       location: l.location,
       beds: l.propertySpecs?.bedrooms || 3,
       baths: l.propertySpecs?.bathrooms || 3,
-      sqm: l.propertySpecs?.areaSqm ? `${l.propertySpecs.areaSqm} m²` : "450 m²",
+      sqm: l.propertySpecs?.areaSqm
+        ? `${l.propertySpecs.areaSqm} m²`
+        : "450 m²",
       price: `₦${Number(l.price).toLocaleString("en-NG")}`,
       period: l.pricePeriod === "/year" ? "/ year" : "",
       image: (l.images && l.images[0]) || "/photos/house-duplex.jpg",
-      href: l.category.includes("rent") ? `/homes/rent/${l.id}` : `/properties/buy/${l.id}`,
+      href: l.category.includes("rent")
+        ? `/homes/rent/${l.id}`
+        : `/properties/buy/${l.id}`,
     }))
   }, [listings])
 
@@ -811,7 +822,7 @@ export default function HomePage() {
                 <div className="pt-2">
                   <Link
                     href="/rmb-exchange"
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-xs font-semibold text-[#7A0C1A] shadow-md transition-colors hover:bg-[#faf7f7]"
+                    className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-xs font-semibold text-[#7A0C1A] shadow-md transition-colors hover:bg-[#faf7f7]"
                   >
                     <span>Start an exchange</span>
                     <ArrowRight className="h-3.5 w-3.5 text-[#7A0C1A]" />

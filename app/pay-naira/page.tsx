@@ -16,14 +16,17 @@ function PayNairaContent() {
 
   const paramSource = searchParams.get('source') ? Number(searchParams.get('source')) : null;
   const paramDest = searchParams.get('dest') ? Number(searchParams.get('dest')) : null;
+  const paramName = searchParams.get('name') || null;
+  const paramEmail = searchParams.get('email') || null;
+  const paramPhone = searchParams.get('phone') || null;
 
   // Exact Figma Order RMB-0142 defaults: ₦2,154,000 for ¥10,000 at 215.40
   const sourceAmount = targetRequest?.sourceAmount || paramSource || 2154000;
   const rateApplied = targetRequest?.rateApplied || rmbRates.payNairaRate || 215.40;
   const destinationAmount = targetRequest?.destinationAmount || paramDest || 10000;
-  const customerName = targetRequest?.customerName || 'Chidi Okafor';
-  const customerEmail = targetRequest?.customerEmail || 'chidi.o@email.com';
-  const customerPhone = targetRequest?.customerWhatsApp || '0803 000 0000';
+  const customerName = targetRequest?.customerName || paramName || 'Chidi Okafor';
+  const customerEmail = targetRequest?.customerEmail || paramEmail || 'chidi.o@email.com';
+  const customerPhone = targetRequest?.customerWhatsApp || paramPhone || '0803 000 0000';
 
   return (
     <PayNairaView

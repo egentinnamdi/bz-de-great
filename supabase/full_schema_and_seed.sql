@@ -1450,3 +1450,12 @@ INSERT INTO public.staff_activities (
   'Published high-resolution assets for Q4 promotions',
   'Yesterday, 11:00 AM'
 ) ON CONFLICT (id) DO NOTHING;
+
+-- 10. SEED PRESET STAFF PROFILES
+INSERT INTO public.profiles (id, full_name, email, role)
+VALUES
+  ('00000000-0000-0000-0000-000000000001', 'Chidi Okafor (COO)', 'admin@bzgroup.com', 'admin'),
+  ('00000000-0000-0000-0000-000000000002', 'Treasury Settlement Desk', 'treasury@bzgroup.com', 'treasury'),
+  ('00000000-0000-0000-0000-000000000003', 'VIP Concierge Lead', 'concierge@bzgroup.com', 'concierge')
+ON CONFLICT (email) DO NOTHING;
+

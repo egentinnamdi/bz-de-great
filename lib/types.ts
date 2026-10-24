@@ -62,6 +62,9 @@ export interface RmbExchangeRequest {
   customerEmail: string;
   customerWhatsApp: string;
   destinationChannel?: string;
+  destinationAccountDetails?: string;
+  senderBank?: string;
+  senderAccountName?: string;
   notes?: string;
   receiptUrl?: string;
   status: 'requested' | 'account_sent' | 'receipt_received' | 'approved' | 'paid_out' | 'rejected';

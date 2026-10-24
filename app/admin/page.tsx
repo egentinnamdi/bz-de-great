@@ -19,10 +19,12 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
 import { useStore } from '@/lib/store';
 import { useToast } from '@/components/toast-provider';
+import { useAdminAuth } from '@/lib/admin-auth';
 
 export default function AdminDashboardPage() {
   const { listings, bookings, rmbRequests, updateBooking, updateRmbRequest, activities, addActivity } = useStore();
   const { toast } = useToast();
+  const { user } = useAdminAuth();
 
   const activeRentals = bookings.filter(b => b.type === 'car_rental' && b.bookingStatus === 'confirmed');
   const pendingReceipts = bookings.filter(b => b.paymentStatus === 'receipt_uploaded');
@@ -35,8 +37,8 @@ export default function AdminDashboardPage() {
       bookingStatus: 'confirmed'
     });
     addActivity({
-      actorName: 'Staff Admin',
-      actorRole: 'Treasury Desk',
+      actorName: user?.name || 'Staff Admin',
+      actorRole: user?.role || 'Treasury Desk',
       action: `Approved payment receipt for ${bookingId}`,
       targetId: bookingId
     });
@@ -52,8 +54,8 @@ export default function AdminDashboardPage() {
       status: 'approved'
     });
     addActivity({
-      actorName: 'Staff Admin',
-      actorRole: 'Senior Trader',
+      actorName: user?.name || 'Staff Admin',
+      actorRole: user?.role || 'Senior Trader',
       action: `Approved RMB exchange payout ${reqId}`,
       targetId: reqId
     });
@@ -69,12 +71,22 @@ export default function AdminDashboardPage() {
       {/* Top Welcome & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border-subtle">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-wine-800">
-            Operations & Treasury Control
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-wine-800">
+              Operations & Treasury Control
+            </span>
+            {user?.role && (
+              <span className="px-2 py-0.5 rounded-full bg-wine-50 text-wine-900 border border-wine-200 text-[10px] font-bold">
+                {user.role}
+              </span>
+            )}
+          </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-text-main mt-0.5">
-            Admin Overview Dashboard
+            {user?.name ? `Welcome back, ${user.name}` : 'Admin Overview Dashboard'}
           </h1>
+          <p className="text-xs text-text-subtle mt-0.5">
+            Signed in as <span className="font-semibold text-text-main">{user?.email || 'admin@bzgroup.com'}</span> · BZ Group Operations Desk
+          </p>
         </div>
 
         <div className="flex items-center gap-3">

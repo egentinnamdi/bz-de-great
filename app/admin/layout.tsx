@@ -183,16 +183,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 {user?.avatarInitials || 'AD'}
               </div>
               <div className="flex flex-col text-[12px] leading-tight min-w-0">
-                <span className="font-semibold text-white truncate">{user?.name || 'Operations Desk'}</span>
-                <span className={cn(
-                  'inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide w-fit mt-0.5 border',
-                  user?.role === 'Treasury Desk'
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                    : user?.role === 'Concierge Lead'
-                    ? 'bg-sky-500/20 text-sky-300 border-sky-500/30'
-                    : 'bg-amber-500/20 text-amber-200 border-amber-500/30'
-                )}>
-                  {user?.role || 'Master Admin'}
+                <span className="font-semibold text-white truncate">{user?.name || 'Administrator'}</span>
+                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide w-fit mt-0.5 border bg-amber-500/20 text-amber-200 border-amber-500/30">
+                  Master Admin
                 </span>
               </div>
             </div>
