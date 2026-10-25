@@ -34,7 +34,7 @@ export const SITE_CONFIG = {
 export const INITIAL_RMB_RATES = {
   payRmbRate: 205.00,
   payNairaRate: 215.40,
-  updatedAt: '9:30 AM Today',
+  updatedAt: '5:09 PM Yesterday',
   updatedBy: 'Admin (Treasury Desk)'
 };
 

@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './client';
+import { formatRmbUpdatedAt } from '@/lib/utils';
 import type {
   Listing,
   Booking,
@@ -245,7 +246,7 @@ export const supabaseService = {
       return {
         payRmbRate: Number(data.pay_rmb_rate),
         payNairaRate: Number(data.pay_naira_rate),
-        updatedAt: data.updated_at_display || 'Today',
+        updatedAt: formatRmbUpdatedAt(data.created_at, data.updated_at_display),
         updatedBy: data.updated_by || 'Admin (Treasury Desk)'
       };
     } catch (err) {
@@ -528,6 +529,16 @@ export const supabaseService = {
         details: act.details || '',
         timestamp_display: act.timestamp || 'Today'
       });
+      return !error;
+    } catch (err) {
+      return false;
+    }
+  },
+
+  async clearActivities(): Promise<boolean> {
+    if (!isSupabaseConfigured()) return true;
+    try {
+      const { error } = await supabase.from('staff_activities').delete().gte('created_at', '2000-01-01');
       return !error;
     } catch (err) {
       return false;

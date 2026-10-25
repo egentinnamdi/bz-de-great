@@ -178,11 +178,13 @@ export function PayNairaView({
     }
   };
 
+  const isRmbToNaira = direction === 'rmb_to_naira';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       toast({
-        title: 'Name required',
+        title: 'Full name required',
         description: 'Please enter your full name.',
         variant: 'warning'
       });
@@ -196,18 +198,40 @@ export function PayNairaView({
       });
       return;
     }
-    if (!receiptFile) {
-      toast({
-        title: 'Please attach transfer receipt',
-        description: 'Upload a screenshot or PDF slip of your payment transfer.',
-        variant: 'warning'
-      });
-      return;
+    if (isRmbToNaira) {
+      if (!email.trim() || !email.includes('@')) {
+        toast({
+          title: 'Email address required',
+          description: 'Please enter a valid email address to receive order updates.',
+          variant: 'warning'
+        });
+        return;
+      }
+    } else {
+      if (!receiptFile) {
+        toast({
+          title: 'Please attach transfer receipt',
+          description: 'Upload a screenshot or PDF slip of your payment transfer.',
+          variant: 'warning'
+        });
+        return;
+      }
+      if (!rmbAccountDetails.trim() || !rmbRecipientName.trim()) {
+        toast({
+          title: 'RMB payout details required',
+          description: 'Please specify your RMB payout channel account and recipient name.',
+          variant: 'warning'
+        });
+        return;
+      }
     }
+
     if (!confirmedCheck) {
       toast({
         title: 'Confirmation required',
-        description: 'Please confirm that you have sent the exact amount.',
+        description: isRmbToNaira
+          ? 'Please confirm that your contact details are accurate.'
+          : 'Please confirm that you have sent the exact amount.',
         variant: 'warning'
       });
       return;
@@ -218,7 +242,7 @@ export function PayNairaView({
     try {
       let finalReceiptUrl: string | undefined = undefined;
 
-      if (receiptFile) {
+      if (!isRmbToNaira && receiptFile) {
         if (receiptFile.file) {
           try {
             finalReceiptUrl = await supabaseService.uploadReceipt(receiptFile.file, receiptFile.name);
@@ -231,10 +255,10 @@ export function PayNairaView({
         }
       }
 
-      const destinationChannel = direction === 'rmb_to_naira' ? payoutBank : rmbChannel;
-      const destinationDetails = direction === 'rmb_to_naira'
-        ? `${payoutBank} - ${payoutAccountNumber} (${payoutAccountName || name})`
-        : `${rmbChannel}: ${rmbAccountDetails || 'To be confirmed'} (${rmbRecipientName || name})`;
+      const destinationChannel = isRmbToNaira ? 'Naira Bank Account' : rmbChannel;
+      const destinationDetails = isRmbToNaira
+        ? 'Awaiting customer account details on WhatsApp'
+        : `${rmbChannel}: ${rmbAccountDetails.trim()} (${rmbRecipientName.trim() || name.trim()})`;
 
       await createRmbRequest({
         id: orderId,
@@ -244,33 +268,37 @@ export function PayNairaView({
         rateApplied,
         destinationAmount,
         customerName: name.trim(),
-        customerEmail: email.trim() || '',
+        customerEmail: email.trim(),
         customerWhatsApp: phone.trim(),
         destinationChannel,
         destinationAccountDetails: destinationDetails,
-        senderBank: direction === 'naira_to_rmb' ? payoutBank : 'WeChat / Alipay / Chinese Bank',
+        senderBank: isRmbToNaira ? 'Chinese UnionPay / ICBC' : 'Nigerian Bank Transfer',
         senderAccountName: name.trim(),
         receiptUrl: finalReceiptUrl,
-        notes: direction === 'rmb_to_naira'
-          ? `Pay ¥${sourceAmount.toLocaleString()} → Payout ₦${destinationAmount.toLocaleString('en-NG')} to ${destinationDetails}`
+        notes: isRmbToNaira
+          ? `RMB Collection Request: Pay ¥${sourceAmount.toLocaleString('en-US')} → Receive ₦${destinationAmount.toLocaleString('en-NG')} Naira. Send Chinese bank details to WhatsApp ${phone.trim()}.`
           : `Pay ₦${sourceAmount.toLocaleString('en-NG')} → Payout ¥${destinationAmount.toLocaleString()} to ${destinationDetails}`,
-        status: 'receipt_received'
+        status: isRmbToNaira ? 'requested' : 'receipt_received'
       });
 
       await addActivity({
         actorName: name.trim(),
         actorRole: 'Customer',
-        action: `submitted payment receipt for ${orderId}`,
+        action: isRmbToNaira
+          ? `requested Chinese RMB collection account for ${orderId}`
+          : `submitted payment receipt for ${orderId}`,
         targetId: orderId,
-        target: `${orderId} · ${direction === 'rmb_to_naira' ? `¥${sourceAmount.toLocaleString()} → ₦${destinationAmount.toLocaleString('en-NG')}` : `₦${sourceAmount.toLocaleString('en-NG')} → ¥${destinationAmount.toLocaleString()}`}`,
-        details: `Payout to: ${destinationDetails}`,
+        target: `${orderId} · ${isRmbToNaira ? `¥${sourceAmount.toLocaleString()} → ₦${destinationAmount.toLocaleString('en-NG')}` : `₦${sourceAmount.toLocaleString('en-NG')} → ¥${destinationAmount.toLocaleString()}`}`,
+        details: isRmbToNaira ? `WhatsApp: ${phone.trim()} · Email: ${email.trim()}` : `Payout to: ${destinationDetails}`,
         category: 'payments'
       });
 
       setIsSubmitted(true);
       toast({
-        title: 'Payment submitted successfully',
-        description: `Order ${orderId} is now under verification by our treasury desk.`,
+        title: isRmbToNaira ? 'RMB Account Request Submitted' : 'Payment Submitted Successfully',
+        description: isRmbToNaira
+          ? `Order ${orderId} logged. Our treasury desk will send our Chinese bank details to your WhatsApp shortly.`
+          : `Order ${orderId} is now under verification by our treasury desk.`,
         variant: 'success'
       });
     } catch (err) {
@@ -281,12 +309,10 @@ export function PayNairaView({
     }
   };
 
-  const isRmbToNaira = direction === 'rmb_to_naira';
-
   // Dynamic WhatsApp prefilled link with full order ticket
   const waLink = `https://wa.me/2347064482628?text=${encodeURIComponent(
     isRmbToNaira
-      ? `Hello BZ Group, I have completed the transfer for Order ${orderId}.\n\n- You Pay: ¥${sourceAmount.toLocaleString('en-US')} RMB\n- Rate: ¥1 = ₦${rateApplied.toFixed(2)}\n- Payout To Me: ₦${destinationAmount.toLocaleString('en-NG')} Naira\n- Bank: ${payoutBank} - ${payoutAccountNumber} (${payoutAccountName || name})\n- Customer: ${name} (${phone})\n\nPlease confirm receipt and disburse Naira.`
+      ? `Hello BZ Group, I have requested the Chinese RMB account details for Order ${orderId}.\n\n- Amount I wish to pay: ¥${sourceAmount.toLocaleString('en-US')} RMB\n- Rate: ¥1 = ₦${rateApplied.toFixed(2)}\n- Naira I will receive: ₦${destinationAmount.toLocaleString('en-NG')} Naira\n- Name: ${name}\n- WhatsApp: ${phone}\n- Email: ${email}\n\nPlease send me the Chinese bank credentials so I can transfer the RMB.`
       : `Hello BZ Group, I have completed the Naira transfer for Order ${orderId}.\n\n- You Pay: ₦${sourceAmount.toLocaleString('en-NG')} Naira\n- Rate: ¥1 = ₦${rateApplied.toFixed(2)}\n- Payout To Me: ¥${destinationAmount.toLocaleString('en-US')} RMB\n- My RMB Target: ${rmbChannel} - ${rmbAccountDetails} (${rmbRecipientName || name})\n- Customer: ${name} (${phone})\n\nPlease confirm receipt and disburse RMB.`
   )}`;
 
@@ -352,7 +378,7 @@ export function PayNairaView({
             {/* Connecting Bar 1 */}
             <div className="flex-1 h-[2px] bg-[#81141f] mx-3 sm:mx-4" />
 
-            {/* Step 2: Transfer */}
+            {/* Step 2 */}
             <div className="flex items-center gap-3 shrink-0">
               <div className={`w-[26px] h-[26px] rounded-full ${isSubmitted ? 'bg-[#81141f] text-white font-bold' : 'border border-[#81141f] bg-white text-[#81141f] font-semibold'} flex items-center justify-center text-[12px]`}>
                 {isSubmitted ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '2'}
@@ -360,7 +386,7 @@ export function PayNairaView({
               <div className="flex flex-col text-left leading-tight">
                 <span className="text-[12px] text-[#716769] font-medium">Step 2</span>
                 <span className="text-[15px] font-semibold text-[#1b1416]">
-                  {isRmbToNaira ? 'Transfer RMB' : 'Transfer naira'}
+                  {isRmbToNaira ? 'Request account' : 'Transfer naira'}
                 </span>
               </div>
             </div>
@@ -368,14 +394,16 @@ export function PayNairaView({
             {/* Connecting Bar 2 */}
             <div className={`flex-1 h-[2px] ${isSubmitted ? 'bg-[#81141f]' : 'bg-[#eae3e4]'} mx-3 sm:mx-4`} />
 
-            {/* Step 3: Upload receipt */}
+            {/* Step 3 */}
             <div className="flex items-center gap-3 shrink-0">
-              <div className={`w-[26px] h-[26px] rounded-full ${isSubmitted ? 'bg-[#81141f] text-white font-bold' : 'border border-[#81141f] bg-white text-[#81141f] font-semibold'} flex items-center justify-center text-[12px]`}>
+              <div className={`w-[26px] h-[26px] rounded-full ${isSubmitted ? 'bg-[#81141f] text-white font-bold' : 'border border-[#eae3e4] bg-white text-[#716769] font-semibold'} flex items-center justify-center text-[12px]`}>
                 {isSubmitted ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '3'}
               </div>
               <div className="flex flex-col text-left leading-tight">
                 <span className="text-[12px] text-[#716769] font-medium">Step 3</span>
-                <span className="text-[15px] font-semibold text-[#1b1416]">Upload receipt</span>
+                <span className={`text-[15px] font-semibold ${isSubmitted ? 'text-[#1b1416]' : 'text-[#716769]'}`}>
+                  {isRmbToNaira ? 'Transfer RMB' : 'Upload receipt'}
+                </span>
               </div>
             </div>
 
@@ -450,94 +478,36 @@ export function PayNairaView({
             </div>
 
             {/* ----------------------------------------------------
-                Card 2: Account Transfer Details Table
+                Card 2: Company Account Transfer Details Table
+                ONLY shown when user sets Pay Naira -> Get RMB (!isRmbToNaira)
                ---------------------------------------------------- */}
-            <div className="bg-white rounded-[18px] border border-[#eae3e4] p-6 sm:p-8 shadow-xs space-y-6">
-              <div>
-                <h2 className="text-[22px] font-bold text-[#1b1416] tracking-tight">
-                  {isRmbToNaira
-                    ? `Transfer to our official company account`
-                    : `Pay ₦${sourceAmount.toLocaleString('en-NG')}.00 into our company account`}
-                </h2>
-                <p className="text-[15px] text-[#4a4245] mt-1 leading-relaxed">
-                  {isRmbToNaira
-                    ? `Transfer into our official company bank account below. Add the reference ${orderId} in your transfer note so we can match and credit your payment instantly.`
-                    : `Use your bank app to send the exact amount below. Add the reference ${orderId} so we can match your payment quickly.`}
-                </p>
-              </div>
-
-              {/* Official Primary Company Bank Account */}
-              <div className="border border-[#eae3e4] rounded-[12px] overflow-hidden divide-y divide-[#eae3e4]">
-                <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
-                  <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Account number</span>
-                  <span className="text-[18px] font-bold text-[#1b1416] flex-1 font-mono tracking-wider">0010252664</span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy('0010252664', 'accountNumber')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer shadow-2xs"
-                  >
-                    {copiedField === 'accountNumber' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                    <span>{copiedField === 'accountNumber' ? 'Copied' : 'Copy'}</span>
-                  </button>
+            {!isRmbToNaira && (
+              <div className="bg-white rounded-[18px] border border-[#eae3e4] p-6 sm:p-8 shadow-xs space-y-6">
+                <div>
+                  <h2 className="text-[22px] font-bold text-[#1b1416] tracking-tight">
+                    Pay ₦{sourceAmount.toLocaleString('en-NG')}.00 into our company account
+                  </h2>
+                  <p className="text-[15px] text-[#4a4245] mt-1 leading-relaxed">
+                    Use your bank app to send the exact amount below. Add the reference{' '}
+                    <strong className="text-[#81141f] font-semibold">{orderId}</strong> so we can match your payment quickly.
+                  </p>
                 </div>
 
-                <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
-                  <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Bank</span>
-                  <span className="text-[15px] font-semibold text-[#1b1416] flex-1">Premium Trust Bank</span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy('Premium Trust Bank', 'bank')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
-                  >
-                    {copiedField === 'bank' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                    <span>{copiedField === 'bank' ? 'Copied' : 'Copy'}</span>
-                  </button>
-                </div>
-
-                <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
-                  <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Account name</span>
-                  <span className="text-[15px] font-semibold text-[#1b1416] flex-1">BZ DE GREAT HOMES AND PROPERTIES</span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy('BZ DE GREAT HOMES AND PROPERTIES', 'accountName')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
-                  >
-                    {copiedField === 'accountName' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                    <span>{copiedField === 'accountName' ? 'Copied' : 'Copy'}</span>
-                  </button>
-                </div>
-
-                <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
-                  <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Amount to send</span>
-                  <span className="text-[16px] font-bold font-mono text-[#1b1416] flex-1">
-                    {isRmbToNaira ? `¥${sourceAmount.toLocaleString('en-US')}.00 RMB` : `₦${sourceAmount.toLocaleString('en-NG')}.00`}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(`${sourceAmount}.00`, 'amount')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
-                  >
-                    {copiedField === 'amount' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                    <span>{copiedField === 'amount' ? 'Copied' : 'Copy'}</span>
-                  </button>
-                </div>
-
-                <div className="p-4 sm:px-6 flex items-center justify-between bg-[#fcf3f4]">
-                  <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Reference / Note</span>
-                  <span className="text-[18px] font-mono font-bold text-[#81141f] flex-1 tracking-wide">{orderId}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(orderId, 'reference')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer shadow-2xs"
-                  >
-                    {copiedField === 'reference' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                    <span>{copiedField === 'reference' ? 'Copied' : 'Copy'}</span>
-                  </button>
-                </div>
-              </div>
-              ) : (
-                /* Nigerian Bank Accounts */
+                {/* Official Primary Company Bank Account (Single instance) */}
                 <div className="border border-[#eae3e4] rounded-[12px] overflow-hidden divide-y divide-[#eae3e4]">
+                  <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
+                    <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Account number</span>
+                    <span className="text-[18px] font-bold text-[#1b1416] flex-1 font-mono tracking-wider">0010252664</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy('0010252664', 'accountNumber')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer shadow-2xs"
+                    >
+                      {copiedField === 'accountNumber' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
+                      <span>{copiedField === 'accountNumber' ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+
                   <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
                     <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Bank</span>
                     <span className="text-[15px] font-semibold text-[#1b1416] flex-1">Premium Trust Bank</span>
@@ -565,21 +535,10 @@ export function PayNairaView({
                   </div>
 
                   <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
-                    <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Account number</span>
-                    <span className="text-[15px] font-semibold text-[#1b1416] flex-1 font-mono">0010252664</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy('0010252664', 'accountNumber')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
-                    >
-                      {copiedField === 'accountNumber' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                      <span>{copiedField === 'accountNumber' ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-
-                  <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
-                    <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Amount</span>
-                    <span className="text-[15px] font-semibold text-[#1b1416] flex-1 font-mono">₦{sourceAmount.toLocaleString('en-NG')}.00</span>
+                    <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Amount to send</span>
+                    <span className="text-[16px] font-bold font-mono text-[#1b1416] flex-1">
+                      ₦{sourceAmount.toLocaleString('en-NG')}.00
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleCopy(`${sourceAmount}.00`, 'amount')}
@@ -591,7 +550,7 @@ export function PayNairaView({
                   </div>
 
                   <div className="p-4 sm:px-6 flex items-center justify-between bg-[#fcf3f4]">
-                    <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Reference</span>
+                    <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Reference / Note</span>
                     <span className="text-[18px] font-mono font-bold text-[#81141f] flex-1 tracking-wide">{orderId}</span>
                     <button
                       type="button"
@@ -604,9 +563,12 @@ export function PayNairaView({
                   </div>
                 </div>
               </div>
+            )}
 
             {/* ----------------------------------------------------
-                Card 3: Upload Receipt & Payout Destination Form
+                Card 3: Action Form
+                If Pay Naira -> Get RMB: Upload Receipt & RMB Payout Details
+                If Pay RMB -> Get Naira: Required Full Name, Email, WhatsApp (No receipt, No company account)
                ---------------------------------------------------- */}
             <div className="bg-white rounded-[18px] border border-[#eae3e4] p-6 sm:p-8 shadow-xs space-y-6">
               {isSubmitted ? (
@@ -618,17 +580,27 @@ export function PayNairaView({
 
                   <div className="space-y-1.5">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
-                      Payment Proof Logged · Treasury Verification In Progress
+                      {isRmbToNaira
+                        ? 'RMB Account Request Received · Treasury Desk Processing'
+                        : 'Payment Proof Logged · Treasury Verification In Progress'}
                     </span>
                     <h2 className="font-serif text-[26px] font-bold text-[#1b1416] tracking-tight">
-                      Order {orderId} Submitted
+                      Order {orderId} Logged
                     </h2>
                     <p className="text-[14px] text-[#4a4245] max-w-lg mx-auto leading-relaxed">
-                      Thank you! Your payment receipt has been received. Our treasury officers are verifying the inflow and will disburse{' '}
-                      <strong className="text-[#81141f] font-semibold">
-                        {isRmbToNaira ? `₦${destinationAmount.toLocaleString('en-NG')}.00 Naira` : `¥${destinationAmount.toLocaleString('en-US')}.00 RMB`}
-                      </strong>{' '}
-                      to your specified payout account immediately.
+                      {isRmbToNaira ? (
+                        <>
+                          Thank you, <strong className="text-[#1b1416] font-semibold">{name}</strong>! Our treasury officers will send our corporate Chinese RMB collection account credentials directly to your WhatsApp (<strong className="text-[#81141f]">{phone}</strong>) shortly to receive your ¥{sourceAmount.toLocaleString('en-US')} transfer.
+                        </>
+                      ) : (
+                        <>
+                          Thank you! Your payment receipt has been received. Our treasury officers are verifying the inflow and will disburse{' '}
+                          <strong className="text-[#81141f] font-semibold">
+                            ¥{destinationAmount.toLocaleString('en-US')}.00 RMB
+                          </strong>{' '}
+                          to your specified {rmbChannel} account immediately.
+                        </>
+                      )}
                     </p>
                   </div>
 
@@ -639,14 +611,28 @@ export function PayNairaView({
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-[#716769]">Customer:</span>
-                      <span className="font-semibold text-[#1b1416]">{name} ({phone})</span>
+                      <span className="font-semibold text-[#1b1416]">{name}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#716769]">WhatsApp:</span>
+                      <span className="font-mono font-semibold text-[#1b1416]">{phone}</span>
+                    </div>
+                    {email && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-[#716769]">Email:</span>
+                        <span className="font-semibold text-[#1b1416]">{email}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#716769]">{isRmbToNaira ? 'You Send:' : 'You Paid:'}</span>
+                      <span className="font-bold text-[#1b1416] text-sm">
+                        {isRmbToNaira ? `¥${sourceAmount.toLocaleString('en-US')}.00 RMB` : `₦${sourceAmount.toLocaleString('en-NG')}.00`}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-[#716769]">Payout Target:</span>
                       <span className="font-bold text-[#81141f]">
-                        {isRmbToNaira
-                          ? `${payoutBank} · ${payoutAccountNumber} (${payoutAccountName})`
-                          : `${rmbChannel} · ${rmbAccountDetails || 'To be confirmed'}`}
+                        {isRmbToNaira ? 'Naira Bank Account (via WhatsApp)' : `${rmbChannel} · ${rmbAccountDetails}`}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -675,15 +661,120 @@ export function PayNairaView({
                     </Link>
                   </div>
                 </div>
-              ) : (
-                /* Input Form */
+              ) : isRmbToNaira ? (
+                /* Pay RMB -> Get Naira Form (No receipt, No company account, ONLY required Name, Email, WhatsApp) */
                 <>
                   <div>
                     <h2 className="text-[22px] font-bold text-[#1b1416] tracking-tight">
-                      Upload your payment receipt & payout details
+                      Request Chinese RMB Collection Account
+                    </h2>
+                    <p className="text-[15px] text-[#4a4245] mt-1 font-normal leading-relaxed">
+                      Enter your contact details below. Our treasury desk will dispatch our corporate Chinese RMB account details directly to your WhatsApp to receive your ¥{sourceAmount.toLocaleString('en-US')} transfer.
+                    </p>
+                  </div>
+
+                  {/* Information Banner */}
+                  <div className="p-4 rounded-[12px] bg-[#f8f5f5] border border-[#eae3e4] flex items-start gap-3.5">
+                    <div className="w-8 h-8 rounded-full bg-[#81141f]/10 text-[#81141f] flex items-center justify-center shrink-0 mt-0.5">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs text-[#4a4245] space-y-1">
+                      <div className="font-bold text-[#1b1416] text-[13px]">
+                        Pay ¥{sourceAmount.toLocaleString('en-US')}.00 RMB → Receive ₦{destinationAmount.toLocaleString('en-NG')}.00 Naira
+                      </div>
+                      <p className="leading-relaxed text-[#716769]">
+                        Corporate Chinese account credentials (ICBC / UnionPay) are issued per transaction and sent to your WhatsApp for maximum speed and security.
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-5 pt-1">
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[13px] font-semibold text-[#1b1416] block">
+                          Full name <span className="text-[#81141f]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={e => setName(e.target.value)}
+                          placeholder="e.g. Chidi Okafor"
+                          className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors font-normal"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[13px] font-semibold text-[#1b1416] block">
+                          Email address <span className="text-[#81141f]">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          placeholder="your.email@example.com"
+                          className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors font-normal"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[13px] font-semibold text-[#1b1416] block">
+                          WhatsApp number <span className="text-[#81141f]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={phone}
+                          onChange={e => setPhone(e.target.value)}
+                          placeholder="+234 813 000 0000"
+                          className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors font-normal"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Checkbox confirmation */}
+                    <label className="flex items-start gap-3 cursor-pointer pt-2 group">
+                      <input
+                        type="checkbox"
+                        checked={confirmedCheck}
+                        onChange={e => setConfirmedCheck(e.target.checked)}
+                        className="w-4 h-4 rounded border-[#eae3e4] text-[#81141f] accent-[#81141f] cursor-pointer mt-0.5"
+                      />
+                      <span className="text-[13px] text-[#4a4245] group-hover:text-[#1b1416] transition-colors">
+                        I confirm that my WhatsApp number and email are correct to receive BZ Group&apos;s corporate Chinese RMB collection account credentials.
+                      </span>
+                    </label>
+
+                    {/* Action Buttons Row */}
+                    <div className="flex items-center gap-6 pt-3">
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="h-[52px] px-8 rounded-[8px] bg-[#81141f] hover:bg-[#6b121c] text-white font-semibold text-[15px] flex items-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <span>{isSubmitting ? 'Requesting account...' : 'Get RMB Account via WhatsApp'}</span>
+                        <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                      </button>
+
+                      <Link
+                        href="/rmb-exchange"
+                        className="text-[14px] font-medium text-[#716769] hover:text-[#1b1416] hover:underline cursor-pointer"
+                      >
+                        Cancel
+                      </Link>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                /* Pay Naira -> Get RMB Form (Receipt Upload & RMB Payout Details) */
+                <>
+                  <div>
+                    <h2 className="text-[22px] font-bold text-[#1b1416] tracking-tight">
+                      Upload your payment receipt & RMB payout details
                     </h2>
                     <p className="text-[15px] text-[#4a4245] mt-1 font-normal">
-                      Attach a screenshot or PDF slip of your transfer, and tell us where to disburse your funds.
+                      Attach a screenshot or PDF slip of your transfer, and tell us where to disburse your RMB funds.
                     </p>
                   </div>
 
@@ -796,119 +887,62 @@ export function PayNairaView({
                       </div>
                     </div>
 
-                    {/* Payout Destination Section (As confirmed with user) */}
+                    {/* RMB Payout Destination Section */}
                     <div className="pt-2 border-t border-[#eae3e4]">
                       <h3 className="text-sm font-bold text-[#1b1416] mb-1">
-                        {isRmbToNaira
-                          ? `2. Where should we send your ₦${destinationAmount.toLocaleString('en-NG')}.00 Naira payout?`
-                          : `2. Where should we send your ¥${destinationAmount.toLocaleString('en-US')}.00 RMB payout?`}
+                        2. Where should we send your ¥{destinationAmount.toLocaleString('en-US')}.00 RMB payout?
                       </h3>
                       <p className="text-xs text-[#716769] mb-3">
-                        {isRmbToNaira
-                          ? 'Provide your verified Nigerian commercial or fintech bank account for immediate disbursement.'
-                          : 'Provide your Alipay ID, WeChat Pay account, or Chinese UnionPay bank account.'}
+                        Provide your Alipay ID, WeChat Pay account, or Chinese UnionPay bank account.
                       </p>
 
-                      {isRmbToNaira ? (
-                        /* Nigerian Bank Inputs */
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="space-y-1.5">
-                            <label className="text-[13px] font-semibold text-[#1b1416] block">
-                              Receiving Bank <span className="text-[#81141f]">*</span>
-                            </label>
-                            <div className="relative">
-                              <select
-                                value={payoutBank}
-                                onChange={e => setPayoutBank(e.target.value)}
-                                className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] appearance-none cursor-pointer pr-10 font-normal"
-                              >
-                                {NIGERIAN_BANKS.map(b => (
-                                  <option key={b} value={b}>{b}</option>
-                                ))}
-                              </select>
-                              <ChevronDown className="w-4 h-4 text-[#716769] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                            </div>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-[13px] font-semibold text-[#1b1416] block">
-                              Account Number <span className="text-[#81141f]">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={payoutAccountNumber}
-                              onChange={e => setPayoutAccountNumber(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
-                              placeholder="10-digit NUBAN"
-                              maxLength={10}
-                              className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] font-mono text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors"
-                              required
-                            />
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-[13px] font-semibold text-[#1b1416] block">
-                              Account Name <span className="text-[#81141f]">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={payoutAccountName}
-                              onChange={e => setPayoutAccountName(e.target.value)}
-                              placeholder="Name on bank account"
-                              className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors font-normal"
-                              required
-                            />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[13px] font-semibold text-[#1b1416] block">
+                            RMB Payout Channel <span className="text-[#81141f]">*</span>
+                          </label>
+                          <div className="relative">
+                            <select
+                              value={rmbChannel}
+                              onChange={e => setRmbChannel(e.target.value as any)}
+                              className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] appearance-none cursor-pointer pr-10 font-normal"
+                            >
+                              <option value="Alipay">Alipay (支付宝)</option>
+                              <option value="WeChat Pay">WeChat Pay (微信支付)</option>
+                              <option value="Chinese Bank">Chinese Bank (UnionPay)</option>
+                            </select>
+                            <ChevronDown className="w-4 h-4 text-[#716769] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                           </div>
                         </div>
-                      ) : (
-                        /* RMB Channel Inputs */
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="space-y-1.5">
-                            <label className="text-[13px] font-semibold text-[#1b1416] block">
-                              RMB Payout Channel <span className="text-[#81141f]">*</span>
-                            </label>
-                            <div className="relative">
-                              <select
-                                value={rmbChannel}
-                                onChange={e => setRmbChannel(e.target.value as any)}
-                                className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] appearance-none cursor-pointer pr-10 font-normal"
-                              >
-                                <option value="Alipay">Alipay (支付宝)</option>
-                                <option value="WeChat Pay">WeChat Pay (微信支付)</option>
-                                <option value="Chinese Bank">Chinese Bank (UnionPay)</option>
-                              </select>
-                              <ChevronDown className="w-4 h-4 text-[#716769] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                            </div>
-                          </div>
 
-                          <div className="space-y-1.5">
-                            <label className="text-[13px] font-semibold text-[#1b1416] block">
-                              {rmbChannel === 'Alipay' ? 'Alipay ID / Mobile' : rmbChannel === 'WeChat Pay' ? 'WeChat ID / Mobile' : 'Card Number'} <span className="text-[#81141f]">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={rmbAccountDetails}
-                              onChange={e => setRmbAccountDetails(e.target.value)}
-                              placeholder="Account ID or card"
-                              className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors font-normal"
-                              required
-                            />
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-[13px] font-semibold text-[#1b1416] block">
-                              Recipient Name in China <span className="text-[#81141f]">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={rmbRecipientName}
-                              onChange={e => setRmbRecipientName(e.target.value)}
-                              placeholder="Chinese or English name"
-                              className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors font-normal"
-                              required
-                            />
-                          </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[13px] font-semibold text-[#1b1416] block">
+                            {rmbChannel === 'Alipay' ? 'Alipay ID / Mobile' : rmbChannel === 'WeChat Pay' ? 'WeChat ID / Mobile' : 'Card Number'} <span className="text-[#81141f]">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={rmbAccountDetails}
+                            onChange={e => setRmbAccountDetails(e.target.value)}
+                            placeholder="Account ID or card"
+                            className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors font-normal"
+                            required
+                          />
                         </div>
-                      )}
+
+                        <div className="space-y-1.5">
+                          <label className="text-[13px] font-semibold text-[#1b1416] block">
+                            Recipient Name in China <span className="text-[#81141f]">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={rmbRecipientName}
+                            onChange={e => setRmbRecipientName(e.target.value)}
+                            placeholder="Chinese or English name"
+                            className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors font-normal"
+                            required
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {/* Checkbox confirmation */}
@@ -973,7 +1007,7 @@ export function PayNairaView({
                   <span className="text-[#716769] font-normal">Payout destination</span>
                   <span className="font-medium text-[#1b1416] text-right truncate max-w-[200px]">
                     {isRmbToNaira
-                      ? `${payoutBank} · ${payoutAccountNumber || '...'}`
+                      ? 'Naira Bank Account · via WhatsApp'
                       : `${rmbChannel} · ${rmbAccountDetails || '...'}`}
                   </span>
                 </div>
@@ -1032,18 +1066,22 @@ export function PayNairaView({
                   </div>
                 </div>
 
-                {/* Step 2: Receipt uploaded */}
+                {/* Step 2: Next action */}
                 <div className="flex items-start gap-3.5 pb-6 relative">
                   <div className="flex flex-col items-center">
                     <div className={`w-[20px] h-[20px] rounded-full ${isSubmitted ? 'bg-[#81141f] text-white flex items-center justify-center shrink-0 shadow-2xs' : 'bg-white border-2 border-[#81141f] flex items-center justify-center shrink-0'}`}>
-                      {isSubmitted ? <Check className="w-3 h-3 stroke-[3]" /> : <div className="w-1.5 h-1.5 rounded-full bg-[#81141f]" />}
+                      {isSubmitted ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <div className="w-1.5 h-1.5 rounded-full bg-[#81141f]" />}
                     </div>
                     <div className={`w-[2px] h-9 ${isSubmitted ? 'bg-[#81141f]' : 'bg-[#eae3e4]'} mt-1`} />
                   </div>
                   <div>
-                    <div className="font-semibold text-[15px] text-[#1b1416] leading-tight">Receipt uploaded</div>
+                    <div className="font-semibold text-[15px] text-[#1b1416] leading-tight">
+                      {isRmbToNaira ? 'RMB account dispatched' : 'Receipt uploaded'}
+                    </div>
                     <div className="text-[13px] text-[#716769] mt-0.5 font-normal">
-                      {isSubmitted ? 'Submitted just now' : 'Attach transfer proof above'}
+                      {isSubmitted
+                        ? (isRmbToNaira ? 'Sent to your WhatsApp' : 'Submitted to treasury')
+                        : (isRmbToNaira ? 'Dispatched to your WhatsApp' : 'Attach transfer proof above')}
                     </div>
                   </div>
                 </div>
@@ -1057,7 +1095,9 @@ export function PayNairaView({
                     <div className="w-[2px] h-9 bg-[#eae3e4] mt-1" />
                   </div>
                   <div>
-                    <div className={`font-semibold text-[15px] leading-tight ${isSubmitted ? 'text-[#1b1416]' : 'text-[#716769]'}`}>Confirmed by BZ</div>
+                    <div className={`font-semibold text-[15px] leading-tight ${isSubmitted ? 'text-[#1b1416]' : 'text-[#716769]'}`}>
+                      {isRmbToNaira ? 'Transfer RMB & verify' : 'Confirmed by BZ'}
+                    </div>
                     <div className={`text-[13px] mt-0.5 ${isSubmitted ? 'text-[#81141f] font-semibold' : 'text-[#716769] font-normal'}`}>
                       {isSubmitted ? 'Treasury matching inflow...' : 'We verify the funds landed'}
                     </div>

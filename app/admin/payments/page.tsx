@@ -162,22 +162,211 @@ export default function AdminPaymentsPage() {
   // Modal inspection state
   const [selectedReceipt, setSelectedReceipt] = useState<PaymentRow | null>(null);
 
-  // Actions for middle card
-  const handleSendRmbAccount = async (req: PayRmbRequest) => {
-    await updateRmbRequest(req.id, { status: 'account_sent' });
+  // Dialog state: Pay RMB -> Get Naira (Admin inputs Chinese bank details & sends to WhatsApp)
+  interface RmbToNairaDialogData {
+    id: string;
+    reference: string;
+    customerName: string;
+    customerPhone: string;
+    paysRmb: number;
+    wePayNaira: number;
+  }
+  const [rmbToNairaModal, setRmbToNairaModal] = useState<RmbToNairaDialogData | null>(null);
+  const [chineseBank, setChineseBank] = useState('Industrial and Commercial Bank of China (ICBC)');
+  const [chineseAccountName, setChineseAccountName] = useState('BZ DE GREAT HOMES & PROPERTIES');
+  const [chineseAccountNumber, setChineseAccountNumber] = useState('6222 0210 0112 8847 291');
+  const [chineseBranch, setChineseBranch] = useState('Guangzhou Tianhe Sub-branch');
+  const [chineseTransferRemark, setChineseTransferRemark] = useState('');
+  const [chineseInstructions, setChineseInstructions] = useState('Please quote reference in transfer remark and send transfer slip screenshot here once completed.');
+
+  const openRmbToNairaModal = (data: RmbToNairaDialogData) => {
+    setRmbToNairaModal(data);
+    setChineseTransferRemark(data.reference);
+    setChineseInstructions(`Please quote reference ${data.reference} in your transfer remark and send your transfer slip screenshot here once completed.`);
+  };
+
+  const handleSendRmbAccountToWhatsApp = async () => {
+    if (!rmbToNairaModal) return;
+    const msg = [
+      `Hello ${rmbToNairaModal.customerName},`,
+      `Here are the official Chinese RMB collection bank details for your exchange order ${rmbToNairaModal.reference}:`,
+      ``,
+      `🏦 Bank: ${chineseBank}`,
+      `👤 Account Name: ${chineseAccountName}`,
+      `💳 Account / Card Number: ${chineseAccountNumber}`,
+      chineseBranch ? `🏢 Branch: ${chineseBranch}` : '',
+      `💰 Amount to Transfer: ¥${rmbToNairaModal.paysRmb.toLocaleString('en-US')} RMB`,
+      `🔖 Transfer Remark: ${chineseTransferRemark || rmbToNairaModal.reference}`,
+      ``,
+      chineseInstructions,
+      ``,
+      `Thank you,`,
+      `BZ Group Treasury Desk`
+    ].filter(Boolean).join('\n');
+
+    const waUrl = `https://wa.me/${formatPhoneForWhatsApp(rmbToNairaModal.customerPhone)}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+
+    await updateRmbRequest(rmbToNairaModal.id, {
+      status: 'account_sent',
+      notes: `Chinese RMB details sent: ${chineseBank} · ${chineseAccountNumber} (${chineseAccountName})`
+    });
+
     await addActivity({
       actorName: 'Admin',
       actorRole: 'Treasury Desk',
-      action: 'sent RMB collection account',
-      target: `${req.reference} · ${req.customerName}`,
+      action: `sent Chinese RMB collection credentials to WhatsApp for ${rmbToNairaModal.reference}`,
+      target: `${rmbToNairaModal.reference} · ¥${rmbToNairaModal.paysRmb.toLocaleString()} to ${rmbToNairaModal.customerName}`,
       category: 'payments'
     });
 
     toast({
-      title: "RMB account sent to customer's WhatsApp",
-      description: `Sent corporate ICBC credentials for ${req.reference} to ${req.customerName}.`,
+      title: 'Chinese bank details dispatched to WhatsApp',
+      description: `Order ${rmbToNairaModal.reference} status updated to Account Sent.`,
       variant: 'success'
     });
+
+    setRmbToNairaModal(null);
+    if (selectedReceipt?.id === rmbToNairaModal.id) setSelectedReceipt(null);
+  };
+
+  const handleApproveRmbToNairaDirect = async () => {
+    if (!rmbToNairaModal) return;
+    await updateRmbRequest(rmbToNairaModal.id, {
+      status: 'account_sent',
+      notes: `Chinese RMB details approved: ${chineseBank} · ${chineseAccountNumber}`
+    });
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Treasury Desk',
+      action: `approved & assigned Chinese RMB credentials for ${rmbToNairaModal.reference}`,
+      target: `${rmbToNairaModal.reference} · ¥${rmbToNairaModal.paysRmb.toLocaleString()}`,
+      category: 'payments'
+    });
+    toast({
+      title: 'RMB account assigned',
+      description: `Order ${rmbToNairaModal.reference} marked as account sent.`,
+      variant: 'success'
+    });
+    setRmbToNairaModal(null);
+    if (selectedReceipt?.id === rmbToNairaModal.id) setSelectedReceipt(null);
+  };
+
+  // Dialog state: Pay Naira -> Get RMB (Admin inputs payout transaction details & sends to WhatsApp)
+  interface NairaToRmbDialogData {
+    id: string;
+    reference: string;
+    customerName: string;
+    customerPhone?: string;
+    amountNaira: number;
+    amountFormatted: string;
+    rmbAmount: number;
+    destinationChannel: string;
+    destinationAccountDetails: string;
+  }
+  const [nairaToRmbModal, setNairaToRmbModal] = useState<NairaToRmbDialogData | null>(null);
+  const [disbursementChannel, setDisbursementChannel] = useState('Alipay Instant Transfer');
+  const [payoutTxnId, setPayoutTxnId] = useState('');
+  const [payoutNotes, setPayoutNotes] = useState('');
+
+  const openNairaToRmbModal = (payment: PaymentRow) => {
+    const reqInStore = storeRmb.find(r => r.id === payment.id);
+    const rmbAmt = reqInStore?.destinationAmount || Math.round(payment.amount / 215.40);
+    const channel = payment.destinationChannel || 'Alipay';
+    const targetDetails = payment.destinationAccountDetails || 'Provided recipient account';
+
+    setNairaToRmbModal({
+      id: payment.id,
+      reference: payment.reference,
+      customerName: payment.customerName,
+      customerPhone: payment.customerPhone,
+      amountNaira: payment.amount,
+      amountFormatted: payment.amountFormatted,
+      rmbAmount: rmbAmt,
+      destinationChannel: channel,
+      destinationAccountDetails: targetDetails
+    });
+
+    setDisbursementChannel(
+      channel.toLowerCase().includes('wechat')
+        ? 'WeChat Pay'
+        : channel.toLowerCase().includes('bank')
+        ? 'Chinese UnionPay Wire'
+        : 'Alipay Instant Transfer'
+    );
+    setPayoutTxnId(`CNY-TXN-${Math.floor(100000 + Math.random() * 900000)}`);
+    setPayoutNotes(`¥${rmbAmt.toLocaleString()} RMB disbursed to ${targetDetails}. Order completed.`);
+  };
+
+  const handleApproveNairaToRmbToWhatsApp = async () => {
+    if (!nairaToRmbModal) return;
+
+    const msg = [
+      `Hello ${nairaToRmbModal.customerName},`,
+      `Your RMB payout for order ${nairaToRmbModal.reference} has been approved and successfully disbursed!`,
+      ``,
+      `💰 Naira Inflow Received: ${nairaToRmbModal.amountFormatted}`,
+      `💴 Amount Disbursed: ¥${nairaToRmbModal.rmbAmount.toLocaleString('en-US')}.00 RMB`,
+      `📲 Payout Channel: ${disbursementChannel}`,
+      `🎯 Recipient Account: ${nairaToRmbModal.destinationAccountDetails}`,
+      `🔖 Transaction Ref: ${payoutTxnId}`,
+      payoutNotes ? `📝 Remarks: ${payoutNotes}` : '',
+      ``,
+      `Thank you for choosing BZ Group!`,
+      `BZ Group Treasury Desk`
+    ].filter(Boolean).join('\n');
+
+    const waUrl = `https://wa.me/${formatPhoneForWhatsApp(nairaToRmbModal.customerPhone)}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+
+    await updateRmbRequest(nairaToRmbModal.id, {
+      status: 'approved',
+      notes: `Disbursed via ${disbursementChannel} (Ref: ${payoutTxnId}). Notes: ${payoutNotes}`
+    });
+
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Treasury Desk',
+      action: `approved & disbursed RMB payout for ${nairaToRmbModal.reference}`,
+      target: `${nairaToRmbModal.reference} · ¥${nairaToRmbModal.rmbAmount.toLocaleString()} to ${nairaToRmbModal.customerName}`,
+      category: 'payments'
+    });
+
+    toast({
+      title: 'Payment approved & details sent to WhatsApp',
+      description: `Order ${nairaToRmbModal.reference} marked as approved.`,
+      variant: 'success'
+    });
+
+    setNairaToRmbModal(null);
+    if (selectedReceipt?.id === nairaToRmbModal.id) setSelectedReceipt(null);
+  };
+
+  const handleApproveNairaToRmbDirect = async () => {
+    if (!nairaToRmbModal) return;
+    await updateRmbRequest(nairaToRmbModal.id, {
+      status: 'approved',
+      notes: `Disbursed via ${disbursementChannel} (Ref: ${payoutTxnId}). Notes: ${payoutNotes}`
+    });
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Treasury Desk',
+      action: `approved RMB payout for ${nairaToRmbModal.reference}`,
+      target: `${nairaToRmbModal.reference} · ${nairaToRmbModal.amountFormatted}`,
+      category: 'payments'
+    });
+    toast({
+      title: 'Payment approved',
+      description: `${nairaToRmbModal.reference} approved and verified.`,
+      variant: 'success'
+    });
+    setNairaToRmbModal(null);
+    if (selectedReceipt?.id === nairaToRmbModal.id) setSelectedReceipt(null);
+  };
+
+  // Actions for middle card
+  const handleSendRmbAccount = async (req: PayRmbRequest) => {
+    openRmbToNairaModal(req);
   };
 
   const handleMarkRmbReceived = async (req: PayRmbRequest) => {
@@ -216,15 +405,28 @@ export default function AdminPaymentsPage() {
 
   // Actions for bottom table
   const handleApprove = async (payment: PaymentRow) => {
-    if (payment.reference.startsWith('RMB')) {
-      await updateRmbRequest(payment.id, { status: 'approved' });
-    } else {
-      await updateBooking(payment.id, { paymentStatus: 'verified', bookingStatus: 'confirmed' });
+    if (payment.type.includes('Naira → RMB') || (payment.reference.startsWith('RMB') && storeRmb.find(r => r.id === payment.id)?.direction === 'naira_to_rmb')) {
+      openNairaToRmbModal(payment);
+      return;
     }
+    if (payment.type.includes('RMB → Naira') || (payment.reference.startsWith('RMB') && storeRmb.find(r => r.id === payment.id)?.direction === 'rmb_to_naira')) {
+      const rmbReq = storeRmb.find(r => r.id === payment.id);
+      openRmbToNairaModal({
+        id: payment.id,
+        reference: payment.reference,
+        customerName: payment.customerName,
+        customerPhone: payment.customerPhone || '',
+        paysRmb: rmbReq?.sourceAmount || 10000,
+        wePayNaira: payment.amount
+      });
+      return;
+    }
+
+    await updateBooking(payment.id, { paymentStatus: 'verified', bookingStatus: 'confirmed' });
     await addActivity({
       actorName: 'Admin',
       actorRole: 'Treasury Desk',
-      action: 'approved payment',
+      action: 'approved booking payment',
       target: `${payment.reference} · ${payment.amountFormatted}`,
       category: 'payments'
     });
@@ -236,6 +438,39 @@ export default function AdminPaymentsPage() {
     });
     if (selectedReceipt?.id === payment.id) setSelectedReceipt(null);
   };
+
+  // Auto-open modal if order param is provided in URL
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const targetOrderId = params.get('order');
+      const action = params.get('action');
+      if (targetOrderId) {
+        const foundRmb = storeRmb.find(r => r.id === targetOrderId || r.reference === targetOrderId);
+        if (foundRmb) {
+          if (foundRmb.direction === 'rmb_to_naira') {
+            openRmbToNairaModal({
+              id: foundRmb.id,
+              reference: foundRmb.reference || foundRmb.id,
+              customerName: foundRmb.customerName,
+              customerPhone: foundRmb.customerWhatsApp || '',
+              paysRmb: foundRmb.sourceAmount,
+              wePayNaira: foundRmb.destinationAmount
+            });
+          } else {
+            const row = payments.find(p => p.id === targetOrderId || p.reference === targetOrderId);
+            if (row) {
+              if (action === 'approve') {
+                openNairaToRmbModal(row);
+              } else {
+                setSelectedReceipt(row);
+              }
+            }
+          }
+        }
+      }
+    }
+  }, [storeRmb, payments]);
 
   const handleReject = async (payment: PaymentRow) => {
     const rejectionNote = 'Transfer receipt verification failed. Please verify with your bank or send updated proof.';
@@ -924,6 +1159,264 @@ export default function AdminPaymentsPage() {
                     Close
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog 1: Pay RMB -> Get Naira (Admin inputs Chinese bank details & clicks "Send to WhatsApp") */}
+      {rmbToNairaModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-[#eae3e4]">
+            {/* Header */}
+            <div className="p-5 border-b border-[#eae3e4] flex items-center justify-between bg-[#faf7f7]">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A0C1A]">RMB Collection Account</span>
+                <h3 className="text-base font-serif font-bold text-[#1b1416]">
+                  Dispatch Chinese Account · {rmbToNairaModal.reference}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRmbToNairaModal(null)}
+                className="p-1.5 rounded-lg text-[#716769] hover:text-[#1b1416] hover:bg-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+              {/* Order Summary banner */}
+              <div className="p-3.5 rounded-xl bg-[#fdf8f8] border border-[#f3d9dc] text-xs flex items-center justify-between">
+                <div>
+                  <div className="text-[#716769]">Customer</div>
+                  <div className="font-bold text-[#1b1416] text-[13px]">{rmbToNairaModal.customerName}</div>
+                  <div className="text-[11px] text-[#716769] font-mono">{rmbToNairaModal.customerPhone}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[#716769]">Customer Transfers</div>
+                  <div className="font-bold text-[#7A0C1A] text-base font-mono">¥{rmbToNairaModal.paysRmb.toLocaleString()} RMB</div>
+                  <div className="text-[11px] text-emerald-700 font-semibold">We Pay ₦{rmbToNairaModal.wePayNaira.toLocaleString()}</div>
+                </div>
+              </div>
+
+              <p className="text-xs text-[#716769]">
+                Input the corporate Chinese bank credentials below. Clicking <strong>Send to WhatsApp</strong> will open a prefilled chat with the customer and update the order status before completion.
+              </p>
+
+              {/* Inputs */}
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="font-semibold text-[#1b1416] block mb-1">Chinese Bank Name</label>
+                  <input
+                    type="text"
+                    value={chineseBank}
+                    onChange={e => setChineseBank(e.target.value)}
+                    className="w-full h-9 px-3 bg-white border border-[#eae3e4] rounded-lg text-[#1b1416] focus:outline-none focus:border-[#7A0C1A]"
+                    placeholder="e.g. Industrial and Commercial Bank of China (ICBC)"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-[#1b1416] block mb-1">Beneficiary Account Name</label>
+                  <input
+                    type="text"
+                    value={chineseAccountName}
+                    onChange={e => setChineseAccountName(e.target.value)}
+                    className="w-full h-9 px-3 bg-white border border-[#eae3e4] rounded-lg text-[#1b1416] focus:outline-none focus:border-[#7A0C1A]"
+                    placeholder="e.g. BZ DE GREAT HOMES & PROPERTIES"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold text-[#1b1416] block mb-1">Account / Card Number</label>
+                    <input
+                      type="text"
+                      value={chineseAccountNumber}
+                      onChange={e => setChineseAccountNumber(e.target.value)}
+                      className="w-full h-9 px-3 bg-white border border-[#eae3e4] rounded-lg text-[#1b1416] font-mono focus:outline-none focus:border-[#7A0C1A]"
+                      placeholder="UnionPay Card / Account Number"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-[#1b1416] block mb-1">Branch / Province (Optional)</label>
+                    <input
+                      type="text"
+                      value={chineseBranch}
+                      onChange={e => setChineseBranch(e.target.value)}
+                      className="w-full h-9 px-3 bg-white border border-[#eae3e4] rounded-lg text-[#1b1416] focus:outline-none focus:border-[#7A0C1A]"
+                      placeholder="e.g. Guangzhou Tianhe Sub-branch"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-[#1b1416] block mb-1">Transfer Remark / Note</label>
+                  <input
+                    type="text"
+                    value={chineseTransferRemark}
+                    onChange={e => setChineseTransferRemark(e.target.value)}
+                    className="w-full h-9 px-3 bg-white border border-[#eae3e4] rounded-lg text-[#1b1416] font-mono focus:outline-none focus:border-[#7A0C1A]"
+                    placeholder="Order reference note"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-[#1b1416] block mb-1">Instructions for Customer</label>
+                  <textarea
+                    rows={2}
+                    value={chineseInstructions}
+                    onChange={e => setChineseInstructions(e.target.value)}
+                    className="w-full p-2.5 bg-white border border-[#eae3e4] rounded-lg text-[#1b1416] focus:outline-none focus:border-[#7A0C1A]"
+                    placeholder="Instructions or remarks"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2.5 border-t border-[#eae3e4]">
+                <button
+                  type="button"
+                  onClick={() => setRmbToNairaModal(null)}
+                  className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#eae3e4] text-xs font-semibold text-[#716769] hover:bg-[#faf7f7] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <div className="w-full sm:w-auto flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleApproveRmbToNairaDirect}
+                    className="w-full sm:w-auto px-3.5 py-2 rounded-lg border border-[#7A0C1A] text-[#7A0C1A] hover:bg-[#fdf3f4] text-xs font-semibold cursor-pointer"
+                  >
+                    Approve & Mark Sent
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendRmbAccountToWhatsApp}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebd5a] text-white text-xs font-semibold shadow-xs cursor-pointer transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Send to WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog 2: Pay Naira -> Get RMB (Admin inputs payout details & clicks "Send to WhatsApp") */}
+      {nairaToRmbModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-[#eae3e4]">
+            {/* Header */}
+            <div className="p-5 border-b border-[#eae3e4] flex items-center justify-between bg-[#faf7f7]">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A0C1A]">RMB Disbursement Desk</span>
+                <h3 className="text-base font-serif font-bold text-[#1b1416]">
+                  Approve RMB Payout · {nairaToRmbModal.reference}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNairaToRmbModal(null)}
+                className="p-1.5 rounded-lg text-[#716769] hover:text-[#1b1416] hover:bg-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+              {/* Order Details Banner */}
+              <div className="p-3.5 rounded-xl bg-[#fdf8f8] border border-[#f3d9dc] text-xs flex items-center justify-between">
+                <div>
+                  <div className="text-[#716769]">Customer</div>
+                  <div className="font-bold text-[#1b1416] text-[13px]">{nairaToRmbModal.customerName}</div>
+                  <div className="text-[11px] text-[#716769] font-mono">{nairaToRmbModal.customerPhone || 'Via WhatsApp'}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[#716769]">Disbursing</div>
+                  <div className="font-bold text-[#7A0C1A] text-base font-mono">¥{nairaToRmbModal.rmbAmount.toLocaleString()} RMB</div>
+                  <div className="text-[11px] text-emerald-700 font-semibold">Naira Inflow: {nairaToRmbModal.amountFormatted}</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-[#f8f5f5] border border-[#eae3e4] text-xs space-y-1">
+                <div className="text-[#716769] text-[10px] uppercase font-bold">Client Target RMB Account</div>
+                <div className="font-mono font-bold text-[#1b1416] text-[13px]">
+                  {nairaToRmbModal.destinationAccountDetails}
+                </div>
+              </div>
+
+              <p className="text-xs text-[#716769]">
+                Input whatever disbursement details you wish to record and dispatch to the user. Clicking <strong>Send to WhatsApp</strong> will open a prefilled chat with the customer and mark the payment approved.
+              </p>
+
+              {/* Inputs */}
+              <div className="space-y-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold text-[#1b1416] block mb-1">Disbursement Channel</label>
+                    <input
+                      type="text"
+                      value={disbursementChannel}
+                      onChange={e => setDisbursementChannel(e.target.value)}
+                      className="w-full h-9 px-3 bg-white border border-[#eae3e4] rounded-lg text-[#1b1416] focus:outline-none focus:border-[#7A0C1A]"
+                      placeholder="e.g. Alipay Instant Transfer"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-[#1b1416] block mb-1">Payout Txn Reference</label>
+                    <input
+                      type="text"
+                      value={payoutTxnId}
+                      onChange={e => setPayoutTxnId(e.target.value)}
+                      className="w-full h-9 px-3 bg-white border border-[#eae3e4] rounded-lg text-[#1b1416] font-mono focus:outline-none focus:border-[#7A0C1A]"
+                      placeholder="e.g. CNY-TXN-984210"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-[#1b1416] block mb-1">Message / Notes to User</label>
+                  <textarea
+                    rows={2}
+                    value={payoutNotes}
+                    onChange={e => setPayoutNotes(e.target.value)}
+                    className="w-full p-2.5 bg-white border border-[#eae3e4] rounded-lg text-[#1b1416] focus:outline-none focus:border-[#7A0C1A]"
+                    placeholder="Notes or confirmation details"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2.5 border-t border-[#eae3e4]">
+                <button
+                  type="button"
+                  onClick={() => setNairaToRmbModal(null)}
+                  className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#eae3e4] text-xs font-semibold text-[#716769] hover:bg-[#faf7f7] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <div className="w-full sm:w-auto flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleApproveNairaToRmbDirect}
+                    className="w-full sm:w-auto px-3.5 py-2 rounded-lg border border-[#7A0C1A] text-[#7A0C1A] hover:bg-[#fdf3f4] text-xs font-semibold cursor-pointer"
+                  >
+                    Approve Payment
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApproveNairaToRmbToWhatsApp}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebd5a] text-white text-xs font-semibold shadow-xs cursor-pointer transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Send to WhatsApp</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

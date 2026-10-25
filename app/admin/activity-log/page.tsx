@@ -12,7 +12,8 @@ import {
   Calendar,
   Image as ImageIcon,
   Check,
-  Clock
+  Clock,
+  Trash2
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
 import { cn } from '@/lib/utils';
@@ -32,7 +33,7 @@ import { useStore } from '@/lib/store';
 
 export default function AdminActivityLogPage() {
   const { toast } = useToast();
-  const { activities: storeActivities } = useStore();
+  const { activities: storeActivities, clearActivities } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'payments' | 'listings' | 'rates'>('all');
 
@@ -86,6 +87,17 @@ export default function AdminActivityLogPage() {
       description: 'Downloaded bz_audit_trail_october_2026.csv',
       variant: 'success'
     });
+  };
+
+  const handleClear = async () => {
+    if (window.confirm('Are you sure you want to clear all activity history? This action cannot be undone.')) {
+      await clearActivities();
+      toast({
+        title: 'Activity log cleared',
+        description: 'All past activity records have been removed.',
+        variant: 'success'
+      });
+    }
   };
 
   const filteredActivities = activities.filter(item => {
@@ -159,6 +171,17 @@ export default function AdminActivityLogPage() {
             <Download className="w-3.5 h-3.5" />
             <span>Export</span>
           </button>
+          {storeActivities.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#eae3e4] bg-white hover:bg-[#fcf3f4] text-[#81141f] text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              title="Clear all activity history"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear Log</span>
+            </button>
+          )}
         </div>
       </div>
 

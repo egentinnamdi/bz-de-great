@@ -12,6 +12,7 @@ import {
 } from './types';
 import { INITIAL_RMB_RATES } from './constants';
 import { supabaseService } from './supabase/service';
+import { formatRmbUpdatedAt } from './utils';
 
 const DEFAULT_WEBSITE_CONTENT: WebsiteContentConfig = {
   heroHeadline: 'Drive it. Live in it. Own it.',
@@ -70,6 +71,7 @@ interface StoreContextType {
   updateRmbRates: (rates: { payRmbRate: number; payNairaRate: number }) => Promise<void>;
   updateCustomerNotes: (customerId: string, notes: string) => Promise<void>;
   addActivity: (activity: Omit<StaffActivity, 'id' | 'timestamp'>) => Promise<void>;
+  clearActivities: () => Promise<void>;
   updateWebsiteContent: (config: Partial<WebsiteContentConfig>) => Promise<void>;
 }
 
@@ -136,7 +138,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (cRmb) setRmbRequests(JSON.parse(cRmb));
 
       const cRates = localStorage.getItem(CACHE_KEY_PREFIX + 'rates');
-      if (cRates) setRmbRates(JSON.parse(cRates));
+      if (cRates) {
+        const parsed = JSON.parse(cRates);
+        parsed.updatedAt = formatRmbUpdatedAt(parsed.updatedAtIso, parsed.updatedAt);
+        setRmbRates(parsed);
+      }
 
       const cCust = localStorage.getItem(CACHE_KEY_PREFIX + 'cust');
       if (cCust) setCustomers(JSON.parse(cCust));
@@ -269,6 +275,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     await supabaseService.insertActivity(newAct);
   };
 
+  const clearActivities = async () => {
+    setActivities([]);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(CACHE_KEY_PREFIX + 'act');
+      } catch (e) {
+        console.warn('Failed to clear cached activities:', e);
+      }
+    }
+    await supabaseService.clearActivities();
+  };
+
   const updateWebsiteContent = async (config: Partial<WebsiteContentConfig>) => {
     setWebsiteContent(prev => ({ ...prev, ...config }));
     await supabaseService.updateWebsiteContent(config);
@@ -296,6 +314,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         updateRmbRates,
         updateCustomerNotes,
         addActivity,
+        clearActivities,
         updateWebsiteContent
       }}
     >

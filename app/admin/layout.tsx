@@ -122,9 +122,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#fdfbfb] text-[#1b1416] font-sans">
+    <div className="h-screen flex bg-[#fdfbfb] text-[#1b1416] font-sans overflow-hidden">
       {/* Sidebar Navigation [264px] (Figma: #4e0b13) */}
-      <aside className="w-[264px] shrink-0 hidden md:flex flex-col justify-between bg-[#4e0b13] text-white border-r border-[#680e18] p-5">
+      <aside className="w-[264px] shrink-0 hidden md:flex flex-col justify-between bg-[#4e0b13] text-white border-r border-[#680e18] p-5 h-full overflow-y-auto">
         <div className="space-y-6">
           {/* Brand Emblem & Wordmark */}
           <div className="pb-5 border-b border-white/10">
@@ -219,7 +219,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
         {/* Mobile Header Bar */}
         <div className="md:hidden flex items-center justify-between p-4 bg-[#4e0b13] text-white border-b border-[#680e18]">
           <BrandLogo tone="light" size="sm" href="/" />

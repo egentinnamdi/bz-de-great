@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Car,
   Building,
@@ -15,7 +16,10 @@ import {
   Activity,
   CalendarCheck,
   MessageSquare,
-  FileText
+  FileText,
+  Trash2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
@@ -25,9 +29,36 @@ import { useAdminAuth } from '@/lib/admin-auth';
 import { formatPhoneForWhatsApp } from '@/lib/utils';
 
 export default function AdminDashboardPage() {
-  const { listings, bookings, rmbRequests, updateBooking, updateRmbRequest, activities, addActivity } = useStore();
+  const router = useRouter();
+  const { listings, bookings, rmbRequests, updateBooking, updateRmbRequest, activities, addActivity, clearActivities } = useStore();
   const { toast } = useToast();
   const { user } = useAdminAuth();
+
+  const [activityPage, setActivityPage] = React.useState(1);
+  const activityPageSize = 10;
+  const totalActivityPages = Math.ceil(activities.length / activityPageSize) || 1;
+
+  const pagedActivities = React.useMemo(() => {
+    return activities.slice((activityPage - 1) * activityPageSize, activityPage * activityPageSize);
+  }, [activities, activityPage]);
+
+  React.useEffect(() => {
+    if (activityPage > totalActivityPages) {
+      setActivityPage(Math.max(1, totalActivityPages));
+    }
+  }, [totalActivityPages, activityPage]);
+
+  const handleClearActivities = async () => {
+    if (window.confirm('Are you sure you want to clear all staff activity history? This cannot be undone.')) {
+      await clearActivities();
+      setActivityPage(1);
+      toast({
+        title: 'Activity log cleared',
+        description: 'All past activity entries have been cleared successfully.',
+        variant: 'success'
+      });
+    }
+  };
 
   const activeRentals = bookings.filter(b => b.type === 'car_rental' && b.bookingStatus === 'confirmed');
   const pendingReceipts = bookings.filter(b => b.paymentStatus === 'receipt_uploaded' || b.paymentStatus === 'pending');
@@ -71,20 +102,7 @@ export default function AdminDashboardPage() {
   };
 
   const handleApproveRmbRequest = (reqId: string) => {
-    updateRmbRequest(reqId, {
-      status: 'approved'
-    });
-    addActivity({
-      actorName: user?.name || 'Staff Admin',
-      actorRole: user?.role || 'Senior Trader',
-      action: `Approved RMB exchange payout ${reqId}`,
-      targetId: reqId
-    });
-    toast({
-      title: 'RMB exchange payout approved',
-      description: `Transaction ${reqId} cleared for disbursement.`,
-      variant: 'success'
-    });
+    router.push(`/admin/payments?order=${reqId}&action=approve`);
   };
 
   return (
@@ -289,7 +307,7 @@ export default function AdminDashboardPage() {
                         onClick={() => handleApproveRmbRequest(r.id)}
                         className="bg-wine-800 text-white font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
                       >
-                        Approve Payout
+                        {r.direction === 'rmb_to_naira' ? 'Send RMB Account' : 'Approve Payout'}
                       </Button>
                     )}
                   </div>
@@ -302,24 +320,84 @@ export default function AdminDashboardPage() {
         {/* Right Column: Recent Activity Feed */}
         <div className="lg:col-span-4 space-y-6">
           <div className="rounded-3xl bg-white border border-border-subtle p-6 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-wine-800 font-bold text-sm uppercase tracking-wider">
-              <Activity className="w-4 h-4" />
-              <span>Staff Activity Trail</span>
+            <div className="flex items-center justify-between pb-1 border-b border-border-subtle">
+              <div className="flex items-center gap-2 text-wine-800 font-bold text-sm uppercase tracking-wider">
+                <Activity className="w-4 h-4" />
+                <span>Staff Activity Trail</span>
+              </div>
+              {activities.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearActivities}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-[#716769] hover:text-[#81141f] hover:bg-[#fcf3f4] rounded-md transition-colors cursor-pointer"
+                  title="Clear all activity history"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Clear</span>
+                </button>
+              )}
             </div>
 
-            <div className="space-y-3.5 divide-y divide-border-subtle/50 text-xs">
-              {activities.map(act => (
-                <div key={act.id} className="pt-3 first:pt-0 space-y-1">
-                  <div className="flex items-center justify-between text-text-subtle text-[11px]">
-                    <span className="font-semibold text-wine-900">{act.actorName}</span>
-                    <span>{act.timestamp}</span>
-                  </div>
-                  <p className="text-text-main font-medium leading-relaxed">
-                    {act.action}
-                  </p>
+            {activities.length === 0 ? (
+              <div className="py-8 text-center text-xs text-text-subtle space-y-1">
+                <p className="font-semibold text-text-main">No activity recorded</p>
+                <p>New staff and system actions will appear here in real-time.</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3.5 divide-y divide-border-subtle/50 text-xs">
+                  {pagedActivities.map(act => (
+                    <div key={act.id} className="pt-3 first:pt-0 space-y-1">
+                      <div className="flex items-center justify-between text-text-subtle text-[11px]">
+                        <span className="font-semibold text-wine-900">{act.actorName}</span>
+                        <span>{act.timestamp}</span>
+                      </div>
+                      <p className="text-text-main font-medium leading-relaxed">
+                        {act.action}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+
+                {/* Pagination bar (10 per page) */}
+                {totalActivityPages > 1 ? (
+                  <div className="pt-3 border-t border-border-subtle flex items-center justify-between text-[11px] text-text-subtle">
+                    <span>
+                      {(activityPage - 1) * activityPageSize + 1}–{Math.min(activityPage * activityPageSize, activities.length)} of {activities.length}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={activityPage === 1}
+                        onClick={() => setActivityPage(p => Math.max(p - 1, 1))}
+                        className="px-2 py-1 rounded border border-border-subtle bg-white text-text-main disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-50 flex items-center gap-1 font-medium text-[11px] cursor-pointer"
+                        title="Previous page"
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                        <span>Prev</span>
+                      </button>
+                      <span className="font-semibold text-text-main px-1 text-[11px]">
+                        {activityPage} / {totalActivityPages}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={activityPage === totalActivityPages}
+                        onClick={() => setActivityPage(p => Math.min(p + 1, totalActivityPages))}
+                        className="px-2 py-1 rounded border border-border-subtle bg-white text-text-main disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-50 flex items-center gap-1 font-medium text-[11px] cursor-pointer"
+                        title="Next page"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-2 text-right text-[10px] text-text-subtle">
+                    {activities.length} {activities.length === 1 ? 'activity' : 'activities'} logged
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

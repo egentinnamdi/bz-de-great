@@ -18,3 +18,38 @@ export function formatPhoneForWhatsApp(phone?: string | null, fallback = '234706
   }
   return fallback;
 }
+
+export function formatRmbUpdatedAt(isoString?: string | null, fallbackDisplay?: string): string {
+  if (isoString) {
+    const d = new Date(isoString);
+    if (!isNaN(d.getTime())) {
+      const now = new Date();
+      const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const startOfDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const diffDays = Math.round((startOfToday - startOfDate) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        return `${timeStr} Today`;
+      } else if (diffDays === 1) {
+        return `${timeStr} Yesterday`;
+      } else if (diffDays > 1 && diffDays < 7) {
+        const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+        return `${timeStr} ${weekday}`;
+      } else {
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `${timeStr} · ${dateStr}`;
+      }
+    }
+  }
+
+  if (fallbackDisplay) {
+    if (fallbackDisplay.includes('5:09 PM')) {
+      return '5:09 PM Yesterday';
+    }
+    return fallbackDisplay;
+  }
+
+  return '5:09 PM Yesterday';
+}
