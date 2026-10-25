@@ -21,7 +21,6 @@ import {
 import { useStore } from '@/lib/store';
 import { useToast } from '@/components/toast-provider';
 import { cn, formatPhoneForWhatsApp } from '@/lib/utils';
-import { sendTransactionEmail } from '@/lib/email/service';
 
 interface PayRmbRequest {
   id: string;
@@ -174,25 +173,9 @@ export default function AdminPaymentsPage() {
       category: 'payments'
     });
 
-    const foundRmb = storeRmb.find(r => r.id === req.id);
-    if (foundRmb?.customerEmail) {
-      sendTransactionEmail({
-        recipientEmail: foundRmb.customerEmail,
-        recipientName: req.customerName,
-        transactionId: req.reference,
-        transactionType: 'rmb_to_naira',
-        event: 'status_updated',
-        statusDisplay: 'Collection Account Dispatched',
-        statusBadgeColor: 'blue',
-        amountFormatted: `₦${req.wePayNaira.toLocaleString('en-NG')}.00 Naira`,
-        sourceAmountFormatted: `¥${req.paysRmb.toLocaleString('en-US')}.00 RMB`,
-        adminNotes: 'Our corporate RMB receiving credentials have been dispatched. Please transfer the RMB amount and upload your bank slip.'
-      });
-    }
-
     toast({
       title: "RMB account sent to customer's WhatsApp",
-      description: `Sent corporate ICBC credentials for ${req.reference} to ${req.customerName}. Email notice dispatched.`,
+      description: `Sent corporate ICBC credentials for ${req.reference} to ${req.customerName}.`,
       variant: 'success'
     });
   };
@@ -207,25 +190,9 @@ export default function AdminPaymentsPage() {
       category: 'payments'
     });
 
-    const foundRmb = storeRmb.find(r => r.id === req.id);
-    if (foundRmb?.customerEmail) {
-      sendTransactionEmail({
-        recipientEmail: foundRmb.customerEmail,
-        recipientName: req.customerName,
-        transactionId: req.reference,
-        transactionType: 'rmb_to_naira',
-        event: 'status_updated',
-        statusDisplay: 'RMB Payment Received',
-        statusBadgeColor: 'emerald',
-        amountFormatted: `₦${req.wePayNaira.toLocaleString('en-NG')}.00 Naira`,
-        sourceAmountFormatted: `¥${req.paysRmb.toLocaleString('en-US')}.00 RMB`,
-        adminNotes: `Our treasury desk has verified receipt of your ¥${req.paysRmb.toLocaleString()} RMB. Naira disbursement is being queued now.`
-      });
-    }
-
     toast({
       title: 'RMB received',
-      description: `Confirmed ¥${req.paysRmb.toLocaleString()} received for ${req.reference}. Email notice dispatched.`,
+      description: `Confirmed ¥${req.paysRmb.toLocaleString()} received for ${req.reference}.`,
       variant: 'success'
     });
   };
@@ -240,25 +207,9 @@ export default function AdminPaymentsPage() {
       category: 'payments'
     });
 
-    const foundRmb = storeRmb.find(r => r.id === req.id);
-    if (foundRmb?.customerEmail) {
-      sendTransactionEmail({
-        recipientEmail: foundRmb.customerEmail,
-        recipientName: req.customerName,
-        transactionId: req.reference,
-        transactionType: 'rmb_to_naira',
-        event: 'paid_out',
-        statusDisplay: 'Naira Paid Out & Completed',
-        statusBadgeColor: 'emerald',
-        amountFormatted: `₦${req.wePayNaira.toLocaleString('en-NG')}.00 Naira`,
-        sourceAmountFormatted: `¥${req.paysRmb.toLocaleString('en-US')}.00 RMB`,
-        receiptUrl: foundRmb.receiptUrl
-      });
-    }
-
     toast({
       title: 'Naira paid out',
-      description: `Sent ₦${req.wePayNaira.toLocaleString()} to ${req.customerName}. Order complete. Customer notified by email.`,
+      description: `Sent ₦${req.wePayNaira.toLocaleString()} to ${req.customerName}. Order complete.`,
       variant: 'success'
     });
   };
@@ -278,28 +229,9 @@ export default function AdminPaymentsPage() {
       category: 'payments'
     });
 
-    // Notify customer by email
-    const foundRmb = storeRmb.find(r => r.id === payment.id);
-    const foundBooking = storeBookings.find(b => b.id === payment.id);
-    const targetEmail = foundRmb?.customerEmail || foundBooking?.customerEmail;
-
-    if (targetEmail) {
-      sendTransactionEmail({
-        recipientEmail: targetEmail,
-        recipientName: payment.customerName,
-        transactionId: payment.reference,
-        transactionType: payment.reference.startsWith('RMB') ? 'rmb_to_naira' : 'car_rental',
-        event: 'approved',
-        statusDisplay: 'Approved & Verified',
-        statusBadgeColor: 'emerald',
-        amountFormatted: payment.amountFormatted,
-        receiptUrl: payment.receiptUrl
-      });
-    }
-
     toast({
       title: 'Payment approved',
-      description: `${payment.reference} (${payment.amountFormatted}) confirmed and verified. Customer notified.`,
+      description: `${payment.reference} (${payment.amountFormatted}) confirmed and verified.`,
       variant: 'success'
     });
     if (selectedReceipt?.id === payment.id) setSelectedReceipt(null);
@@ -320,29 +252,9 @@ export default function AdminPaymentsPage() {
       category: 'payments'
     });
 
-    // Notify customer by email
-    const foundRmb = storeRmb.find(r => r.id === payment.id);
-    const foundBooking = storeBookings.find(b => b.id === payment.id);
-    const targetEmail = foundRmb?.customerEmail || foundBooking?.customerEmail;
-
-    if (targetEmail) {
-      sendTransactionEmail({
-        recipientEmail: targetEmail,
-        recipientName: payment.customerName,
-        transactionId: payment.reference,
-        transactionType: payment.reference.startsWith('RMB') ? 'rmb_to_naira' : 'car_rental',
-        event: 'rejected',
-        statusDisplay: 'Payment Verification Declined',
-        statusBadgeColor: 'rose',
-        amountFormatted: payment.amountFormatted,
-        receiptUrl: payment.receiptUrl,
-        adminNotes: rejectionNote
-      });
-    }
-
     toast({
       title: 'Payment rejected',
-      description: `${payment.reference} marked as rejected. Notified customer via email and WhatsApp.`,
+      description: `${payment.reference} marked as rejected.`,
       variant: 'error'
     });
     if (selectedReceipt?.id === payment.id) setSelectedReceipt(null);
@@ -360,24 +272,9 @@ export default function AdminPaymentsPage() {
       category: 'payments'
     });
 
-    const foundRmb = storeRmb.find(r => r.id === payment.id);
-    if (foundRmb?.customerEmail) {
-      sendTransactionEmail({
-        recipientEmail: foundRmb.customerEmail,
-        recipientName: payment.customerName,
-        transactionId: payment.reference,
-        transactionType: 'rmb_to_naira',
-        event: 'paid_out',
-        statusDisplay: 'Paid Out & Completed',
-        statusBadgeColor: 'emerald',
-        amountFormatted: payment.amountFormatted,
-        receiptUrl: payment.receiptUrl
-      });
-    }
-
     toast({
       title: 'Marked as paid out',
-      description: `${payment.reference} payout verified successfully. Confirmation email sent.`,
+      description: `${payment.reference} payout verified successfully.`,
       variant: 'success'
     });
   };

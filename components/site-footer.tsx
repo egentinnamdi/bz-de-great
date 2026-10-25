@@ -23,8 +23,8 @@ export function SiteFooter() {
             <div className="flex flex-col space-y-2.5 pt-1 text-[13px] text-[#ebc7cb]">
               <div className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-[#ebc7cb] shrink-0" />
-                <a href="tel:+2348139690031" className="hover:text-white transition-colors">
-                  0813 969 0031
+                <a href="tel:+2347064482628" className="hover:text-white transition-colors">
+                  +234 706 448 2628
                 </a>
               </div>
               <div className="flex items-center gap-2.5">
@@ -35,7 +35,7 @@ export function SiteFooter() {
               </div>
               <div className="flex items-start gap-2.5 text-xs text-[#ebc7cb] pt-0.5">
                 <MapPin className="w-3.5 h-3.5 text-[#ebc7cb] shrink-0 mt-0.5" />
-                <span>City Mart Plaza, New Market Road, Onitsha, Anambra State</span>
+                <span>Suite 40, Olivia Mall Plaza, Main Market, Onitsha, Anambra State</span>
               </div>
             </div>
           </div>
@@ -113,7 +113,10 @@ export function SiteFooter() {
                   <Link href="/help" className="hover:text-white transition-colors">FAQs</Link>
                 </li>
                 <li>
-                  <Link href="/help#rental-terms" className="hover:text-white transition-colors">Terms</Link>
+                  <Link href="/help#terms" className="hover:text-white transition-colors">Terms &amp; Conditions</Link>
+                </li>
+                <li>
+                  <Link href="/help#privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
                 </li>
               </ul>
             </div>
@@ -130,8 +133,8 @@ export function SiteFooter() {
             <Link href="/help#privacy" className="hover:text-white transition-colors">
               Privacy policy
             </Link>
-            <Link href="/help#rental-terms" className="hover:text-white transition-colors">
-              Terms of service
+            <Link href="/help#terms" className="hover:text-white transition-colors">
+              Terms &amp; conditions
             </Link>
             <Link href="/admin" className="hover:text-white transition-colors font-medium">
               Staff login

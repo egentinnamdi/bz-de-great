@@ -499,7 +499,7 @@ function MyBookingContent() {
 
                   <div className="space-y-2.5 pt-2">
                     <a
-                      href={`https://wa.me/2348139690031?text=${encodeURIComponent(
+                      href={`https://wa.me/2347064482628?text=${encodeURIComponent(
                         `Hello BZ Group, checking status of my ticket ${activeItem.data.id} (${isRmb ? 'RMB Currency Exchange' : 'Booking'})...`
                       )}`}
                       target="_blank"

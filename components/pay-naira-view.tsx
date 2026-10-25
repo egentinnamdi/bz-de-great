@@ -20,7 +20,6 @@ import {
 import { useToast } from '@/components/toast-provider';
 import { useStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
-import { sendTransactionEmail } from '@/lib/email/service';
 
 interface PayNairaViewProps {
   orderId?: string;
@@ -79,7 +78,7 @@ export function PayNairaView({
 
   // Form states - Customer contact
   const [name, setName] = useState(initialCustomerName || '');
-  const [email, setEmail] = useState(initialCustomerEmail || 'egentinnamdi10@gmail.com');
+  const [email, setEmail] = useState(initialCustomerEmail || '');
   const [phone, setPhone] = useState(initialCustomerPhone || '');
 
   // Payout destination - When paying RMB to get Naira (Nigerian Bank)
@@ -197,14 +196,6 @@ export function PayNairaView({
       });
       return;
     }
-    if (!email.trim() || !email.includes('@')) {
-      toast({
-        title: 'Valid email required',
-        description: 'Please provide your email address to receive your official receipt and live status tracking link.',
-        variant: 'warning'
-      });
-      return;
-    }
     if (!receiptFile) {
       toast({
         title: 'Please attach transfer receipt',
@@ -253,7 +244,7 @@ export function PayNairaView({
         rateApplied,
         destinationAmount,
         customerName: name.trim(),
-        customerEmail: email.trim() || `${name.trim().toLowerCase().replace(/\s+/g, '.')}@client.com`,
+        customerEmail: email.trim() || '',
         customerWhatsApp: phone.trim(),
         destinationChannel,
         destinationAccountDetails: destinationDetails,
@@ -276,26 +267,10 @@ export function PayNairaView({
         category: 'payments'
       });
 
-      // Dispatch automated standard luxury email receipt to customer
-      sendTransactionEmail({
-        recipientEmail: email.trim() || `${name.trim().toLowerCase().replace(/\s+/g, '.')}@client.com`,
-        recipientName: name.trim(),
-        transactionId: orderId,
-        transactionType: direction,
-        event: 'order_submitted',
-        statusDisplay: 'Receipt Under Treasury Review',
-        statusBadgeColor: 'amber',
-        sourceAmountFormatted: direction === 'rmb_to_naira' ? `¥${sourceAmount.toLocaleString('en-US')}.00 RMB` : `₦${sourceAmount.toLocaleString('en-NG')}.00 Naira`,
-        rateAppliedFormatted: `¥1 = ₦${rateApplied.toFixed(2)}`,
-        amountFormatted: direction === 'rmb_to_naira' ? `₦${destinationAmount.toLocaleString('en-NG')}.00 Naira` : `¥${destinationAmount.toLocaleString('en-US')}.00 RMB`,
-        payoutDetails: destinationDetails,
-        receiptUrl: finalReceiptUrl
-      });
-
       setIsSubmitted(true);
       toast({
         title: 'Payment submitted successfully',
-        description: `Order ${orderId} is now under verification by our treasury desk. An email receipt has been sent to ${email.trim() || name}.`,
+        description: `Order ${orderId} is now under verification by our treasury desk.`,
         variant: 'success'
       });
     } catch (err) {
@@ -309,9 +284,9 @@ export function PayNairaView({
   const isRmbToNaira = direction === 'rmb_to_naira';
 
   // Dynamic WhatsApp prefilled link with full order ticket
-  const waLink = `https://wa.me/2348139690031?text=${encodeURIComponent(
+  const waLink = `https://wa.me/2347064482628?text=${encodeURIComponent(
     isRmbToNaira
-      ? `Hello BZ Group, I have completed the RMB transfer for Order ${orderId}.\n\n- You Pay: ¥${sourceAmount.toLocaleString('en-US')} RMB\n- Rate: ¥1 = ₦${rateApplied.toFixed(2)}\n- Payout To Me: ₦${destinationAmount.toLocaleString('en-NG')} Naira\n- My Nigerian Bank: ${payoutBank} - ${payoutAccountNumber} (${payoutAccountName || name})\n- Customer: ${name} (${phone})\n\nPlease confirm receipt and disburse Naira.`
+      ? `Hello BZ Group, I have completed the transfer for Order ${orderId}.\n\n- You Pay: ¥${sourceAmount.toLocaleString('en-US')} RMB\n- Rate: ¥1 = ₦${rateApplied.toFixed(2)}\n- Payout To Me: ₦${destinationAmount.toLocaleString('en-NG')} Naira\n- Bank: ${payoutBank} - ${payoutAccountNumber} (${payoutAccountName || name})\n- Customer: ${name} (${phone})\n\nPlease confirm receipt and disburse Naira.`
       : `Hello BZ Group, I have completed the Naira transfer for Order ${orderId}.\n\n- You Pay: ₦${sourceAmount.toLocaleString('en-NG')} Naira\n- Rate: ¥1 = ₦${rateApplied.toFixed(2)}\n- Payout To Me: ¥${destinationAmount.toLocaleString('en-US')} RMB\n- My RMB Target: ${rmbChannel} - ${rmbAccountDetails} (${rmbRecipientName || name})\n- Customer: ${name} (${phone})\n\nPlease confirm receipt and disburse RMB.`
   )}`;
 
@@ -481,98 +456,85 @@ export function PayNairaView({
               <div>
                 <h2 className="text-[22px] font-bold text-[#1b1416] tracking-tight">
                   {isRmbToNaira
-                    ? `Transfer ¥${sourceAmount.toLocaleString('en-US')}.00 to our official RMB account`
+                    ? `Transfer to our official company account`
                     : `Pay ₦${sourceAmount.toLocaleString('en-NG')}.00 into our company account`}
                 </h2>
                 <p className="text-[15px] text-[#4a4245] mt-1 leading-relaxed">
                   {isRmbToNaira
-                    ? `Send from your WeChat, Alipay or Chinese Bank app. Add reference ${orderId} in the transfer note so we can match your payment instantly.`
+                    ? `Transfer into our official company bank account below. Add the reference ${orderId} in your transfer note so we can match and credit your payment instantly.`
                     : `Use your bank app to send the exact amount below. Add the reference ${orderId} so we can match your payment quickly.`}
                 </p>
               </div>
 
-              {/* Transfer Details Rows */}
-              {isRmbToNaira ? (
-                /* RMB Collection Channels */
-                <div className="border border-[#eae3e4] rounded-[12px] overflow-hidden divide-y divide-[#eae3e4]">
-                  {/* Channel 1: WeChat Pay */}
-                  <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
-                    <span className="text-[14px] text-[#716769] w-36 sm:w-44 shrink-0 font-medium">WeChat Pay (微信支付)</span>
-                    <span className="text-[15px] font-semibold text-[#1b1416] flex-1">
-                      BZ Global Treasury · <strong className="font-mono text-[#81141f]">bzgroup_cny</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy('bzgroup_cny', 'wechat')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
-                    >
-                      {copiedField === 'wechat' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                      <span>{copiedField === 'wechat' ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-
-                  {/* Channel 2: Alipay */}
-                  <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
-                    <span className="text-[14px] text-[#716769] w-36 sm:w-44 shrink-0 font-medium">Alipay (支付宝)</span>
-                    <span className="text-[15px] font-semibold text-[#1b1416] flex-1">
-                      BZ DE GREAT GLOBAL · <strong className="font-mono text-[#81141f]">payments@bzdegreat.com</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy('payments@bzdegreat.com', 'alipay')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
-                    >
-                      {copiedField === 'alipay' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                      <span>{copiedField === 'alipay' ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-
-                  {/* Channel 3: Chinese Bank Transfer (UnionPay) */}
-                  <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
-                    <span className="text-[14px] text-[#716769] w-36 sm:w-44 shrink-0 font-medium">Bank (中国工商银行 ICBC)</span>
-                    <span className="text-[15px] font-semibold text-[#1b1416] flex-1">
-                      6222 0210 0112 8894 · BZ GLOBAL UNIVERSAL
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy('6222021001128894', 'bank')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
-                    >
-                      {copiedField === 'bank' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                      <span>{copiedField === 'bank' ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-
-                  {/* Row 4: Amount to transfer */}
-                  <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
-                    <span className="text-[14px] text-[#716769] w-36 sm:w-44 shrink-0 font-medium">Amount to send</span>
-                    <span className="text-[16px] font-bold font-mono text-[#1b1416] flex-1">
-                      ¥{sourceAmount.toLocaleString('en-US')}.00 RMB
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(`${sourceAmount}.00`, 'amount')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
-                    >
-                      {copiedField === 'amount' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                      <span>{copiedField === 'amount' ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-
-                  {/* Row 5: Reference */}
-                  <div className="p-4 sm:px-6 flex items-center justify-between bg-[#fcf3f4]">
-                    <span className="text-[14px] text-[#716769] w-36 sm:w-44 shrink-0 font-medium">Reference / Note</span>
-                    <span className="text-[18px] font-mono font-bold text-[#81141f] flex-1 tracking-wide">{orderId}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(orderId, 'reference')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer shadow-2xs"
-                    >
-                      {copiedField === 'reference' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
-                      <span>{copiedField === 'reference' ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
+              {/* Official Primary Company Bank Account */}
+              <div className="border border-[#eae3e4] rounded-[12px] overflow-hidden divide-y divide-[#eae3e4]">
+                <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
+                  <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Account number</span>
+                  <span className="text-[18px] font-bold text-[#1b1416] flex-1 font-mono tracking-wider">0010252664</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy('0010252664', 'accountNumber')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer shadow-2xs"
+                  >
+                    {copiedField === 'accountNumber' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
+                    <span>{copiedField === 'accountNumber' ? 'Copied' : 'Copy'}</span>
+                  </button>
                 </div>
+
+                <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
+                  <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Bank</span>
+                  <span className="text-[15px] font-semibold text-[#1b1416] flex-1">Premium Trust Bank</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy('Premium Trust Bank', 'bank')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
+                  >
+                    {copiedField === 'bank' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
+                    <span>{copiedField === 'bank' ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+
+                <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
+                  <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Account name</span>
+                  <span className="text-[15px] font-semibold text-[#1b1416] flex-1">BZ DE GREAT HOMES AND PROPERTIES</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy('BZ DE GREAT HOMES AND PROPERTIES', 'accountName')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
+                  >
+                    {copiedField === 'accountName' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
+                    <span>{copiedField === 'accountName' ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+
+                <div className="p-4 sm:px-6 flex items-center justify-between bg-white">
+                  <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Amount to send</span>
+                  <span className="text-[16px] font-bold font-mono text-[#1b1416] flex-1">
+                    {isRmbToNaira ? `¥${sourceAmount.toLocaleString('en-US')}.00 RMB` : `₦${sourceAmount.toLocaleString('en-NG')}.00`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(`${sourceAmount}.00`, 'amount')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer"
+                  >
+                    {copiedField === 'amount' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
+                    <span>{copiedField === 'amount' ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+
+                <div className="p-4 sm:px-6 flex items-center justify-between bg-[#fcf3f4]">
+                  <span className="text-[15px] text-[#716769] w-36 sm:w-44 shrink-0 font-normal">Reference / Note</span>
+                  <span className="text-[18px] font-mono font-bold text-[#81141f] flex-1 tracking-wide">{orderId}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(orderId, 'reference')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-[#eae3e4] bg-white hover:bg-[#f8f5f5] text-[12px] font-medium text-[#4a4245] transition-colors cursor-pointer shadow-2xs"
+                  >
+                    {copiedField === 'reference' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#716769]" />}
+                    <span>{copiedField === 'reference' ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
               ) : (
                 /* Nigerian Bank Accounts */
                 <div className="border border-[#eae3e4] rounded-[12px] overflow-hidden divide-y divide-[#eae3e4]">
@@ -641,8 +603,7 @@ export function PayNairaView({
                     </button>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
 
             {/* ----------------------------------------------------
                 Card 3: Upload Receipt & Payout Destination Form
@@ -822,7 +783,7 @@ export function PayNairaView({
 
                         <div className="space-y-1.5">
                           <label className="text-[13px] font-semibold text-[#1b1416] block">
-                            Email address (for receipt &amp; tracker) <span className="text-[#81141f]">*</span>
+                            Email address (Optional)
                           </label>
                           <input
                             type="email"
@@ -830,7 +791,6 @@ export function PayNairaView({
                             onChange={e => setEmail(e.target.value)}
                             placeholder="your.email@example.com"
                             className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors font-normal"
-                            required
                           />
                         </div>
                       </div>

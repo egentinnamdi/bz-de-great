@@ -61,7 +61,7 @@ export default function AboutPage() {
     setGalleryOpen(true)
   }
 
-  const waConsultationLink = `https://wa.me/2348139690031?text=${encodeURIComponent(
+  const waConsultationLink = `https://wa.me/2347064482628?text=${encodeURIComponent(
     "Hello Amb. BZ / BZ Group team, I would like to book an investment consultation."
   )}`
 
@@ -565,7 +565,7 @@ export default function AboutPage() {
 
               <div className="flex shrink-0 flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <a
-                  href="tel:+2348139690031"
+                  href="tel:+2347064482628"
                   className="inline-flex h-[50px] cursor-pointer items-center gap-2 rounded-[8px] bg-white px-7 text-[14px] font-semibold text-[#81141f] shadow-sm transition-all duration-300 hover:bg-[#f6e3e5] hover:-translate-y-0.5 active:scale-[0.98]"
                 >
                   <span>Schedule a call</span>

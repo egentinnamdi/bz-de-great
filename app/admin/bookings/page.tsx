@@ -15,7 +15,6 @@ import {
 import { useToast } from '@/components/toast-provider';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
-import { sendTransactionEmail } from '@/lib/email/service';
 
 interface BookingRow {
   id: string;
@@ -86,25 +85,10 @@ export default function AdminBookingsPage() {
         category: 'bookings'
       });
 
-      const recipientEmail = target.customerEmail || `${target.customerName.toLowerCase().replace(/\s+/g, '.')}@client.com`;
-      sendTransactionEmail({
-        recipientEmail,
-        recipientName: target.customerName,
-        transactionId: target.reference || target.id,
-        transactionType: target.type,
-        event: 'approved',
-        statusDisplay: 'Booking Confirmed',
-        statusBadgeColor: 'emerald',
-        amountFormatted: target.totalAmount ? `₦${target.totalAmount.toLocaleString('en-NG')}` : 'Confirmed Reservation',
-        assetTitle: target.listingTitle,
-        scheduledDates: target.endDate ? `${target.startDate} to ${target.endDate}` : target.startDate,
-        pickupLocation: target.pickupLocation || 'BZ Group Concierge / Lekki Phase 1',
-        receiptUrl: target.receiptUrl
-      });
     }
     toast({
       title: 'Booking confirmed',
-      description: `Notification email dispatched to client.`,
+      description: `Reservation has been approved.`,
       variant: 'default'
     });
   };
@@ -121,27 +105,10 @@ export default function AdminBookingsPage() {
         details: title,
         category: 'bookings'
       });
-
-      const recipientEmail = target.customerEmail || `${target.customerName.toLowerCase().replace(/\s+/g, '.')}@client.com`;
-      sendTransactionEmail({
-        recipientEmail,
-        recipientName: target.customerName,
-        transactionId: target.reference || target.id,
-        transactionType: target.type,
-        event: 'rejected',
-        statusDisplay: 'Booking Request Declined',
-        statusBadgeColor: 'rose',
-        amountFormatted: target.totalAmount ? `₦${target.totalAmount.toLocaleString('en-NG')}` : 'Booking Request',
-        assetTitle: target.listingTitle,
-        scheduledDates: target.endDate ? `${target.startDate} to ${target.endDate}` : target.startDate,
-        pickupLocation: target.pickupLocation,
-        adminNotes: 'This schedule slot is currently unavailable or conflicts with a VIP reservation.',
-        receiptUrl: target.receiptUrl
-      });
     }
     toast({
       title: 'Booking declined',
-      description: `${title}. Client notified by email.`,
+      description: `${title}. Booking status marked as declined.`,
       variant: 'default'
     });
   };
@@ -158,27 +125,10 @@ export default function AdminBookingsPage() {
         details: target.listingTitle,
         category: 'bookings'
       });
-
-      const recipientEmail = target.customerEmail || `${target.customerName.toLowerCase().replace(/\s+/g, '.')}@client.com`;
-      sendTransactionEmail({
-        recipientEmail,
-        recipientName: target.customerName,
-        transactionId: target.reference || target.id,
-        transactionType: target.type,
-        event: 'status_updated',
-        statusDisplay: 'Reschedule Requested',
-        statusBadgeColor: 'amber',
-        amountFormatted: target.totalAmount ? `₦${target.totalAmount.toLocaleString('en-NG')}` : 'Reservation',
-        assetTitle: target.listingTitle,
-        scheduledDates: target.endDate ? `${target.startDate} to ${target.endDate}` : target.startDate,
-        pickupLocation: target.pickupLocation,
-        adminNotes: 'Our reservation concierge has invited you to select an alternative date or time slot.',
-        receiptUrl: target.receiptUrl
-      });
     }
     toast({
       title: 'Reschedule request sent',
-      description: `Client invited to pick a revised slot. Notification dispatched.`,
+      description: `Client invited to pick a revised slot.`,
       variant: 'default'
     });
   };

@@ -10,7 +10,6 @@ import { useStore } from '@/lib/store';
 import { useToast } from './toast-provider';
 import { getWhatsAppBookingLink, SITE_CONFIG } from '@/lib/constants';
 import { CopyButton } from './ui/copy-button';
-import { sendTransactionEmail } from '@/lib/email/service';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -36,7 +35,7 @@ export function BookingModal({
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('+234 ');
-  const [email, setEmail] = useState('egentinnamdi10@gmail.com');
+  const [email, setEmail] = useState('');
   const [date, setDate] = useState('2026-10-25');
   const [endDate, setEndDate] = useState(isRent && isCar ? '2026-10-28' : '');
   const [driverOption, setDriverOption] = useState<'Self-drive' | 'Chauffeured'>('Self-drive');
@@ -47,16 +46,14 @@ export function BookingModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone || !email) {
+    if (!name || !phone) {
       toast({
         title: 'Missing information',
-        description: 'Please provide your full name, phone number, and email address to receive your confirmation receipt.',
+        description: 'Please provide your full name and phone number.',
         variant: 'warning'
       });
       return;
     }
-
-    const recipientEmail = email.trim();
 
     const booking = await createBooking({
       type: defaultType,
@@ -65,7 +62,7 @@ export function BookingModal({
       listingImage: listing.images[0],
       customerName: name.trim(),
       customerPhone: phone.trim(),
-      customerEmail: recipientEmail,
+      customerEmail: email.trim() || '',
       startDate: date,
       endDate: endDate || undefined,
       driverOption: isCar && isRent ? driverOption : undefined,
@@ -78,25 +75,9 @@ export function BookingModal({
 
     setConfirmedBookingId(booking.id);
 
-    // Dispatch automated confirmation email
-    sendTransactionEmail({
-      recipientEmail,
-      recipientName: name.trim(),
-      transactionId: booking.id,
-      transactionType: defaultType,
-      event: 'order_submitted',
-      statusDisplay: 'Reservation Logged · Concierge Review',
-      statusBadgeColor: 'amber',
-      amountFormatted: `₦${Number(booking.totalAmount || 0).toLocaleString('en-NG')}.00`,
-      assetTitle: listing.title,
-      scheduledDates: `${date}${endDate ? ` to ${endDate}` : ''}`,
-      pickupLocation: listing.location,
-      adminNotes: notes || undefined
-    });
-
     toast({
       title: 'Booking requested successfully',
-      description: `Reference: ${booking.id}. A confirmation email has been dispatched.`,
+      description: `Reference: ${booking.id}. Our concierge will contact you shortly.`,
       variant: 'success'
     });
   };
@@ -175,7 +156,7 @@ export function BookingModal({
 
                 <Input
                   label="Phone / WhatsApp"
-                  placeholder="+234 813 969 0031"
+                  placeholder="+234 706 448 2628"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   required
@@ -183,12 +164,11 @@ export function BookingModal({
               </div>
 
               <Input
-                label="Email Address (For reservation receipt & tracking link)"
+                label="Email Address (Optional)"
                 type="email"
                 placeholder="client@gmail.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                required
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -283,7 +263,7 @@ export function BookingModal({
             <div className="pt-2 flex flex-col gap-2.5">
               <Button onClick={handleOpenWhatsApp} size="lg" className="w-full gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white">
                 <MessageSquare className="w-4 h-4" />
-                <span>Continue on WhatsApp (+234 813 969 0031)</span>
+                <span>Continue on WhatsApp (+234 706 448 2628)</span>
               </Button>
               <Button onClick={onClose} variant="outline" size="sm" className="w-full">
                 Back to Listings
