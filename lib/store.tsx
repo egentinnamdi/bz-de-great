@@ -136,7 +136,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (remoteRmb !== null) setRmbRequests(remoteRmb);
       if (remoteCustomers !== null) setCustomers(remoteCustomers);
       if (remoteActivities !== null) setActivities(remoteActivities);
-      if (remoteContent) setWebsiteContent(remoteContent);
+      if (remoteContent) {
+        setWebsiteContent(prev => ({
+          ...prev,
+          ...remoteContent,
+          heroImage: prev.heroImage || DEFAULT_WEBSITE_CONTENT.heroImage,
+          founderImage: prev.founderImage || DEFAULT_WEBSITE_CONTENT.founderImage,
+          galleryPhotos: (prev.galleryPhotos && prev.galleryPhotos.length > 0) ? prev.galleryPhotos : DEFAULT_WEBSITE_CONTENT.galleryPhotos
+        }));
+      }
     } catch (err) {
       console.warn('Error fetching Supabase data:', err);
     } finally {
@@ -323,7 +331,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateWebsiteContent = async (config: Partial<WebsiteContentConfig>) => {
-    setWebsiteContent(prev => ({ ...prev, ...config }));
+    setWebsiteContent(prev => {
+      const updated = { ...prev, ...config };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(CACHE_KEY_PREFIX + 'content', JSON.stringify(updated));
+        } catch (e) {
+          // ignore
+        }
+      }
+      return updated;
+    });
     await supabaseService.updateWebsiteContent(config);
   };
 

@@ -456,15 +456,13 @@ export const supabaseService = {
         heroHeadline: data.hero_headline || 'Drive it. Live in it. Own it.',
         heroEyebrow: data.hero_eyebrow || 'Invest in value · Live the future',
         heroSupportingText: data.hero_supporting_text || 'Rent or buy premium cars and homes, and change RMB and naira — all through one trusted team.',
-        heroImage: data.hero_image || '/photos/founder-bz-3.jpg',
         founderBio: data.founder_bio || 'BZ De Great is a realtor, investment broker and entrepreneur working across four industries — real estate, automobiles, fashion and technology.',
-        founderImage: data.founder_image || '/photos/founder-bz-3.jpg',
         announcementEnabled: Boolean(data.announcement_enabled),
-        announcementText: data.announcement_text || '',
-        galleryPhotos: Array.isArray(data.gallery_photos) && data.gallery_photos.length > 0 ? data.gallery_photos : undefined,
+        announcementText: data.announcement_text !== undefined && data.announcement_text !== null ? data.announcement_text : '',
         featuredItems: Array.isArray(data.featured_items) ? data.featured_items : []
       };
     } catch (err) {
+      console.warn('Supabase fetchWebsiteContent exception:', err);
       return null;
     }
   },
@@ -472,24 +470,38 @@ export const supabaseService = {
   async updateWebsiteContent(config: Partial<WebsiteContentConfig>): Promise<boolean> {
     if (!isSupabaseConfigured()) return false;
     try {
-      const dbUpdates: Record<string, any> = {};
+      // Only include columns that actually exist in the website_content table
+      const dbUpdates: Record<string, any> = {
+        updated_at: new Date().toISOString()
+      };
       if (config.heroHeadline !== undefined) dbUpdates.hero_headline = config.heroHeadline;
       if (config.heroEyebrow !== undefined) dbUpdates.hero_eyebrow = config.heroEyebrow;
       if (config.heroSupportingText !== undefined) dbUpdates.hero_supporting_text = config.heroSupportingText;
-      if (config.heroImage !== undefined) dbUpdates.hero_image = config.heroImage;
       if (config.founderBio !== undefined) dbUpdates.founder_bio = config.founderBio;
-      if (config.founderImage !== undefined) dbUpdates.founder_image = config.founderImage;
-      if (config.announcementEnabled !== undefined) dbUpdates.announcement_enabled = config.announcementEnabled;
-      if (config.announcementText !== undefined) dbUpdates.announcement_text = config.announcementText;
-      if (config.galleryPhotos !== undefined) dbUpdates.gallery_photos = config.galleryPhotos;
+      if (config.announcementEnabled !== undefined) dbUpdates.announcement_enabled = Boolean(config.announcementEnabled);
+      if (config.announcementText !== undefined) dbUpdates.announcement_text = String(config.announcementText);
       if (config.featuredItems !== undefined) dbUpdates.featured_items = config.featuredItems;
 
+      // Update existing record by id
       const { error } = await supabase
         .from('website_content')
-        .upsert({ id: 'global_config', ...dbUpdates });
+        .update(dbUpdates)
+        .eq('id', 'global_config');
 
-      return !error;
+      if (error) {
+        console.warn('Supabase updateWebsiteContent update error:', error.message);
+        const { error: upsertErr } = await supabase
+          .from('website_content')
+          .upsert({ id: 'global_config', ...dbUpdates });
+        if (upsertErr) {
+          console.warn('Supabase updateWebsiteContent upsert error:', upsertErr.message);
+          return false;
+        }
+      }
+
+      return true;
     } catch (err) {
+      console.warn('Supabase updateWebsiteContent exception:', err);
       return false;
     }
   },
