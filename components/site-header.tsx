@@ -12,11 +12,31 @@ import { cn } from '@/lib/utils';
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { rmbRates } = useStore();
+  const { rmbRates, websiteContent } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [announcementDismissed, setAnnouncementDismissed] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white transition-all shadow-xs">
+      {/* Announcement Bar (Configured via Website Content CMS: At the banner above the header) */}
+      {websiteContent?.announcementEnabled && websiteContent?.announcementText?.trim() && !announcementDismissed && (
+        <div className="bg-[#81141f] text-white text-[12px] sm:text-[13px] font-medium py-2 px-4 border-b border-[#630f1a] relative z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px] flex items-center justify-between gap-4">
+            <div className="flex-1 text-center font-medium tracking-tight">
+              {websiteContent.announcementText}
+            </div>
+            <button
+              type="button"
+              onClick={() => setAnnouncementDismissed(true)}
+              className="w-5 h-5 rounded hover:bg-black/20 flex items-center justify-center text-white/80 hover:text-white shrink-0 cursor-pointer transition-colors"
+              aria-label="Dismiss announcement"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 1. Top Utility Bar (Figma: 1440x40, fill=#4e0b13, p=10px 120px) */}
       <div className="bg-[#4e0b13] text-white text-xs border-b border-[#630f1a]">
         <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px] h-10 flex items-center justify-between gap-4">

@@ -25,9 +25,22 @@ const DEFAULT_WEBSITE_CONTENT: WebsiteContentConfig = {
   heroHeadline: 'Drive it. Live in it. Own it.',
   heroEyebrow: 'Invest in value · Live the future',
   heroSupportingText: 'Rent or buy premium cars and homes, and change RMB and naira — all through one trusted team.',
+  heroImage: '/photos/founder-bz-3.jpg',
   founderBio: 'BZ De Great is a realtor, investment broker and entrepreneur working across four industries — real estate, automobiles, fashion and technology.',
+  founderImage: '/photos/founder-bz-3.jpg',
   announcementEnabled: false,
   announcementText: '',
+  galleryPhotos: [
+    '/photos/gallery-bz-1.jpg',
+    '/photos/gallery-bz-2.jpg',
+    '/photos/gallery-bz-3.jpg',
+    '/photos/gallery-bz-4.jpg',
+    '/photos/gallery-bz-5.jpg',
+    '/photos/gallery-bz-6.jpg',
+    '/photos/gallery-bz-7.jpg',
+    '/photos/gallery-bz-8.jpg',
+    '/photos/gallery-bz-9.jpg'
+  ],
   featuredItems: [
     {
       id: 'feat-1',

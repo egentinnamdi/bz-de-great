@@ -7,9 +7,16 @@ import {
   Search,
   Bell,
   Plus,
-  ChevronDown
+  ChevronDown,
+  Trash2,
+  ExternalLink,
+  Edit,
+  Eye
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
+import { useStore } from '@/lib/store';
+import { cn } from '@/lib/utils';
+import { Listing } from '@/lib/types';
 
 interface AdminListingItem {
   id: string;
@@ -23,17 +30,17 @@ interface AdminListingItem {
   isOnSite: boolean;
   updatedTime: string;
   slug: string;
+  raw: Listing;
 }
-
-import { useStore } from '@/lib/store';
 
 export default function AdminListingsPage() {
   const { toast } = useToast();
-  const { listings, updateListing, addActivity } = useStore();
+  const { listings, updateListing, deleteListing, addActivity } = useStore();
   const [activeFilter, setActiveFilter] = useState<'All' | 'Cars' | 'Property' | 'Land' | 'Drafts'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Available' | 'Booked' | 'Sold'>('All');
 
+  // Map listings to normalized table items
   const items: AdminListingItem[] = useMemo(() => {
     return listings.map(l => {
       const isCar = l.category.startsWith('car');
@@ -41,10 +48,18 @@ export default function AdminListingsPage() {
 
       let category: AdminListingItem['category'] = 'Car';
       if (!isCar) {
-        if (l.title.toLowerCase().includes('apartment') || l.propertySpecs?.type === 'Apartment') {
-          category = 'Apartment';
-        } else if (l.title.toLowerCase().includes('plot') || l.propertySpecs?.type === 'Land & plots') {
+        if (
+          l.propertySpecs?.type === 'Land & plots' ||
+          l.title.toLowerCase().includes('plot') ||
+          l.title.toLowerCase().includes('land') ||
+          (l.tags && l.tags.some(t => t.toLowerCase().includes('land') || t.toLowerCase().includes('plot')))
+        ) {
           category = 'Land';
+        } else if (
+          l.title.toLowerCase().includes('apartment') ||
+          l.propertySpecs?.type === 'Apartment'
+        ) {
+          category = 'Apartment';
         } else {
           category = 'House';
         }
@@ -53,7 +68,9 @@ export default function AdminListingsPage() {
       let status: AdminListingItem['status'] = 'Available';
       if (l.status === 'draft') status = 'Booked';
 
-      const priceDisplay = `₦${Number(l.price).toLocaleString('en-NG')}${l.pricePeriod === '/day' ? ' / day' : (l.pricePeriod === '/year' ? ' / yr' : '')}`;
+      const priceDisplay = `₦${Number(l.price).toLocaleString('en-NG')}${
+        l.pricePeriod === '/day' ? ' / day' : l.pricePeriod === '/year' ? ' / yr' : ''
+      }`;
 
       let slugPath = '/cars/rent';
       if (isCar) {
@@ -73,10 +90,23 @@ export default function AdminListingsPage() {
         status,
         isOnSite: l.status === 'published',
         updatedTime: 'Recently',
-        slug: slugPath
+        slug: slugPath,
+        raw: l
       };
     });
   }, [listings]);
+
+  // Dynamic counts for tabs matching exact live data
+  const counts = useMemo(() => {
+    const all = items.length;
+    const cars = items.filter(i => i.category === 'Car').length;
+    const property = items.filter(i => i.category === 'House' || i.category === 'Apartment').length;
+    const land = items.filter(i => i.category === 'Land').length;
+    const drafts = items.filter(i => !i.isOnSite).length;
+    return { all, cars, property, land, drafts };
+  }, [items]);
+
+  const liveCount = useMemo(() => items.filter(i => i.isOnSite).length, [items]);
 
   const toggleOnSite = async (id: string) => {
     const item = items.find(i => i.id === id);
@@ -97,6 +127,23 @@ export default function AdminListingsPage() {
     });
   };
 
+  const handleDelete = async (id: string, title: string) => {
+    if (confirm(`Are you sure you want to delete "${title}"?`)) {
+      await deleteListing(id);
+      await addActivity({
+        actorName: 'Admin',
+        actorRole: 'Master Admin',
+        action: 'deleted listing',
+        target: title,
+        category: 'listings'
+      });
+      toast({
+        title: 'Listing deleted',
+        description: `${title} was removed from inventory.`,
+        variant: 'default'
+      });
+    }
+  };
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
@@ -134,7 +181,7 @@ export default function AdminListingsPage() {
             Listings
           </h1>
           <p className="text-[13px] text-[#716769] font-normal">
-            {items.length} listings · {items.filter(i => i.isOnSite).length} live on the website
+            {counts.all} listings · {liveCount} live on the website
           </p>
         </div>
 
@@ -144,6 +191,8 @@ export default function AdminListingsPage() {
             <Search className="w-4 h-4 text-[#716769] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search orders, listings, customers"
               className="w-full h-[40px] pl-9 pr-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors"
             />
@@ -167,17 +216,17 @@ export default function AdminListingsPage() {
       </div>
 
       {/* ========================================================
-          2. FILTERS BAR (Figma: Filters)
+          2. FILTERS BAR (Dynamic Tabs with Accurate Counts)
          ======================================================== */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
-        {/* Category Pills */}
+        {/* Category Pills with Accurate Dynamic Data Representation */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
           {[
-            { id: 'All', label: 'All · 42' },
-            { id: 'Cars', label: 'Cars · 24' },
-            { id: 'Property', label: 'Property · 14' },
-            { id: 'Land', label: 'Land · 4' },
-            { id: 'Drafts', label: 'Drafts · 3' }
+            { id: 'All', label: `All · ${counts.all}` },
+            { id: 'Cars', label: `Cars · ${counts.cars}` },
+            { id: 'Property', label: `Property · ${counts.property}` },
+            { id: 'Land', label: `Land · ${counts.land}` },
+            { id: 'Drafts', label: `Drafts · ${counts.drafts}` }
           ].map(pill => {
             const isActive = activeFilter === pill.id;
             return (
@@ -246,27 +295,28 @@ export default function AdminListingsPage() {
               </tr>
             </thead>
 
-            {/* Table Rows */}
+            {/* Table Body */}
             <tbody className="divide-y divide-[#eae3e4]">
               {filteredItems.map(row => (
                 <tr key={row.id} className="hover:bg-[#fdfbfb] transition-colors">
-                  {/* Listing Column with Thumbnail */}
+                  {/* Listing (Image + Title + Location) */}
                   <td className="py-3.5 px-5">
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-12 h-9 rounded-[6px] overflow-hidden bg-slate-100 shrink-0 border border-[#eae3e4]">
-                        <Image
+                    <div className="flex items-center gap-3.5">
+                      <div className="relative w-12 h-10 rounded-[6px] overflow-hidden bg-slate-100 shrink-0 border border-[#eae3e4]">
+                        <img
                           src={row.image}
                           alt={row.title}
-                          fill
-                          sizes="48px"
-                          className="object-cover"
+                          className="w-full h-full object-cover"
+                          onError={e => {
+                            (e.target as HTMLImageElement).src = '/photos/car-suv-white.jpg';
+                          }}
                         />
                       </div>
                       <div className="min-w-0">
-                        <div className="font-semibold text-[#1b1416] text-[13px] truncate">
+                        <div className="font-semibold text-[#1b1416] truncate max-w-[220px]">
                           {row.title}
                         </div>
-                        <div className="text-[11px] text-[#716769] truncate">
+                        <div className="text-[12px] text-[#716769] truncate max-w-[220px]">
                           {row.location}
                         </div>
                       </div>
@@ -276,11 +326,11 @@ export default function AdminListingsPage() {
                   {/* Category */}
                   <td className="py-3.5 px-4 text-[#4a4245]">{row.category}</td>
 
-                  {/* Mode */}
+                  {/* Mode (Rent / Sale) */}
                   <td className="py-3.5 px-4 text-[#4a4245]">{row.mode}</td>
 
                   {/* Price */}
-                  <td className="py-3.5 px-4 font-medium text-[#1b1416]">
+                  <td className="py-3.5 px-4 font-semibold text-[#1b1416]">
                     {row.priceDisplay}
                   </td>
 
@@ -326,17 +376,28 @@ export default function AdminListingsPage() {
                   <td className="py-3.5 px-5 text-right whitespace-nowrap">
                     <div className="inline-flex items-center gap-3 text-[12px] font-semibold">
                       <Link
-                        href="/admin/listings/new"
-                        className="text-[#1b1416] hover:text-[#81141f] hover:underline"
+                        href={`/admin/listings/new?edit=${row.id}`}
+                        className="text-[#1b1416] hover:text-[#81141f] hover:underline flex items-center gap-1"
                       >
-                        Edit
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>Edit</span>
                       </Link>
                       <Link
                         href={row.slug}
-                        className="text-[#81141f] hover:underline"
+                        target="_blank"
+                        className="text-[#81141f] hover:underline flex items-center gap-1"
                       >
-                        View
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View</span>
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(row.id, row.title)}
+                        className="text-stone-400 hover:text-rose-600 p-1 transition-colors"
+                        title="Delete listing"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -344,8 +405,8 @@ export default function AdminListingsPage() {
 
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[14px] text-[#716769]">
-                    No listings found matching your search.
+                  <td colSpan={8} className="py-12 text-center text-[#716769] text-sm">
+                    No listings found matching the selected filter.
                   </td>
                 </tr>
               )}

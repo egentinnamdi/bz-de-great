@@ -131,9 +131,12 @@ export interface WebsiteContentConfig {
   heroHeadline: string;
   heroEyebrow: string;
   heroSupportingText: string;
+  heroImage?: string;
   founderBio: string;
+  founderImage?: string;
   announcementEnabled: boolean;
   announcementText: string;
+  galleryPhotos?: string[];
   featuredItems: Array<{
     id: string;
     title: string;

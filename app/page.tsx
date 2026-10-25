@@ -299,11 +299,7 @@ export default function HomePage() {
                 </div>
 
                 <p className="text-xs leading-relaxed text-[#4a4245] sm:text-sm">
-                  BZ De Great is a realtor, investment broker and entrepreneur
-                  working across four industries real estate, automobiles,
-                  fashion and technology. His mission is simple: create value,
-                  build wealth and deliver results through intelligent
-                  investments.
+                  {websiteContent.founderBio || `BZ De Great is a realtor, investment broker and entrepreneur working across four industries real estate, automobiles, fashion and technology. His mission is simple: create value, build wealth and deliver results through intelligent investments.`}
                 </p>
 
                 <p className="text-xs leading-relaxed text-[#4a4245] sm:text-sm">
