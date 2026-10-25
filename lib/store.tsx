@@ -11,6 +11,13 @@ import {
   WebsiteContentConfig
 } from './types';
 import { INITIAL_RMB_RATES } from './constants';
+import {
+  INITIAL_LISTINGS,
+  INITIAL_BOOKINGS,
+  INITIAL_RMB_REQUESTS,
+  INITIAL_CUSTOMERS,
+  INITIAL_ACTIVITIES
+} from './mock-data';
 import { supabaseService } from './supabase/service';
 import { formatRmbUpdatedAt } from './utils';
 
@@ -80,12 +87,12 @@ const StoreContext = createContext<StoreContextType | null>(null);
 const CACHE_KEY_PREFIX = 'bz_group_supabase_cache_';
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [rmbRequests, setRmbRequests] = useState<RmbExchangeRequest[]>([]);
+  const [listings, setListings] = useState<Listing[]>(INITIAL_LISTINGS);
+  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
+  const [rmbRequests, setRmbRequests] = useState<RmbExchangeRequest[]>(INITIAL_RMB_REQUESTS);
   const [rmbRates, setRmbRates] = useState<RmbRateConfig>(INITIAL_RMB_RATES);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [activities, setActivities] = useState<StaffActivity[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [activities, setActivities] = useState<StaffActivity[]>(INITIAL_ACTIVITIES);
   const [websiteContent, setWebsiteContent] = useState<WebsiteContentConfig>(DEFAULT_WEBSITE_CONTENT);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -129,13 +136,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // 1. Try local cache for zero-flicker startup
     try {
       const cListings = localStorage.getItem(CACHE_KEY_PREFIX + 'listings');
-      if (cListings) setListings(JSON.parse(cListings));
+      if (cListings) {
+        const p = JSON.parse(cListings);
+        if (Array.isArray(p) && p.length > 0) setListings(p);
+      }
 
       const cBookings = localStorage.getItem(CACHE_KEY_PREFIX + 'bookings');
-      if (cBookings) setBookings(JSON.parse(cBookings));
+      if (cBookings) {
+        const p = JSON.parse(cBookings);
+        if (Array.isArray(p) && p.length > 0) setBookings(p);
+      }
 
       const cRmb = localStorage.getItem(CACHE_KEY_PREFIX + 'rmb');
-      if (cRmb) setRmbRequests(JSON.parse(cRmb));
+      if (cRmb) {
+        const p = JSON.parse(cRmb);
+        if (Array.isArray(p) && p.length > 0) setRmbRequests(p);
+      }
 
       const cRates = localStorage.getItem(CACHE_KEY_PREFIX + 'rates');
       if (cRates) {
@@ -145,10 +161,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
 
       const cCust = localStorage.getItem(CACHE_KEY_PREFIX + 'cust');
-      if (cCust) setCustomers(JSON.parse(cCust));
+      if (cCust) {
+        const p = JSON.parse(cCust);
+        if (Array.isArray(p) && p.length > 0) setCustomers(p);
+      }
 
       const cAct = localStorage.getItem(CACHE_KEY_PREFIX + 'act');
-      if (cAct) setActivities(JSON.parse(cAct));
+      if (cAct) {
+        const p = JSON.parse(cAct);
+        if (Array.isArray(p) && p.length > 0) setActivities(p);
+      }
 
       const cContent = localStorage.getItem(CACHE_KEY_PREFIX + 'content');
       if (cContent) setWebsiteContent(JSON.parse(cContent));
