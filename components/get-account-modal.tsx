@@ -8,6 +8,7 @@ import { Input } from './ui/input';
 import { useStore } from '@/lib/store';
 import { useToast } from './toast-provider';
 import { CopyButton } from './ui/copy-button';
+import { SITE_CONFIG } from '@/lib/constants';
 
 interface GetAccountModalProps {
   isOpen: boolean;
@@ -122,7 +123,7 @@ export function GetAccountModal({
   const handleOpenWhatsApp = () => {
     if (!submittedRef) return;
     const msg = `Hello BZ Group, I just placed order ${submittedRef} to exchange ¥${sourceAmount.toLocaleString()} RMB for ₦${destinationAmount.toLocaleString('en-NG')} Naira.\n\nMy Naira Payout Account: ${nigerianBank} - ${nigerianAccountNumber} (${nigerianAccountName || name}).\n\nPlease send your RMB collection account details.`;
-    const link = `https://wa.me/2347064482628?text=${encodeURIComponent(msg)}`;
+    const link = `https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${encodeURIComponent(msg)}`;
     window.open(link, '_blank');
     onClose();
   };
@@ -196,7 +197,7 @@ export function GetAccountModal({
                   <label className="text-xs font-semibold text-[#1b1416]">WhatsApp Phone Number</label>
                   <input
                     type="text"
-                    placeholder="+234 706 448 2628"
+                    placeholder="+234 704 753 1433"
                     value={whatsApp}
                     onChange={e => setWhatsApp(e.target.value)}
                     className="w-full h-[44px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-xs text-[#1b1416] focus:outline-none focus:border-[#81141f]"

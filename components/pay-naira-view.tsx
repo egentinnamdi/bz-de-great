@@ -20,6 +20,7 @@ import {
 import { useToast } from '@/components/toast-provider';
 import { useStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
+import { SITE_CONFIG } from '@/lib/constants';
 
 interface PayNairaViewProps {
   orderId?: string;
@@ -310,7 +311,7 @@ export function PayNairaView({
   };
 
   // Dynamic WhatsApp prefilled link with full order ticket
-  const waLink = `https://wa.me/2347064482628?text=${encodeURIComponent(
+  const waLink = `https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${encodeURIComponent(
     isRmbToNaira
       ? `Hello BZ Group, I have requested the Chinese RMB account details for Order ${orderId}.\n\n- Amount I wish to pay: ¥${sourceAmount.toLocaleString('en-US')} RMB\n- Rate: ¥1 = ₦${rateApplied.toFixed(2)}\n- Naira I will receive: ₦${destinationAmount.toLocaleString('en-NG')} Naira\n- Name: ${name}\n- WhatsApp: ${phone}\n- Email: ${email}\n\nPlease send me the Chinese bank credentials so I can transfer the RMB.`
       : `Hello BZ Group, I have completed the Naira transfer for Order ${orderId}.\n\n- You Pay: ₦${sourceAmount.toLocaleString('en-NG')} Naira\n- Rate: ¥1 = ₦${rateApplied.toFixed(2)}\n- Payout To Me: ¥${destinationAmount.toLocaleString('en-US')} RMB\n- My RMB Target: ${rmbChannel} - ${rmbAccountDetails} (${rmbRecipientName || name})\n- Customer: ${name} (${phone})\n\nPlease confirm receipt and disburse RMB.`

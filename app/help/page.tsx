@@ -172,7 +172,7 @@ export default function HelpAndLegalPage() {
     };
   }, []);
 
-  const waLink = `https://wa.me/2347064482628?text=${encodeURIComponent(
+  const waLink = `https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${encodeURIComponent(
     'Hello BZ Group Help Desk, I have a question regarding your services.'
   )}`;
 
@@ -247,10 +247,10 @@ export default function HelpAndLegalPage() {
                 Need direct assistance or want to verify an account before paying?
               </p>
               <a
-                href="tel:+2347064482628"
+                href={`tel:${SITE_CONFIG.phoneRaw}`}
                 className="font-bold text-[#81141f] text-sm block hover:underline"
               >
-                +234 706 448 2628
+                {SITE_CONFIG.phoneDisplay}
               </a>
             </div>
           </aside>
@@ -358,7 +358,7 @@ export default function HelpAndLegalPage() {
                     <div><strong>Account Name:</strong> BZ DE GREAT HOMES AND PROPERTIES</div>
                   </div>
                   <p className="text-xs text-[#8a4e00]">
-                    We are not responsible for payments made to individuals or accounts not confirmed by us. If in doubt, call <strong>07064482628 / +234 706 448 2628</strong> before paying.
+                    We are not responsible for payments made to individuals or accounts not confirmed by us. If in doubt, call <strong>07047531433 / +234 704 753 1433</strong> before paying.
                   </p>
                 </div>
 
@@ -410,7 +410,7 @@ export default function HelpAndLegalPage() {
                         </table>
                       </div>
                       <p className="mt-2 text-xs text-[#716769]">
-                        Phone: <strong>07064482628 · +234 706 448 2628</strong> · Email: <strong>support@bzdegreat.com</strong>
+                        Phone: <strong>07047531433 · +234 704 753 1433</strong> · Email: <strong>support@bzdegreat.com</strong>
                       </p>
                     </div>
 
@@ -462,7 +462,7 @@ export default function HelpAndLegalPage() {
                     </div>
 
                     <p>
-                      <strong>2.5 Fake agents and scams.</strong> BZ Group will only ask you to pay into official company accounts shown on our invoices or confirmed by our offices. We are not responsible for payments made to individuals or accounts not confirmed by us. If in doubt, call <strong>07064482628</strong> before paying.
+                      <strong>2.5 Fake agents and scams.</strong> BZ Group will only ask you to pay into official company accounts shown on our invoices or confirmed by our offices. We are not responsible for payments made to individuals or accounts not confirmed by us. If in doubt, call <strong>07047531433</strong> before paying.
                     </p>
 
                     <p>
@@ -674,7 +674,7 @@ export default function HelpAndLegalPage() {
                     </p>
 
                     <p>
-                      <strong>7.5 Complaints.</strong> Contact us first at any office, by phone (<strong>07064482628</strong>) or by email (<strong>support@bzdegreat.com</strong>). We aim to respond within 7 business days.
+                      <strong>7.5 Complaints.</strong> Contact us first at any office, by phone (<strong>07047531433</strong>) or by email (<strong>support@bzdegreat.com</strong>). We aim to respond within 7 business days.
                     </p>
 
                     <p>
@@ -733,7 +733,7 @@ export default function HelpAndLegalPage() {
                     <div className="rounded-xl border border-[#eae3e4] bg-[#fbf9f9] p-4 text-xs sm:text-sm space-y-1 text-[#4a4245]">
                       <div><strong>Data Protection Officer:</strong> support@bzdegreat.com</div>
                       <div><strong>Email:</strong> support@bzdegreat.com</div>
-                      <div><strong>Phone:</strong> 07064482628 · +234 706 448 2628</div>
+                      <div><strong>Phone:</strong> 07047531433 · +234 704 753 1433</div>
                     </div>
                   </div>
 
@@ -997,7 +997,7 @@ export default function HelpAndLegalPage() {
                       Still have a question?
                     </h3>
                     <p className="text-[14px] text-[#f6e3e5] font-normal">
-                      Talk to our concierge desk on WhatsApp or call <strong>+234 706 448 2628</strong>.
+                      Talk to our concierge desk on WhatsApp or call <strong>{SITE_CONFIG.phoneDisplay}</strong>.
                     </p>
                   </div>
 

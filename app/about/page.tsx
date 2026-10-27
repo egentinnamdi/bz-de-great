@@ -61,7 +61,7 @@ export default function AboutPage() {
     setGalleryOpen(true)
   }
 
-  const waConsultationLink = `https://wa.me/2347064482628?text=${encodeURIComponent(
+  const waConsultationLink = `https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${encodeURIComponent(
     "Hello Amb. BZ / BZ Group team, I would like to book an investment consultation."
   )}`
 
@@ -89,7 +89,10 @@ export default function AboutPage() {
 
             <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
               {/* Left Column: Copy & Stats */}
-              <ScrollReveal animation="fade-in-up" className="space-y-6 lg:col-span-7">
+              <ScrollReveal
+                animation="fade-in-up"
+                className="space-y-6 lg:col-span-7"
+              >
                 <span className="block text-[12px] font-bold tracking-[0.2em] text-[#ebc7cb] uppercase">
                   ABOUT BZ DE GREAT
                 </span>
@@ -117,7 +120,7 @@ export default function AboutPage() {
 
                   <div className="border-r border-white/10 pr-2 transition-transform duration-300 hover:-translate-y-0.5">
                     <div className="font-serif text-[32px] leading-none font-bold text-white sm:text-[38px]">
-                      ₦50M+
+                      ₦15B+
                     </div>
                     <div className="mt-1.5 text-[12px] font-medium text-[#ebc7cb]">
                       In transactions
@@ -149,7 +152,7 @@ export default function AboutPage() {
                     href={waConsultationLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex h-[50px] cursor-pointer items-center gap-2 rounded-[8px] bg-white px-7 text-[14px] font-semibold text-[#1b1416] shadow-sm transition-all duration-300 hover:bg-[#f6e3e5] hover:-translate-y-0.5 active:scale-[0.98]"
+                    className="inline-flex h-[50px] cursor-pointer items-center gap-2 rounded-[8px] bg-white px-7 text-[14px] font-semibold text-[#1b1416] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#f6e3e5] active:scale-[0.98]"
                   >
                     <span>Book a consultation</span>
                     <ArrowRight className="h-4 w-4 stroke-[2.5]" />
@@ -165,7 +168,11 @@ export default function AboutPage() {
               </ScrollReveal>
 
               {/* Right Column: Arched Founder Portrait */}
-              <ScrollReveal animation="fade-in" delayMs={150} className="flex justify-center lg:col-span-5 lg:justify-end">
+              <ScrollReveal
+                animation="fade-in"
+                delayMs={150}
+                className="flex justify-center lg:col-span-5 lg:justify-end"
+              >
                 <div className="group relative h-[520px] w-full max-w-[390px] overflow-hidden rounded-t-[200px] rounded-b-[24px] border-4 border-[#680e18] shadow-2xl transition-all duration-500 hover:border-white/30 hover:shadow-wine-900/40">
                   <Image
                     src="/photos/gallery-bz-7.jpg"
@@ -198,7 +205,10 @@ export default function AboutPage() {
           <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
             <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-12 lg:gap-16">
               {/* Left Column: Eyebrow + Heading + Pull Quote */}
-              <ScrollReveal animation="fade-in-up" className="space-y-6 lg:col-span-5">
+              <ScrollReveal
+                animation="fade-in-up"
+                className="space-y-6 lg:col-span-5"
+              >
                 <span className="block text-[12px] font-bold tracking-[0.2em] text-[#81141f] uppercase">
                   MY STORY
                 </span>
@@ -220,7 +230,11 @@ export default function AboutPage() {
               </ScrollReveal>
 
               {/* Right Column: Narrative + Checklist */}
-              <ScrollReveal animation="fade-in-up" delayMs={100} className="space-y-6 text-[15px] leading-relaxed text-[#4a4245] sm:text-[16px] lg:col-span-7">
+              <ScrollReveal
+                animation="fade-in-up"
+                delayMs={100}
+                className="space-y-6 text-[15px] leading-relaxed text-[#4a4245] sm:text-[16px] lg:col-span-7"
+              >
                 <p>
                   I am a professional realtor, investment broker and
                   entrepreneur operating across four dynamic industries. My
@@ -240,17 +254,17 @@ export default function AboutPage() {
 
                 {/* 3 Values Checklist Pills */}
                 <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-[#f8f5f5] px-4 py-2 text-[13px] font-semibold text-[#1b1416] transition-all duration-300 hover:bg-[#f3ecec] hover:-translate-y-0.5">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-[#f8f5f5] px-4 py-2 text-[13px] font-semibold text-[#1b1416] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#f3ecec]">
                     <Check className="h-4 w-4 stroke-[2.5] text-[#81141f]" />
                     <span>Trusted expertise</span>
                   </div>
 
-                  <div className="inline-flex items-center gap-2 rounded-full bg-[#f8f5f5] px-4 py-2 text-[13px] font-semibold text-[#1b1416] transition-all duration-300 hover:bg-[#f3ecec] hover:-translate-y-0.5">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-[#f8f5f5] px-4 py-2 text-[13px] font-semibold text-[#1b1416] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#f3ecec]">
                     <Check className="h-4 w-4 stroke-[2.5] text-[#81141f]" />
                     <span>Proven results</span>
                   </div>
 
-                  <div className="inline-flex items-center gap-2 rounded-full bg-[#f8f5f5] px-4 py-2 text-[13px] font-semibold text-[#1b1416] transition-all duration-300 hover:bg-[#f3ecec] hover:-translate-y-0.5">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-[#f8f5f5] px-4 py-2 text-[13px] font-semibold text-[#1b1416] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#f3ecec]">
                     <Check className="h-4 w-4 stroke-[2.5] text-[#81141f]" />
                     <span>Client focused</span>
                   </div>
@@ -268,7 +282,7 @@ export default function AboutPage() {
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
               {/* Card 1: Mission (White) */}
               <ScrollReveal animation="fade-in-up" delayMs={0}>
-                <div className="hover-luxury-lift space-y-4 rounded-[20px] border border-[#eae3e4] bg-white p-8 shadow-xs sm:p-10 transition-all duration-300 hover:border-[#81141f]/30">
+                <div className="hover-luxury-lift space-y-4 rounded-[20px] border border-[#eae3e4] bg-white p-8 shadow-xs transition-all duration-300 hover:border-[#81141f]/30 sm:p-10">
                   <div className="flex items-center justify-between">
                     <span className="text-[12px] font-bold tracking-[0.2em] text-[#81141f] uppercase">
                       MISSION
@@ -283,17 +297,17 @@ export default function AboutPage() {
                   </h3>
 
                   <p className="text-[15px] leading-relaxed font-normal text-[#716769]">
-                    To empower individuals and businesses to build lasting wealth
-                    through strategic investments in real estate, automobiles,
-                    fashion and technology delivering excellence at every
-                    touchpoint.
+                    To empower individuals and businesses to build lasting
+                    wealth through strategic investments in real estate,
+                    automobiles, fashion and technology delivering excellence at
+                    every touchpoint.
                   </p>
                 </div>
               </ScrollReveal>
 
               {/* Card 2: Vision (Deep Wine #4e0b13) */}
               <ScrollReveal animation="fade-in-up" delayMs={100}>
-                <div className="hover-luxury-lift space-y-4 rounded-[20px] bg-[#4e0b13] p-8 text-white shadow-md sm:p-10 transition-all duration-300 border border-white/10 hover:border-white/25">
+                <div className="hover-luxury-lift space-y-4 rounded-[20px] border border-white/10 bg-[#4e0b13] p-8 text-white shadow-md transition-all duration-300 hover:border-white/25 sm:p-10">
                   <div className="flex items-center justify-between">
                     <span className="text-[12px] font-bold tracking-[0.2em] text-[#ebc7cb] uppercase">
                       VISION
@@ -464,7 +478,11 @@ export default function AboutPage() {
             {/* 3-Column Masonry Grid */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               {/* Column 1 */}
-              <ScrollReveal animation="fade-in-up" delayMs={0} className="space-y-6">
+              <ScrollReveal
+                animation="fade-in-up"
+                delayMs={0}
+                className="space-y-6"
+              >
                 {[0, 1, 2].map((idx) => (
                   <div
                     key={idx}
@@ -490,7 +508,11 @@ export default function AboutPage() {
               </ScrollReveal>
 
               {/* Column 2 */}
-              <ScrollReveal animation="fade-in-up" delayMs={100} className="space-y-6">
+              <ScrollReveal
+                animation="fade-in-up"
+                delayMs={100}
+                className="space-y-6"
+              >
                 {[3, 4, 5].map((idx) => (
                   <div
                     key={idx}
@@ -516,7 +538,11 @@ export default function AboutPage() {
               </ScrollReveal>
 
               {/* Column 3 */}
-              <ScrollReveal animation="fade-in-up" delayMs={200} className="space-y-6">
+              <ScrollReveal
+                animation="fade-in-up"
+                delayMs={200}
+                className="space-y-6"
+              >
                 {[6, 7, 8].map((idx) => (
                   <div
                     key={idx}
@@ -549,7 +575,10 @@ export default function AboutPage() {
            ======================================================== */}
         <section className="bg-[#4e0b13] py-20 text-white lg:py-24">
           <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
-            <ScrollReveal animation="fade-in-up" className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
+            <ScrollReveal
+              animation="fade-in-up"
+              className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center"
+            >
               <div className="max-w-2xl space-y-3">
                 <span className="block text-[12px] font-bold tracking-[0.2em] text-[#ebc7cb] uppercase">
                   LET'S BUILD YOUR LEGACY
@@ -565,8 +594,8 @@ export default function AboutPage() {
 
               <div className="flex shrink-0 flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <a
-                  href="tel:+2347064482628"
-                  className="inline-flex h-[50px] cursor-pointer items-center gap-2 rounded-[8px] bg-white px-7 text-[14px] font-semibold text-[#81141f] shadow-sm transition-all duration-300 hover:bg-[#f6e3e5] hover:-translate-y-0.5 active:scale-[0.98]"
+                  href={`tel:${SITE_CONFIG.phoneRaw}`}
+                  className="inline-flex h-[50px] cursor-pointer items-center gap-2 rounded-[8px] bg-white px-7 text-[14px] font-semibold text-[#81141f] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#f6e3e5] active:scale-[0.98]"
                 >
                   <span>Schedule a call</span>
                   <ArrowRight className="h-4 w-4 text-[#81141f]" />
@@ -576,7 +605,7 @@ export default function AboutPage() {
                   href={waConsultationLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-[50px] cursor-pointer items-center gap-2 rounded-[8px] border border-white/30 px-6 text-[14px] font-semibold text-white transition-all duration-300 hover:border-white hover:bg-white/5 hover:-translate-y-0.5 active:scale-[0.98]"
+                  className="inline-flex h-[50px] cursor-pointer items-center gap-2 rounded-[8px] border border-white/30 px-6 text-[14px] font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-white hover:bg-white/5 active:scale-[0.98]"
                 >
                   <span>Whatsapp</span>
                 </a>

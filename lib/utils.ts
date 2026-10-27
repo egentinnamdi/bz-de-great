@@ -1,6 +1,6 @@
 export { cn } from "cn";
 
-export function formatPhoneForWhatsApp(phone?: string | null, fallback = '2347064482628'): string {
+export function formatPhoneForWhatsApp(phone?: string | null, fallback = '2347047531433'): string {
   if (!phone) return fallback;
   const digits = phone.replace(/\D/g, '');
   if (!digits) return fallback;

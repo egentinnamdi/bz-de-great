@@ -163,25 +163,25 @@ export default function HomePage() {
           <div className="relative z-10 mx-auto max-w-[1440px] px-4 pt-16 pb-36 lg:px-[120px] lg:pt-24 lg:pb-44">
             <div className="flex max-w-[620px] flex-col space-y-6">
               {/* Eyebrow */}
-              <div className="text-[12px] font-bold tracking-widest text-white/80 uppercase animate-fade-in-down">
+              <div className="animate-fade-in-down text-[12px] font-bold tracking-widest text-white/80 uppercase">
                 {websiteContent.heroEyebrow}
               </div>
 
               {/* Headline */}
-              <h1 className="font-serif text-5xl leading-[1.05] font-semibold tracking-tight text-white sm:text-6xl lg:text-[76px] animate-fade-in-up delay-75">
+              <h1 className="animate-fade-in-up font-serif text-5xl leading-[1.05] font-semibold tracking-tight text-white delay-75 sm:text-6xl lg:text-[76px]">
                 {websiteContent.heroHeadline}
               </h1>
 
               {/* Subtitle */}
-              <p className="max-w-[540px] font-sans text-[16px] leading-relaxed text-white/90 sm:text-[18px] animate-fade-in-up delay-150">
+              <p className="animate-fade-in-up max-w-[540px] font-sans text-[16px] leading-relaxed text-white/90 delay-150 sm:text-[18px]">
                 {websiteContent.heroSupportingText}
               </p>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-4 pt-2 animate-fade-in-up delay-200">
+              <div className="animate-fade-in-up flex flex-wrap items-center gap-4 pt-2 delay-200">
                 <Link
                   href="/cars/rent"
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-8 py-3.5 text-[14px] font-semibold text-[#7A0C1A] shadow-md transition-all duration-300 hover:bg-[#faf7f7] hover:-translate-y-0.5 active:scale-[0.98]"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-8 py-3.5 text-[14px] font-semibold text-[#7A0C1A] shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#faf7f7] active:scale-[0.98]"
                 >
                   <span>Browse listings</span>
                   <ArrowRight className="h-4 w-4 text-[#7A0C1A] transition-transform duration-200 group-hover:translate-x-1" />
@@ -189,7 +189,7 @@ export default function HomePage() {
 
                 <Link
                   href="/rmb-exchange"
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/40 px-8 py-3.5 text-[14px] font-semibold text-white transition-all duration-300 hover:border-white hover:bg-white/10 hover:-translate-y-0.5 active:scale-[0.98]"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/40 px-8 py-3.5 text-[14px] font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-white hover:bg-white/10 active:scale-[0.98]"
                 >
                   <span>Exchange RMB</span>
                 </Link>
@@ -197,7 +197,7 @@ export default function HomePage() {
             </div>
 
             {/* Overlapping Search Panel */}
-            <div className="mt-14 lg:mt-20 animate-fade-in-up delay-300">
+            <div className="animate-fade-in-up mt-14 delay-300 lg:mt-20">
               <SearchPanel />
             </div>
           </div>
@@ -221,7 +221,8 @@ export default function HomePage() {
                 </h2>
                 <p className="text-xs leading-relaxed text-[#716769] sm:text-sm">
                   Whether you need a car for the weekend, a home for the year or
-                  naira for your RMB by tomorrow, BZ Group handles it end to end.
+                  naira for your RMB by tomorrow, BZ Group handles it end to
+                  end.
                 </p>
               </div>
             </ScrollReveal>
@@ -248,7 +249,10 @@ export default function HomePage() {
           <div className="mx-auto max-w-[1440px] px-4 lg:px-[120px]">
             <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
               {/* Left Column: Portrait Collage */}
-              <ScrollReveal animation="slide-in-left" className="relative mx-auto h-[520px] w-full max-w-[480px] sm:h-[580px] lg:col-span-5">
+              <ScrollReveal
+                animation="slide-in-left"
+                className="relative mx-auto h-[520px] w-full max-w-[480px] sm:h-[580px] lg:col-span-5"
+              >
                 {/* Soft pink backdrop pill */}
                 <div className="absolute top-8 left-0 h-[400px] w-[320px] rounded-3xl bg-[#fbf3f4] sm:h-[480px] sm:w-[380px]" />
 
@@ -275,7 +279,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Floating 10+ Experience Badge */}
-                <div className="absolute bottom-10 left-0 z-30 rounded-2xl bg-[#7A0C1A] p-4 text-white shadow-xl animate-float-gentle">
+                <div className="animate-float-gentle absolute bottom-10 left-0 z-30 rounded-2xl bg-[#7A0C1A] p-4 text-white shadow-xl">
                   <span className="block font-sans text-3xl leading-none font-bold">
                     10+
                   </span>
@@ -286,7 +290,10 @@ export default function HomePage() {
               </ScrollReveal>
 
               {/* Right Column: Founder Copy */}
-              <ScrollReveal animation="slide-in-right" className="flex flex-col space-y-6 lg:col-span-7">
+              <ScrollReveal
+                animation="slide-in-right"
+                className="flex flex-col space-y-6 lg:col-span-7"
+              >
                 <div>
                   <span className="mb-2 block text-xs font-bold tracking-wider text-[#7A0C1A] uppercase">
                     MEET THE FOUNDER
@@ -299,7 +306,8 @@ export default function HomePage() {
                 </div>
 
                 <p className="text-xs leading-relaxed text-[#4a4245] sm:text-sm">
-                  {websiteContent.founderBio || `BZ De Great is a realtor, investment broker and entrepreneur working across four industries real estate, automobiles, fashion and technology. His mission is simple: create value, build wealth and deliver results through intelligent investments.`}
+                  {websiteContent.founderBio ||
+                    `BZ De Great is a realtor, investment broker and entrepreneur working across four industries real estate, automobiles, fashion and technology. His mission is simple: create value, build wealth and deliver results through intelligent investments.`}
                 </p>
 
                 <p className="text-xs leading-relaxed text-[#4a4245] sm:text-sm">
@@ -348,7 +356,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <span className="block font-serif text-2xl font-bold text-[#7A0C1A] sm:text-3xl">
-                      ₦50M+
+                      ₦15B+
                     </span>
                     <span className="mt-0.5 block text-[11px] font-medium text-[#716769]">
                       In transactions
@@ -386,7 +394,7 @@ export default function HomePage() {
                   <div className="flex items-center gap-3">
                     <Link
                       href="/about"
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#7A0C1A] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-[#600814] hover:-translate-y-0.5 active:scale-95"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#7A0C1A] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:-translate-y-0.5 hover:bg-[#600814] active:scale-95"
                     >
                       <span>More about me</span>
                       <ArrowRight className="h-3.5 w-3.5" />
@@ -395,7 +403,7 @@ export default function HomePage() {
                       href={SITE_CONFIG.whatsappUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center rounded-lg border border-[#eae3e4] bg-white px-4 py-2.5 text-xs font-semibold text-[#1b1416] transition-all hover:bg-[#faf7f7] hover:-translate-y-0.5 active:scale-95"
+                      className="inline-flex items-center rounded-lg border border-[#eae3e4] bg-white px-4 py-2.5 text-xs font-semibold text-[#1b1416] transition-all hover:-translate-y-0.5 hover:bg-[#faf7f7] active:scale-95"
                     >
                       Book a consultation
                     </a>
@@ -422,13 +430,14 @@ export default function HomePage() {
                     A vision in motion
                   </h2>
                   <p className="text-xs text-[#716769] sm:text-sm">
-                    Moments from the work, the events and the man behind BZ Group.
+                    Moments from the work, the events and the man behind BZ
+                    Group.
                   </p>
                 </div>
 
                 <Link
                   href="/about#gallery"
-                  className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-[#eae3e4] px-4 py-2 text-xs font-semibold text-[#1b1416] transition-all hover:bg-[#faf7f7] hover:-translate-y-0.5 sm:self-auto active:scale-95"
+                  className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-[#eae3e4] px-4 py-2 text-xs font-semibold text-[#1b1416] transition-all hover:-translate-y-0.5 hover:bg-[#faf7f7] active:scale-95 sm:self-auto"
                 >
                   <span>View full gallery</span>
                   <ArrowRight className="h-3.5 w-3.5 text-[#7A0C1A]" />
@@ -449,7 +458,7 @@ export default function HomePage() {
                     setGalleryIndex(0)
                     setGalleryOpen(true)
                   }}
-                  className="group relative h-[380px] cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs hover-luxury-lift md:h-full"
+                  className="group hover-luxury-lift relative h-[380px] cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs md:h-full"
                 >
                   <Image
                     src="/figma-images/665d90e743a205c06abfb1aeff42229068a3c479.jpg"
@@ -473,7 +482,7 @@ export default function HomePage() {
                     setGalleryIndex(1)
                     setGalleryOpen(true)
                   }}
-                  className="group relative flex-1 cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs hover-luxury-lift"
+                  className="group hover-luxury-lift relative flex-1 cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs"
                 >
                   <Image
                     src="/figma-images/506af3604aeceba8c9763e7ff50446bbd51233c6.jpg"
@@ -489,7 +498,7 @@ export default function HomePage() {
                     setGalleryIndex(2)
                     setGalleryOpen(true)
                   }}
-                  className="group relative flex-1 cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs hover-luxury-lift"
+                  className="group hover-luxury-lift relative flex-1 cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs"
                 >
                   <Image
                     src="/figma-images/16796229e74bcb49be8ca0ec94564ac932d8bfb1.jpg"
@@ -513,7 +522,7 @@ export default function HomePage() {
                     setGalleryIndex(3)
                     setGalleryOpen(true)
                   }}
-                  className="group relative flex-1 cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs hover-luxury-lift"
+                  className="group hover-luxury-lift relative flex-1 cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs"
                 >
                   <Image
                     src="/figma-images/e491777d141c05714cbef3042bbf7c3c0b8b19cc.jpg"
@@ -531,7 +540,7 @@ export default function HomePage() {
                       setGalleryIndex(4)
                       setGalleryOpen(true)
                     }}
-                    className="group relative cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs hover-luxury-lift"
+                    className="group hover-luxury-lift relative cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs"
                   >
                     <Image
                       src="/figma-images/4862980413b5d5e99a04772b1f2fba4826abb663.jpg"
@@ -549,7 +558,7 @@ export default function HomePage() {
                       setGalleryIndex(5)
                       setGalleryOpen(true)
                     }}
-                    className="group relative cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs hover-luxury-lift"
+                    className="group hover-luxury-lift relative cursor-pointer overflow-hidden rounded-2xl border border-[#eae3e4] shadow-xs"
                   >
                     <Image
                       src="/figma-images/bc39a3ebf95cfbbf83829619024c0ea495727dd1.jpg"
@@ -585,7 +594,7 @@ export default function HomePage() {
 
                 <Link
                   href="/cars/rent"
-                  className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-[#eae3e4] px-4 py-2 text-xs font-semibold text-[#1b1416] transition-all hover:bg-[#faf7f7] hover:-translate-y-0.5 sm:self-auto active:scale-95"
+                  className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-[#eae3e4] px-4 py-2 text-xs font-semibold text-[#1b1416] transition-all hover:-translate-y-0.5 hover:bg-[#faf7f7] active:scale-95 sm:self-auto"
                 >
                   <span>View all cars</span>
                   <ArrowRight className="h-3.5 w-3.5 text-[#7A0C1A]" />
@@ -595,8 +604,12 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {featuredCars.map((car, idx) => (
-                <ScrollReveal key={car.id} animation="fade-in-up" delayMs={idx * 100}>
-                  <div className="group flex flex-col overflow-hidden rounded-2xl border border-[#eae3e4] bg-white transition-all duration-300 hover-luxury-lift hover:border-[#7A0C1A]/40">
+                <ScrollReveal
+                  key={car.id}
+                  animation="fade-in-up"
+                  delayMs={idx * 100}
+                >
+                  <div className="group hover-luxury-lift flex flex-col overflow-hidden rounded-2xl border border-[#eae3e4] bg-white transition-all duration-300 hover:border-[#7A0C1A]/40">
                     {/* Photo with Badge & Heart */}
                     <div className="relative h-60 w-full overflow-hidden bg-[#faf7f7]">
                       <Image
@@ -696,7 +709,7 @@ export default function HomePage() {
 
                 <Link
                   href="/properties/buy"
-                  className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-[#eae3e4] px-4 py-2 text-xs font-semibold text-[#1b1416] transition-all hover:bg-[#faf7f7] hover:-translate-y-0.5 sm:self-auto active:scale-95"
+                  className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-[#eae3e4] px-4 py-2 text-xs font-semibold text-[#1b1416] transition-all hover:-translate-y-0.5 hover:bg-[#faf7f7] active:scale-95 sm:self-auto"
                 >
                   <span>View all property</span>
                   <ArrowRight className="h-3.5 w-3.5 text-[#7A0C1A]" />
@@ -706,8 +719,12 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {featuredProperties.map((prop, idx) => (
-                <ScrollReveal key={prop.id} animation="fade-in-up" delayMs={idx * 100}>
-                  <div className="group flex flex-col overflow-hidden rounded-2xl border border-[#eae3e4] bg-white transition-all duration-300 hover-luxury-lift hover:border-[#7A0C1A]/40">
+                <ScrollReveal
+                  key={prop.id}
+                  animation="fade-in-up"
+                  delayMs={idx * 100}
+                >
+                  <div className="group hover-luxury-lift flex flex-col overflow-hidden rounded-2xl border border-[#eae3e4] bg-white transition-all duration-300 hover:border-[#7A0C1A]/40">
                     {/* Photo with Badge & Heart */}
                     <div className="relative h-60 w-full overflow-hidden bg-[#faf7f7]">
                       <Image
@@ -796,7 +813,10 @@ export default function HomePage() {
           <div className="mx-auto max-w-[1440px] px-4 lg:px-[120px]">
             <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
               {/* Left Copy */}
-              <ScrollReveal animation="slide-in-left" className="flex flex-col space-y-6 lg:col-span-7">
+              <ScrollReveal
+                animation="slide-in-left"
+                className="flex flex-col space-y-6 lg:col-span-7"
+              >
                 <div>
                   <span className="mb-2 block text-xs font-bold tracking-wider text-[#ebc7cb] uppercase">
                     RMB EXCHANGE
@@ -849,7 +869,7 @@ export default function HomePage() {
                 <div className="pt-2">
                   <Link
                     href="/rmb-exchange"
-                    className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-xs font-semibold text-[#7A0C1A] shadow-md transition-all duration-300 hover:bg-[#faf7f7] hover:-translate-y-0.5 active:scale-95"
+                    className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-xs font-semibold text-[#7A0C1A] shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#faf7f7] active:scale-95"
                   >
                     <span>Start an exchange</span>
                     <ArrowRight className="h-3.5 w-3.5 text-[#7A0C1A]" />
@@ -858,7 +878,10 @@ export default function HomePage() {
               </ScrollReveal>
 
               {/* Right Calculator Card */}
-              <ScrollReveal animation="slide-in-right" className="flex justify-center lg:col-span-5 lg:justify-end">
+              <ScrollReveal
+                animation="slide-in-right"
+                className="flex justify-center lg:col-span-5 lg:justify-end"
+              >
                 <RmbCalculator />
               </ScrollReveal>
             </div>
@@ -892,8 +915,8 @@ export default function HomePage() {
                     Find
                   </h3>
                   <p className="text-xs leading-relaxed text-[#716769]">
-                    Browse verified cars and properties, or check today&apos;s RMB
-                    rate.
+                    Browse verified cars and properties, or check today&apos;s
+                    RMB rate.
                   </p>
                 </div>
               </ScrollReveal>
@@ -962,7 +985,10 @@ export default function HomePage() {
             <div className="absolute inset-0 bg-[#540911]/85 backdrop-blur-[1px]" />
           </div>
 
-          <ScrollReveal animation="scale-in" className="relative z-10 mx-auto flex max-w-[760px] flex-col items-center space-y-6 px-4">
+          <ScrollReveal
+            animation="scale-in"
+            className="relative z-10 mx-auto flex max-w-[760px] flex-col items-center space-y-6 px-4"
+          >
             <h2 className="font-serif text-3xl leading-tight font-semibold text-white sm:text-5xl">
               Want to see it in person first?
             </h2>
@@ -975,7 +1001,7 @@ export default function HomePage() {
             <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
               <Link
                 href="/cars/rent"
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-white px-7 py-3 text-xs font-semibold text-[#7A0C1A] shadow-lg transition-all duration-300 hover:bg-[#faf7f7] hover:-translate-y-0.5 active:scale-95"
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-white px-7 py-3 text-xs font-semibold text-[#7A0C1A] shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#faf7f7] active:scale-95"
               >
                 <span>Book an inspection</span>
                 <ArrowRight className="h-3.5 w-3.5 text-[#7A0C1A]" />
@@ -984,7 +1010,7 @@ export default function HomePage() {
                 href={SITE_CONFIG.whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/40 px-7 py-3 text-xs font-semibold text-white transition-all duration-300 hover:border-white hover:bg-white/10 hover:-translate-y-0.5 active:scale-95"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/40 px-7 py-3 text-xs font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-white hover:bg-white/10 active:scale-95"
               >
                 <span>Chat on WhatsApp</span>
               </a>

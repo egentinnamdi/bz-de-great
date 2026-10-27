@@ -156,7 +156,7 @@ export function BookingModal({
 
                 <Input
                   label="Phone / WhatsApp"
-                  placeholder="+234 706 448 2628"
+                  placeholder={SITE_CONFIG.phoneDisplay}
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   required
@@ -263,7 +263,7 @@ export function BookingModal({
             <div className="pt-2 flex flex-col gap-2.5">
               <Button onClick={handleOpenWhatsApp} size="lg" className="w-full gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white">
                 <MessageSquare className="w-4 h-4" />
-                <span>Continue on WhatsApp (+234 706 448 2628)</span>
+                <span>Continue on WhatsApp ({SITE_CONFIG.phoneDisplay})</span>
               </Button>
               <Button onClick={onClose} variant="outline" size="sm" className="w-full">
                 Back to Listings

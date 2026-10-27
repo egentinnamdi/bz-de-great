@@ -23,8 +23,8 @@ export function SiteFooter() {
             <div className="flex flex-col space-y-2.5 pt-1 text-[13px] text-[#ebc7cb]">
               <div className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-[#ebc7cb] shrink-0" />
-                <a href="tel:+2347064482628" className="hover:text-white transition-colors">
-                  +234 706 448 2628
+                <a href={`tel:${SITE_CONFIG.phoneRaw}`} className="hover:text-white transition-colors">
+                  {SITE_CONFIG.phoneDisplay}
                 </a>
               </div>
               <div className="flex items-center gap-2.5">
