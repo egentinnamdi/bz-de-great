@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 
 export default function AdminReportsPage() {
   const { toast } = useToast();
-  const { bookings, rmbRequests, listings, customers } = useStore();
+  const { bookings, listings, customers } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [range, setRange] = useState<'Last 6 months' | 'This year' | 'Last year' | 'Custom range'>('Last 6 months');
 
@@ -28,34 +28,21 @@ export default function AdminReportsPage() {
   // 1. DYNAMIC TOP METRICS AGGREGATION
   // ============================================================================
   const metrics = useMemo(() => {
-    // 1. Total Revenue from verified bookings + approved RMB exchange volume in Naira
-    const bookingRevenue = bookings.reduce((sum, b) => {
+    // 1. Total Revenue from verified bookings
+    const totalRevenueNgn = bookings.reduce((sum, b) => {
       if (b.paymentStatus === 'verified' || b.bookingStatus === 'confirmed') {
         return sum + (Number(b.totalAmount) || 0);
       }
       return sum;
     }, 0);
 
-    const rmbRevenueNgn = rmbRequests.reduce((sum, r) => {
-      if (r.status === 'approved' || r.status === 'paid_out') {
-        return sum + (r.direction === 'naira_to_rmb' ? Number(r.sourceAmount) : Number(r.destinationAmount));
-      }
-      return sum;
-    }, 0);
-
-    const totalRevenueNgn = bookingRevenue + rmbRevenueNgn;
-
     // 2. Total Bookings
     const totalBookingsCount = bookings.length;
     const activeBookingsCount = bookings.filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'active').length;
 
-    // 3. Total RMB volume traded
-    const totalRmbTraded = rmbRequests.reduce((sum, r) => {
-      if (r.status === 'approved' || r.status === 'paid_out' || r.status === 'receipt_received') {
-        return sum + (r.direction === 'rmb_to_naira' ? Number(r.sourceAmount) : Number(r.destinationAmount));
-      }
-      return sum;
-    }, 0);
+    // 3. Published listings count
+    const publishedListingsCount = listings.filter(l => l.status === 'published').length;
+    const totalListingsCount = listings.length;
 
     // 4. New / Total customers
     const totalCustomersCount = customers.length;
@@ -65,11 +52,12 @@ export default function AdminReportsPage() {
       totalRevenueNgn,
       totalBookingsCount,
       activeBookingsCount,
-      totalRmbTraded,
+      publishedListingsCount,
+      totalListingsCount,
       totalCustomersCount,
       vipCustomersCount
     };
-  }, [bookings, rmbRequests, customers]);
+  }, [bookings, listings, customers]);
 
   // Format currency helpers
   const formatNgnDisplay = (amount: number) => {
@@ -79,15 +67,6 @@ export default function AdminReportsPage() {
       return `₦${(amount / 1_000).toFixed(0)}K`;
     }
     return `₦${amount.toLocaleString('en-NG')}`;
-  };
-
-  const formatRmbDisplay = (amount: number) => {
-    if (amount >= 1_000_000) {
-      return `¥${(amount / 1_000_000).toFixed(2)}M`;
-    } else if (amount >= 1_000) {
-      return `¥${(amount / 1_000).toFixed(1)}K`;
-    }
-    return `¥${amount.toLocaleString()}`;
   };
 
   // ============================================================================
@@ -121,18 +100,6 @@ export default function AdminReportsPage() {
       }
     });
 
-    // Aggregate RMB requests by month
-    rmbRequests.forEach(r => {
-      const date = r.createdAt ? new Date(r.createdAt) : new Date();
-      const month = date.toLocaleString('en-US', { month: 'short' });
-      const amt = r.direction === 'naira_to_rmb' ? Number(r.sourceAmount) : Number(r.destinationAmount);
-      if (buckets[month] !== undefined) {
-        buckets[month] += amt;
-      } else {
-        buckets['Oct'] += amt;
-      }
-    });
-
     // Map into display items (converted to millions, minimum floor so chart is legible)
     const items = monthNames.map((m, idx) => {
       const rawValNgn = buckets[m];
@@ -148,7 +115,7 @@ export default function AdminReportsPage() {
     const maxValue = Math.max(...items.map(i => i.value), 35);
 
     return { items, maxValue };
-  }, [bookings, rmbRequests]);
+  }, [bookings]);
 
   // ============================================================================
   // 3. DYNAMIC REVENUE BY DIVISION
@@ -157,7 +124,6 @@ export default function AdminReportsPage() {
     let propertySalesRevenue = 0;
     let carRentalsRevenue = 0;
     let carSalesRevenue = 0;
-    let rmbExchangeRevenue = 0;
     let apartmentsRevenue = 0;
 
     // Distribute bookings revenue
@@ -178,13 +144,7 @@ export default function AdminReportsPage() {
       }
     });
 
-    // RMB Treasury Exchange revenue
-    rmbRequests.forEach(r => {
-      const amt = r.direction === 'naira_to_rmb' ? Number(r.sourceAmount) : Number(r.destinationAmount);
-      rmbExchangeRevenue += amt;
-    });
-
-    const totalDiv = propertySalesRevenue + carRentalsRevenue + carSalesRevenue + rmbExchangeRevenue + apartmentsRevenue || 1;
+    const totalDiv = propertySalesRevenue + carRentalsRevenue + carSalesRevenue + apartmentsRevenue || 1;
 
     const divisions = [
       {
@@ -198,34 +158,27 @@ export default function AdminReportsPage() {
         label: 'Car rentals',
         amountNum: carRentalsRevenue,
         amount: formatNgnDisplay(carRentalsRevenue > 0 ? carRentalsRevenue : 29_900_000),
-        pct: Math.round(((carRentalsRevenue > 0 ? carRentalsRevenue : 29_900_000) / totalDiv) * 100) || 25,
+        pct: Math.round(((carRentalsRevenue > 0 ? carRentalsRevenue : 29_900_000) / totalDiv) * 100) || 28,
         color: '#2B2B2B'
       },
       {
         label: 'Car sales',
         amountNum: carSalesRevenue,
         amount: formatNgnDisplay(carSalesRevenue > 0 ? carSalesRevenue : 21_400_000),
-        pct: Math.round(((carSalesRevenue > 0 ? carSalesRevenue : 21_400_000) / totalDiv) * 100) || 16,
+        pct: Math.round(((carSalesRevenue > 0 ? carSalesRevenue : 21_400_000) / totalDiv) * 100) || 19,
         color: '#C26772'
-      },
-      {
-        label: 'RMB exchange',
-        amountNum: rmbExchangeRevenue,
-        amount: formatNgnDisplay(rmbExchangeRevenue > 0 ? rmbExchangeRevenue : 10_000_000),
-        pct: Math.round(((rmbExchangeRevenue > 0 ? rmbExchangeRevenue : 10_000_000) / totalDiv) * 100) || 10,
-        color: '#D97706'
       },
       {
         label: 'Apartments',
         amountNum: apartmentsRevenue,
         amount: formatNgnDisplay(apartmentsRevenue > 0 ? apartmentsRevenue : 4_300_000),
-        pct: Math.round(((apartmentsRevenue > 0 ? apartmentsRevenue : 4_300_000) / totalDiv) * 100) || 4,
+        pct: Math.round(((apartmentsRevenue > 0 ? apartmentsRevenue : 4_300_000) / totalDiv) * 100) || 8,
         color: '#E8B8BE'
       }
     ];
 
     return divisions;
-  }, [bookings, rmbRequests]);
+  }, [bookings]);
 
   // ============================================================================
   // 4. DYNAMIC TOP LISTINGS RANKING
@@ -366,14 +319,14 @@ export default function AdminReportsPage() {
           </div>
         </div>
 
-        {/* RMB volume */}
+        {/* Published listings */}
         <div className="hover-luxury-lift bg-white rounded-xl border border-[#eae3e4] p-5 shadow-xs transition-all duration-300">
-          <div className="text-xs font-medium text-[#716769]">RMB Treasury Traded</div>
+          <div className="text-xs font-medium text-[#716769]">Published Listings</div>
           <div className="text-2xl font-bold font-serif text-[#1b1416] mt-2">
-            {formatRmbDisplay(metrics.totalRmbTraded)}
+            {metrics.publishedListingsCount}
           </div>
           <div className="text-[11px] text-[#059669] font-medium mt-1">
-            +31% trade volume increase
+            of {metrics.totalListingsCount} total catalog items
           </div>
         </div>
 

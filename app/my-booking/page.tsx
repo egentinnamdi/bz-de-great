@@ -31,19 +31,16 @@ import { StatusBadge } from '@/components/ui/badge';
 import { CopyButton } from '@/components/ui/copy-button';
 import { useStore } from '@/lib/store';
 import { SITE_CONFIG, getWhatsAppBookingLink } from '@/lib/constants';
-import type { Booking, RmbExchangeRequest } from '@/lib/types';
+import type { Booking } from '@/lib/types';
 
 function MyBookingContent() {
-  const { bookings, rmbRequests, refreshData } = useStore();
+  const { bookings, refreshData } = useStore();
   const searchParams = useSearchParams();
 
   const initialParamTicket = searchParams.get('ref') || searchParams.get('id') || searchParams.get('ticket') || '';
 
   const [searchTicket, setSearchTicket] = useState(initialParamTicket || 'BK-2292');
-  const [activeItem, setActiveItem] = useState<{
-    kind: 'booking' | 'rmb';
-    data: Booking | RmbExchangeRequest;
-  } | null>(null);
+  const [bookingData, setBookingData] = useState<Booking | null>(null);
 
   // Poll remote data every 10 seconds to keep live confirmation status in accurate sync with admin desk
   useEffect(() => {
@@ -54,38 +51,21 @@ function MyBookingContent() {
     return () => clearInterval(interval);
   }, [refreshData]);
 
-  // Sync selected ticket from bookings, rmbRequests, or URL
+  // Sync selected ticket from bookings or URL
   useEffect(() => {
     const targetCode = (initialParamTicket || searchTicket).trim().toLowerCase();
 
-    // 1. Check RMB Requests first if prefix is RMB
-    if (targetCode.startsWith('rmb')) {
-      const foundRmb = rmbRequests.find(r => r.id.toLowerCase() === targetCode || (r.reference && r.reference.toLowerCase() === targetCode));
-      if (foundRmb) {
-        setActiveItem({ kind: 'rmb', data: foundRmb });
-        return;
-      }
-    }
-
-    // 2. Check Bookings
     const foundBooking = bookings.find(b => b.id.toLowerCase() === targetCode || (b.reference && b.reference.toLowerCase() === targetCode));
     if (foundBooking) {
-      setActiveItem({ kind: 'booking', data: foundBooking });
-      return;
-    }
-
-    // 3. Fallback: check RMB if not checked
-    const anyRmb = rmbRequests.find(r => r.id.toLowerCase() === targetCode || (r.reference && r.reference.toLowerCase() === targetCode));
-    if (anyRmb) {
-      setActiveItem({ kind: 'rmb', data: anyRmb });
+      setBookingData(foundBooking);
       return;
     }
 
     // Default to first booking if no specific ticket is specified
-    if (!initialParamTicket && bookings.length > 0 && !activeItem) {
-      setActiveItem({ kind: 'booking', data: bookings[0] });
+    if (!initialParamTicket && bookings.length > 0 && !bookingData) {
+      setBookingData(bookings[0]);
     }
-  }, [initialParamTicket, searchTicket, bookings, rmbRequests]);
+  }, [initialParamTicket, searchTicket, bookings]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,21 +73,15 @@ function MyBookingContent() {
 
     const foundBooking = bookings.find(b => b.id.toLowerCase() === code || (b.reference && b.reference.toLowerCase() === code));
     if (foundBooking) {
-      setActiveItem({ kind: 'booking', data: foundBooking });
+      setBookingData(foundBooking);
       return;
     }
 
-    const foundRmb = rmbRequests.find(r => r.id.toLowerCase() === code || (r.reference && r.reference.toLowerCase() === code));
-    if (foundRmb) {
-      setActiveItem({ kind: 'rmb', data: foundRmb });
-      return;
-    }
-
-    setActiveItem(null);
+    setBookingData(null);
   };
 
   // Step calculation for Bookings
-  const bookingSteps = [
+  const steps = [
     { label: 'Requested', desc: 'Ticket logged' },
     { label: 'Confirmed', desc: 'Concierge approved' },
     { label: 'Payment Verified', desc: 'Proof settled' },
@@ -124,31 +98,8 @@ function MyBookingContent() {
     return 0;
   };
 
-  // Step calculation for RMB Requests
-  const rmbSteps = [
-    { label: 'Rate Locked', desc: 'Order initiated' },
-    { label: 'Slip Uploaded', desc: 'Transfer attached' },
-    { label: 'Treasury Review', desc: 'Verifying inflow' },
-    { label: 'Approved', desc: 'Disbursement queued' },
-    { label: 'Disbursed', desc: 'Funds released' }
-  ];
-
-  const getRmbStep = (r: RmbExchangeRequest) => {
-    if (r.status === 'rejected') return -1;
-    if (r.status === 'paid_out') return 4;
-    if (r.status === 'approved') return 3;
-    if (r.status === 'receipt_received') return 2;
-    if (r.status === 'account_sent') return 1;
-    return 0;
-  };
-
-  const isRmb = activeItem?.kind === 'rmb';
-  const rmbData = isRmb ? (activeItem?.data as RmbExchangeRequest) : null;
-  const bookingData = !isRmb ? (activeItem?.data as Booking) : null;
-
-  const steps = isRmb ? rmbSteps : bookingSteps;
-  const currentStep = isRmb && rmbData ? getRmbStep(rmbData) : bookingData ? getBookingStep(bookingData) : 0;
-  const receiptUrl = isRmb ? rmbData?.receiptUrl : bookingData?.receiptUrl;
+  const currentStep = bookingData ? getBookingStep(bookingData) : 0;
+  const receiptUrl = bookingData?.receiptUrl;
 
   return (
     <div className="min-h-screen flex flex-col bg-surface-bg text-text-main">
@@ -167,46 +118,29 @@ function MyBookingContent() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border-subtle">
             <div>
               <span className="text-xs font-bold uppercase tracking-[0.2em] text-wine-800">
-                Live Transaction &amp; Booking Tracker
+                Live Booking Tracker
               </span>
               <h1 className="font-serif text-3xl sm:text-5xl font-semibold text-text-main mt-1">
-                Transaction Confirmation Status
+                Booking Confirmation Status
               </h1>
               <p className="text-sm text-text-secondary mt-1">
-                Enter your transaction or booking ticket reference (e.g. RMB-0824, BK-2292 or INS-0318) to check confirmation status and verify your receipt.
+                Enter your booking or inspection reference (e.g. BK-2292, TD-0091 or INS-0318) to check confirmation status and verify your receipt.
               </p>
             </div>
 
             {/* Quick Demo Selectors */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-text-subtle mr-1">Recent Tickets:</span>
-              {rmbRequests.slice(0, 2).map(r => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => {
-                    setSearchTicket(r.id);
-                    setActiveItem({ kind: 'rmb', data: r });
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-                    activeItem?.data.id === r.id
-                      ? 'bg-wine-800 text-white'
-                      : 'bg-white border text-text-secondary hover:bg-wine-50'
-                  }`}
-                >
-                  {r.id}
-                </button>
-              ))}
-              {bookings.slice(0, 2).map(b => (
+              <span className="text-xs text-text-subtle mr-1">Recent Bookings:</span>
+              {bookings.slice(0, 4).map(b => (
                 <button
                   key={b.id}
                   type="button"
                   onClick={() => {
                     setSearchTicket(b.id);
-                    setActiveItem({ kind: 'booking', data: b });
+                    setBookingData(b);
                   }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-                    activeItem?.data.id === b.id
+                    bookingData?.id === b.id
                       ? 'bg-wine-800 text-white'
                       : 'bg-white border text-text-secondary hover:bg-wine-50'
                   }`}
@@ -221,53 +155,31 @@ function MyBookingContent() {
           <form onSubmit={handleSearch} className="flex gap-3">
             <div className="flex-1">
               <Input
-                placeholder="Enter transaction or booking ticket reference (e.g. RMB-0824, BK-2292)..."
+                placeholder="Enter booking or inspection reference (e.g. BK-2292, INS-0318)..."
                 value={searchTicket}
                 onChange={e => setSearchTicket(e.target.value)}
                 icon={<Search className="w-4 h-4" />}
               />
             </div>
             <Button type="submit" size="default" className="font-bold shrink-0 bg-[#7A0C1A] hover:bg-[#600814]">
-              Track Transaction
+              Track Booking
             </Button>
           </form>
 
-          {/* Selected Booking or RMB Details Card */}
-          {activeItem ? (
+          {/* Selected Booking Details Card */}
+          {bookingData ? (
             <div className="rounded-3xl bg-white border border-border-subtle shadow-xl overflow-hidden">
               {/* Stepper Progress Bar */}
               <div className="p-6 sm:p-8 bg-surface-bg/60 border-b border-border-subtle">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                   <div className="flex items-center gap-3">
                     <span className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Reference Ticket:</span>
-                    <strong className="text-lg font-mono font-extrabold text-wine-900">{activeItem.data.id}</strong>
-                    <CopyButton value={activeItem.data.id} />
+                    <strong className="text-lg font-mono font-extrabold text-wine-900">{bookingData.id}</strong>
+                    <CopyButton value={bookingData.id} />
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-text-subtle">Live Confirmation Status:</span>
-                    {isRmb && rmbData ? (
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                        rmbData.status === 'paid_out'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : rmbData.status === 'approved'
-                          ? 'bg-blue-100 text-blue-800'
-                          : rmbData.status === 'rejected'
-                          ? 'bg-rose-100 text-rose-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {rmbData.status === 'paid_out'
-                          ? 'Disbursed & Completed'
-                          : rmbData.status === 'approved'
-                          ? 'Approved for Payout'
-                          : rmbData.status === 'receipt_received'
-                          ? 'Receipt Under Treasury Review'
-                          : rmbData.status === 'rejected'
-                          ? 'Verification Declined'
-                          : 'Awaiting Payment Proof'}
-                      </span>
-                    ) : bookingData ? (
-                      <StatusBadge status={bookingData.bookingStatus} />
-                    ) : null}
+                    <StatusBadge status={bookingData.bookingStatus} />
                   </div>
                 </div>
 
@@ -304,53 +216,8 @@ function MyBookingContent() {
               <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
                 {/* Left col: Asset info & schedule */}
                 <div className="md:col-span-7 space-y-6">
-                  {isRmb && rmbData ? (
-                    /* RMB Exchange Ticket Details */
-                    <div className="space-y-4">
-                      <div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-wine-800">
-                          {rmbData.direction === 'rmb_to_naira' ? 'RMB to Naira Currency Trade' : 'Naira to RMB Currency Trade'}
-                        </span>
-                        <h3 className="text-2xl font-bold text-text-main mt-1">
-                          {rmbData.direction === 'rmb_to_naira'
-                            ? `¥${rmbData.sourceAmount.toLocaleString('en-US')} RMB → ₦${rmbData.destinationAmount.toLocaleString('en-NG')} Naira`
-                            : `₦${rmbData.sourceAmount.toLocaleString('en-NG')} Naira → ¥${rmbData.destinationAmount.toLocaleString('en-US')} RMB`}
-                        </h3>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-surface-bg border border-border-subtle space-y-3 text-xs sm:text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="text-text-subtle">Customer Name</span>
-                          <strong className="text-text-main font-semibold">{rmbData.customerName}</strong>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-text-subtle">Locked Rate</span>
-                          <strong className="text-wine-900 font-bold">¥1 = ₦{Number(rmbData.rateApplied).toFixed(2)}</strong>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-text-subtle">Payout Target / Account</span>
-                          <strong className="text-text-main font-semibold">{rmbData.destinationAccountDetails || rmbData.destinationChannel}</strong>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-text-subtle">Customer WhatsApp</span>
-                          <strong className="text-text-main font-semibold">{rmbData.customerWhatsApp}</strong>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-text-subtle">Order Logged At</span>
-                          <span className="text-text-secondary">{new Date(rmbData.createdAt).toLocaleString('en-GB')}</span>
-                        </div>
-                      </div>
-
-                      {rmbData.notes && (
-                        <div className="p-4 rounded-2xl bg-wine-50 border border-wine-100 text-xs space-y-1">
-                          <span className="font-bold text-wine-900">Treasury Desk Notes:</span>
-                          <p className="text-wine-900/80">{rmbData.notes}</p>
-                        </div>
-                      )}
-                    </div>
-                  ) : bookingData ? (
-                    /* Vehicle or Property Booking Details */
-                    <div className="space-y-4">
+                  {/* Vehicle or Property Booking Details */}
+                  <div className="space-y-4">
                       <div>
                         <span className="text-xs font-bold uppercase tracking-wider text-wine-800">
                           {bookingData.type === 'car_rental'
@@ -401,8 +268,7 @@ function MyBookingContent() {
                           <p className="text-wine-900/80">{bookingData.notes}</p>
                         </div>
                       )}
-                    </div>
-                  ) : null}
+                  </div>
 
                   {/* Receipt Proof Section on the Site */}
                   <div className="rounded-2xl border border-border-subtle p-5 bg-[#fdfbfb] space-y-3">
@@ -438,7 +304,7 @@ function MyBookingContent() {
                             <span>PDF Transfer Slip Verified</span>
                             <a
                               href={receiptUrl}
-                              download={`receipt-${activeItem.data.id}.pdf`}
+                              download={`receipt-${bookingData.id}.pdf`}
                               className="font-bold text-wine-800 hover:underline inline-flex items-center gap-1"
                             >
                               <Download className="w-3.5 h-3.5" />
@@ -459,7 +325,7 @@ function MyBookingContent() {
                             <span>Image Transfer Slip Verified</span>
                             <a
                               href={receiptUrl}
-                              download={`receipt-${activeItem.data.id}.png`}
+                              download={`receipt-${bookingData.id}.png`}
                               className="font-bold text-wine-800 hover:underline inline-flex items-center gap-1"
                             >
                               <Download className="w-3.5 h-3.5" />
@@ -484,14 +350,10 @@ function MyBookingContent() {
                 <div className="md:col-span-5 space-y-6 p-6 rounded-2xl bg-surface-bg/80 border border-border-subtle">
                   <div>
                     <span className="text-xs font-bold uppercase text-text-subtle block">
-                      Disbursement &amp; Settlement Amount
+                      Booking Amount
                     </span>
                     <div className="text-2xl font-extrabold text-wine-900 mt-1">
-                      {isRmb && rmbData
-                        ? rmbData.direction === 'rmb_to_naira'
-                          ? `₦${Number(rmbData.destinationAmount).toLocaleString('en-NG')}.00`
-                          : `¥${Number(rmbData.destinationAmount).toLocaleString('en-US')}.00`
-                        : bookingData?.totalAmount
+                      {bookingData.totalAmount
                         ? `₦${Number(bookingData.totalAmount).toLocaleString('en-NG')}.00`
                         : 'Custom Quote'}
                     </div>
@@ -500,7 +362,7 @@ function MyBookingContent() {
                   <div className="space-y-2.5 pt-2">
                     <a
                       href={`https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${encodeURIComponent(
-                        `Hello BZ Group, checking status of my ticket ${activeItem.data.id} (${isRmb ? 'RMB Currency Exchange' : 'Booking'})...`
+                        `Hello BZ Group, checking status of my booking ${bookingData.id}...`
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -512,13 +374,13 @@ function MyBookingContent() {
                         className="w-full gap-2 text-emerald-700 border-emerald-300 hover:bg-emerald-50 cursor-pointer"
                       >
                         <MessageSquare className="w-4 h-4" />
-                        <span>Chat Treasury on WhatsApp</span>
+                        <span>Chat Concierge on WhatsApp</span>
                       </Button>
                     </a>
 
-                    <Link href="/rmb-exchange" className="block w-full">
+                    <Link href="/cars/rent" className="block w-full">
                       <Button variant="ghost" size="default" className="w-full text-xs text-text-secondary hover:text-wine-900">
-                        <span>Initiate another transaction</span>
+                        <span>Browse more listings</span>
                         <ArrowRight className="w-3.5 h-3.5 ml-1" />
                       </Button>
                     </Link>

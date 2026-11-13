@@ -247,9 +247,8 @@ export default function AboutPage() {
                   automobiles, fashion and technology, I bring deep expertise
                   and a network built on trust, performance and excellence. From
                   estates like BZ Okenwa Millennium City and Agidigba Garden
-                  City to luxury vehicles and RMB exchange for people and
-                  businesses trading with China, BZ Group is how that experience
-                  reaches you.
+                  City to luxury vehicles for individuals and businesses across
+                  Nigeria, BZ Group is how that experience reaches you.
                 </p>
 
                 {/* 3 Values Checklist Pills */}

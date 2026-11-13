@@ -2,13 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   Car,
   Building,
   CreditCard,
-  TrendingUp,
-  ArrowUpRight,
   Plus,
   Clock,
   CheckCircle2,
@@ -16,7 +13,6 @@ import {
   Activity,
   CalendarCheck,
   MessageSquare,
-  FileText,
   Trash2,
   ChevronLeft,
   ChevronRight
@@ -29,8 +25,7 @@ import { useAdminAuth } from '@/lib/admin-auth';
 import { formatPhoneForWhatsApp } from '@/lib/utils';
 
 export default function AdminDashboardPage() {
-  const router = useRouter();
-  const { listings, bookings, rmbRequests, updateBooking, updateRmbRequest, activities, addActivity, clearActivities } = useStore();
+  const { listings, bookings, updateBooking, activities, addActivity, clearActivities } = useStore();
   const { toast } = useToast();
   const { user } = useAdminAuth();
 
@@ -62,7 +57,7 @@ export default function AdminDashboardPage() {
 
   const activeRentals = bookings.filter(b => b.type === 'car_rental' && b.bookingStatus === 'confirmed');
   const pendingReceipts = bookings.filter(b => b.paymentStatus === 'receipt_uploaded' || b.paymentStatus === 'pending');
-  const pendingRmb = rmbRequests.filter(r => r.status === 'receipt_received' || r.status === 'requested');
+  const publishedListings = listings.filter(l => l.status === 'published');
   const scheduledInspections = bookings.filter(b => b.type === 'property_inspection' || b.type === 'car_test_drive');
 
   const pendingOrRecentBookings = React.useMemo(() => {
@@ -74,15 +69,6 @@ export default function AdminDashboardPage() {
     }).slice(0, 5);
   }, [bookings]);
 
-  const pendingOrRecentRmb = React.useMemo(() => {
-    return [...rmbRequests].sort((a, b) => {
-      const aPending = a.status === 'receipt_received' || a.status === 'requested' ? 1 : 0;
-      const bPending = b.status === 'receipt_received' || b.status === 'requested' ? 1 : 0;
-      if (bPending !== aPending) return bPending - aPending;
-      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-    }).slice(0, 5);
-  }, [rmbRequests]);
-
   const handleApproveBookingPayment = (bookingId: string) => {
     updateBooking(bookingId, {
       paymentStatus: 'verified',
@@ -90,7 +76,7 @@ export default function AdminDashboardPage() {
     });
     addActivity({
       actorName: user?.name || 'Staff Admin',
-      actorRole: user?.role || 'Treasury Desk',
+      actorRole: user?.role || 'Operations Desk',
       action: `Approved payment receipt for ${bookingId}`,
       targetId: bookingId
     });
@@ -101,10 +87,6 @@ export default function AdminDashboardPage() {
     });
   };
 
-  const handleApproveRmbRequest = (reqId: string) => {
-    router.push(`/admin/payments?order=${reqId}&action=approve`);
-  };
-
   return (
     <div className="space-y-8 animate-in fade-in">
       {/* Top Welcome & Quick Actions */}
@@ -112,7 +94,7 @@ export default function AdminDashboardPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-wine-800">
-              Operations & Treasury Control
+              Operations Control
             </span>
             {user?.role && (
               <span className="px-2 py-0.5 rounded-full bg-wine-50 text-wine-900 border border-wine-200 text-[10px] font-bold">
@@ -129,10 +111,10 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/admin/rmb-rate">
+          <Link href="/admin/payments">
             <Button variant="wineOutline" size="sm" className="font-semibold gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Update RMB Rate</span>
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Review Payments</span>
             </Button>
           </Link>
 
@@ -182,13 +164,13 @@ export default function AdminDashboardPage() {
 
         <div className="hover-luxury-lift p-5 rounded-2xl bg-white border border-border-subtle shadow-xs space-y-2 transition-all duration-300 animate-fade-in-up delay-300">
           <div className="flex items-center justify-between text-xs text-text-subtle font-semibold">
-            <span>Pending RMB Inflows</span>
-            <TrendingUp className="w-4 h-4 text-emerald-600 transition-transform duration-300 group-hover:scale-110" />
+            <span>Published Listings</span>
+            <Building className="w-4 h-4 text-emerald-600 transition-transform duration-300 group-hover:scale-110" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-emerald-900 tracking-tight">
-            {pendingRmb.length}
+            {publishedListings.length}
           </div>
-          <div className="text-[11px] text-emerald-700 font-medium">WeChat / Alipay settlements</div>
+          <div className="text-[11px] text-emerald-700 font-medium">Live vehicles & properties</div>
         </div>
       </div>
 
@@ -204,7 +186,7 @@ export default function AdminDashboardPage() {
                   Pending Bookings & Receipts
                 </h3>
                 <p className="text-xs text-text-subtle mt-0.5">
-                  Client transfer receipts requiring treasury clearance
+                  Client transfer receipts requiring verification
                 </p>
               </div>
               <Link href="/admin/bookings" className="text-xs font-semibold text-wine-800 hover:underline">
@@ -244,70 +226,6 @@ export default function AdminDashboardPage() {
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Verify & Approve</span>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Pending RMB Settlements */}
-          <div className="rounded-3xl bg-white border border-border-subtle shadow-xs overflow-hidden">
-            <div className="p-5 border-b border-border-subtle flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-base text-text-main">
-                  RMB Currency Trade Queue
-                </h3>
-                <p className="text-xs text-text-subtle mt-0.5">
-                  Two-way currency transfers awaiting disbursement confirmation
-                </p>
-              </div>
-              <Link href="/admin/payments" className="text-xs font-semibold text-wine-800 hover:underline">
-                Payments Desk →
-              </Link>
-            </div>
-
-            <div className="divide-y divide-border-subtle overflow-x-auto">
-              {pendingOrRecentRmb.map(r => (
-                <div key={r.id} className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-[#fbf3f4]/60 transition-colors duration-200">
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <strong className="text-xs font-mono font-bold text-wine-900">{r.id}</strong>
-                      <StatusBadge status={r.status} />
-                    </div>
-                    <div className="text-sm font-bold text-text-main">
-                      {r.direction === 'rmb_to_naira' ? `¥${r.sourceAmount.toLocaleString()} → ₦${r.destinationAmount.toLocaleString()}` : `₦${r.sourceAmount.toLocaleString()} → ¥${r.destinationAmount.toLocaleString()}`}
-                    </div>
-                    <div className="text-xs text-text-subtle">
-                      Customer: {r.customerName} ({r.customerWhatsApp}) · Rate: ¥1 = ₦{r.rateApplied}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <a
-                      href={`https://wa.me/${formatPhoneForWhatsApp(r.customerWhatsApp)}?text=${encodeURIComponent(`Hello ${r.customerName}, contacting you from BZ Group regarding RMB request ${r.id}...`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg border border-border-subtle bg-white text-text-subtle hover:text-[#25D366] hover:bg-[#faf7f7] transition-colors"
-                      title={`Message ${r.customerName} on WhatsApp`}
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                    </a>
-                    <Link
-                      href="/admin/payments"
-                      className="p-1.5 rounded-lg border border-border-subtle bg-white text-text-subtle hover:text-wine-900 hover:bg-[#faf7f7] transition-colors"
-                      title="Inspect on payments desk"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                    </Link>
-                    {r.status !== 'approved' && r.status !== 'paid_out' && (
-                      <Button
-                        size="xs"
-                        onClick={() => handleApproveRmbRequest(r.id)}
-                        className="bg-wine-800 text-white font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-                      >
-                        {r.direction === 'rmb_to_naira' ? 'Send RMB Account' : 'Approve Payout'}
                       </Button>
                     )}
                   </div>

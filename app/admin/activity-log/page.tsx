@@ -6,7 +6,6 @@ import {
   Bell,
   Download,
   CreditCard,
-  JapaneseYen,
   CarFront,
   CheckCircle2,
   Calendar,
@@ -20,13 +19,13 @@ import { cn } from '@/lib/utils';
 
 interface ActivityItem {
   id: string;
-  category: 'payments' | 'listings' | 'rates' | 'content' | 'bookings';
+  category: 'payments' | 'listings' | 'content' | 'bookings';
   actorName: string;
   actionText: string;
   targetDetails: string;
   timestamp: string;
   dayGroup: 'TODAY' | 'YESTERDAY' | 'EARLIER';
-  iconType: 'payment' | 'rate' | 'listing' | 'payout' | 'booking' | 'content';
+  iconType: 'payment' | 'listing' | 'payout' | 'booking' | 'content';
 }
 
 import { useStore } from '@/lib/store';
@@ -35,13 +34,12 @@ export default function AdminActivityLogPage() {
   const { toast } = useToast();
   const { activities: storeActivities, clearActivities } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
-  const [filterTab, setFilterTab] = useState<'all' | 'payments' | 'listings' | 'rates'>('all');
+  const [filterTab, setFilterTab] = useState<'all' | 'payments' | 'listings' | 'bookings'>('all');
 
   const activities: ActivityItem[] = React.useMemo(() => {
     return storeActivities.map(a => {
       let iconType: ActivityItem['iconType'] = 'payment';
-      if (a.category === 'rates') iconType = 'rate';
-      else if (a.category === 'listings') iconType = 'listing';
+      if (a.category === 'listings') iconType = 'listing';
       else if (a.category === 'bookings') iconType = 'booking';
       else if (a.category === 'content') iconType = 'content';
 
@@ -103,7 +101,7 @@ export default function AdminActivityLogPage() {
   const filteredActivities = activities.filter(item => {
     if (filterTab === 'payments' && item.category !== 'payments') return false;
     if (filterTab === 'listings' && item.category !== 'listings') return false;
-    if (filterTab === 'rates' && item.category !== 'rates') return false;
+    if (filterTab === 'bookings' && item.category !== 'bookings') return false;
     if (globalSearch.trim()) {
       const q = globalSearch.toLowerCase();
       const match =
@@ -123,8 +121,6 @@ export default function AdminActivityLogPage() {
     switch (type) {
       case 'payment':
         return <CreditCard className="w-3.5 h-3.5 text-[#7A0C1A]" />;
-      case 'rate':
-        return <span className="font-bold text-xs text-[#7A0C1A]">¥</span>;
       case 'listing':
         return <CarFront className="w-3.5 h-3.5 text-[#7A0C1A]" />;
       case 'payout':
@@ -225,15 +221,15 @@ export default function AdminActivityLogPage() {
         </button>
         <button
           type="button"
-          onClick={() => setFilterTab('rates')}
+          onClick={() => setFilterTab('bookings')}
           className={cn(
             'px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer',
-            filterTab === 'rates'
+            filterTab === 'bookings'
               ? 'bg-[#7A0C1A] text-white font-bold'
               : 'bg-white text-[#1b1416] border border-[#eae3e4] hover:bg-[#faf7f7]'
           )}
         >
-          Rate changes
+          Bookings
         </button>
       </div>
 

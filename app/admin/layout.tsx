@@ -8,7 +8,6 @@ import {
   CarFront,
   CalendarDays,
   CreditCard,
-  JapaneseYen,
   Users,
   Image as ImageIcon,
   BarChart3,
@@ -36,15 +35,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, isLoading, user, logout } = useAdminAuth();
-  const { bookings, rmbRequests } = useStore();
+  const { bookings } = useStore();
 
   const pendingPaymentsCount = React.useMemo(() => {
-    const pendingBookings = bookings.filter(b => b.paymentStatus === 'receipt_uploaded' || b.paymentStatus === 'pending').length;
-    const pendingRmb = rmbRequests.filter(r => r.status === 'receipt_received' || r.status === 'requested').length;
-    return pendingBookings + pendingRmb;
-  }, [bookings, rmbRequests]);
+    return bookings.filter(b => b.paymentStatus === 'receipt_uploaded' || b.paymentStatus === 'pending').length;
+  }, [bookings]);
 
-  const navGroups = React.useMemo(() => [
+  const navGroups = React.useMemo<Array<{ group: string; items: NavItem[] }>>(() => [
     {
       group: 'MAIN',
       items: [
@@ -61,8 +58,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           href: '/admin/payments',
           icon: CreditCard,
           badge: pendingPaymentsCount > 0 ? pendingPaymentsCount : undefined
-        },
-        { label: 'RMB rate', href: '/admin/rmb-rate', icon: JapaneseYen }
+        }
       ]
     },
     {

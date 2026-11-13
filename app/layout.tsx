@@ -39,8 +39,6 @@ export const metadata: Metadata = {
     "Luxury cars Nigeria",
     "Homes for rent Maitama",
     "Properties for sale Abuja",
-    "RMB exchange Naira",
-    "WeChat Alipay exchange Nigeria",
     "BZ Group Global Universal Solutions",
   ],
   authors: [{ name: "BZ Group" }],

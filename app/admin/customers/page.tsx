@@ -28,9 +28,8 @@ interface CustomerRecord {
   email: string;
   phoneMasked: string;
   phoneFull: string;
-  uses: 'RMB' | 'Cars' | 'Property';
+  uses: 'Cars' | 'Property';
   bookingsCount: number;
-  rmbSentDisplay: string;
   totalSpentDisplay: string;
   lastActive: string;
   notes?: string;
@@ -41,10 +40,10 @@ import { useStore } from '@/lib/store';
 
 export default function AdminCustomersPage() {
   const { toast } = useToast();
-  const { customers: storeCustomers, bookings: storeBookings, rmbRequests: storeRmb, updateCustomerNotes, addActivity } = useStore();
+  const { customers: storeCustomers, bookings: storeBookings, updateCustomerNotes, addActivity } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
-  const [filterTab, setFilterTab] = useState<'all' | 'cars' | 'property' | 'rmb' | 'vip'>('all');
+  const [filterTab, setFilterTab] = useState<'all' | 'cars' | 'property' | 'vip'>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
   const [noteContent, setNoteContent] = useState('');
 
@@ -60,27 +59,15 @@ export default function AdminCustomersPage() {
         (c.email && b.customerEmail && b.customerEmail.toLowerCase() === c.email.toLowerCase()) ||
         (b.customerName && b.customerName.toLowerCase() === c.name.toLowerCase())
       );
-      // Cross-match live RMB trades from backend
-      const matchRmb = storeRmb.filter(r =>
-        (c.email && r.customerEmail && r.customerEmail.toLowerCase() === c.email.toLowerCase()) ||
-        (r.customerName && r.customerName.toLowerCase() === c.name.toLowerCase())
-      );
 
       const dynamicBookingCount = (c.bookingsCount || c.totalBookings || 0) + matchBookings.length;
       const dynamicBookingSpend = matchBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
-      const dynamicRmbNgn = matchRmb.reduce((sum, r) => sum + (r.direction === 'naira_to_rmb' ? Number(r.sourceAmount) : Number(r.destinationAmount)), 0);
-      const dynamicRmbYen = matchRmb.reduce((sum, r) => sum + (r.direction === 'rmb_to_naira' ? Number(r.sourceAmount) : Number(r.destinationAmount)), 0);
 
-      const totalSpentNgn = (Number(c.lifetimeSpendNgn) || 0) + dynamicBookingSpend + dynamicRmbNgn;
+      const totalSpentNgn = (Number(c.lifetimeSpendNgn) || 0) + dynamicBookingSpend;
 
       let totalSpentStr = c.totalSpentDisplay;
       if (totalSpentNgn > 0) {
         totalSpentStr = totalSpentNgn >= 1_000_000 ? `₦${(totalSpentNgn / 1_000_000).toFixed(1)}M` : `₦${totalSpentNgn.toLocaleString('en-NG')}`;
-      }
-
-      let rmbSentStr = c.rmbSentDisplay;
-      if (dynamicRmbYen > 0) {
-        rmbSentStr = `¥${dynamicRmbYen.toLocaleString()}`;
       }
 
       return {
@@ -91,16 +78,15 @@ export default function AdminCustomersPage() {
         email: c.email,
         phoneMasked: maskedPhone,
         phoneFull: c.phoneFull || c.phone,
-        uses: c.uses || (matchRmb.length > 0 ? 'RMB' : 'Cars'),
+        uses: c.uses === 'Property' ? 'Property' : 'Cars',
         bookingsCount: dynamicBookingCount,
-        rmbSentDisplay: rmbSentStr || '—',
         totalSpentDisplay: totalSpentStr || '—',
         lastActive: c.lastActive || 'Today',
         joinedDate: c.joinedAt ? new Date(c.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '2024',
         notes: c.notes || ''
       };
     });
-  }, [storeCustomers, storeBookings, storeRmb]);
+  }, [storeCustomers, storeBookings]);
 
   const handleOpenCustomer = (c: CustomerRecord) => {
     setSelectedCustomer(c);
@@ -128,11 +114,11 @@ export default function AdminCustomersPage() {
 
   const handleExportCSV = () => {
     const csvContent =
-      'Name,Email,Phone,Uses,Bookings,RMB Sent,Total Spent,VIP\n' +
+      'Name,Email,Phone,Uses,Bookings,Total Spent,VIP\n' +
       customers
         .map(
           c =>
-            `"${c.name}","${c.email}","${c.phoneFull}","${c.uses}","${c.bookingsCount}","${c.rmbSentDisplay}","${c.totalSpentDisplay}","${c.isVip ? 'YES' : 'NO'}"`
+            `"${c.name}","${c.email}","${c.phoneFull}","${c.uses}","${c.bookingsCount}","${c.totalSpentDisplay}","${c.isVip ? 'YES' : 'NO'}"`
         )
         .join('\n');
 
@@ -156,7 +142,6 @@ export default function AdminCustomersPage() {
   const filteredCustomers = customers.filter(c => {
     if (filterTab === 'cars' && c.uses !== 'Cars') return false;
     if (filterTab === 'property' && c.uses !== 'Property') return false;
-    if (filterTab === 'rmb' && c.uses !== 'RMB') return false;
     if (filterTab === 'vip' && !c.isVip) return false;
 
     if (customerSearch) {
@@ -252,18 +237,6 @@ export default function AdminCustomersPage() {
           </button>
           <button
             type="button"
-            onClick={() => setFilterTab('rmb')}
-            className={cn(
-              'px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer',
-              filterTab === 'rmb'
-                ? 'bg-[#7A0C1A] text-white font-bold'
-                : 'bg-white text-[#1b1416] border border-[#eae3e4] hover:bg-[#faf7f7]'
-            )}
-          >
-            RMB clients
-          </button>
-          <button
-            type="button"
             onClick={() => setFilterTab('vip')}
             className={cn(
               'px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer',
@@ -299,7 +272,6 @@ export default function AdminCustomersPage() {
                 <th className="py-3 px-5">Phone</th>
                 <th className="py-3 px-5">Uses</th>
                 <th className="py-3 px-5">Bookings</th>
-                <th className="py-3 px-5">RMB sent</th>
                 <th className="py-3 px-5">Total spent</th>
                 <th className="py-3 px-5">Last active</th>
                 <th className="py-3 px-5 text-right">Actions</th>
@@ -343,9 +315,6 @@ export default function AdminCustomersPage() {
 
                   {/* Bookings */}
                   <td className="py-3.5 px-5 text-[#1b1416]">{row.bookingsCount}</td>
-
-                  {/* RMB sent */}
-                  <td className="py-3.5 px-5 font-mono text-[#1b1416]">{row.rmbSentDisplay}</td>
 
                   {/* Total spent */}
                   <td className="py-3.5 px-5 font-semibold text-[#1b1416]">{row.totalSpentDisplay}</td>
@@ -431,7 +400,7 @@ export default function AdminCustomersPage() {
               </div>
 
               {/* Lifetime Activity Metrics */}
-              <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="p-3 rounded-lg bg-[#fdf3f4] border border-[#fce7e9]">
                   <div className="text-[10px] font-semibold text-[#7A0C1A] uppercase">Total Spent</div>
                   <div className="text-base font-bold font-serif text-[#1b1416] mt-1">{selectedCustomer.totalSpentDisplay}</div>
@@ -439,10 +408,6 @@ export default function AdminCustomersPage() {
                 <div className="p-3 rounded-lg bg-[#faf7f7] border border-[#eae3e4]">
                   <div className="text-[10px] font-semibold text-[#716769] uppercase">Bookings</div>
                   <div className="text-base font-bold font-serif text-[#1b1416] mt-1">{selectedCustomer.bookingsCount}</div>
-                </div>
-                <div className="p-3 rounded-lg bg-[#faf7f7] border border-[#eae3e4]">
-                  <div className="text-[10px] font-semibold text-[#716769] uppercase">RMB Volume</div>
-                  <div className="text-base font-bold font-serif text-[#1b1416] mt-1">{selectedCustomer.rmbSentDisplay}</div>
                 </div>
               </div>
 

@@ -16,7 +16,7 @@ export function SiteFooter() {
 
             {/* Figma exact copy: [340x72] fill=#f6e3e5 font=Plus Jakarta Sans 400 15px */}
             <p className="text-[15px] text-[#f6e3e5] leading-relaxed max-w-[340px]">
-              Cars and homes to rent or own, plus RMB exchange — handled by a team you can actually reach.
+              Cars and homes to rent or own — handled by a team you can actually reach.
             </p>
 
             {/* Direct Contact (Figma: Contact [380x80] layout=VERTICAL gap=10) */}
@@ -84,9 +84,6 @@ export function SiteFooter() {
             <div className="flex flex-col space-y-3.5">
               <h4 className="text-[15px] font-semibold text-white tracking-tight">Services</h4>
               <ul className="space-y-2.5 text-sm text-[#f6e3e5]">
-                <li>
-                  <Link href="/rmb-exchange" className="hover:text-white transition-colors font-medium text-white">RMB exchange</Link>
-                </li>
                 <li>
                   <Link href="/help#inspection" className="hover:text-white transition-colors">Property inspection</Link>
                 </li>

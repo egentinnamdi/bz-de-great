@@ -44,34 +44,6 @@ export interface Listing {
   createdAt: string;
 }
 
-export interface RmbRateConfig {
-  payRmbRate: number; // e.g. ¥1 = ₦205.00
-  payNairaRate: number; // e.g. ¥1 = ₦215.40
-  updatedAt: string;
-  updatedBy: string;
-}
-
-export interface RmbExchangeRequest {
-  id: string; // e.g. "RMB-0142"
-  reference?: string;
-  direction: 'rmb_to_naira' | 'naira_to_rmb';
-  sourceAmount: number;
-  rateApplied: number;
-  destinationAmount: number;
-  customerName: string;
-  customerEmail: string;
-  customerWhatsApp: string;
-  destinationChannel?: string;
-  destinationAccountDetails?: string;
-  senderBank?: string;
-  senderAccountName?: string;
-  notes?: string;
-  receiptUrl?: string;
-  status: 'requested' | 'account_sent' | 'receipt_received' | 'approved' | 'paid_out' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface Booking {
   id: string; // e.g. "BK-2292", "INS-0318", "TD-0091"
   reference?: string;
@@ -102,10 +74,9 @@ export interface Customer {
   phoneFull?: string;
   initials?: string;
   location: string;
-  uses?: 'RMB' | 'Cars' | 'Property';
+  uses?: 'Cars' | 'Property';
   bookingsCount?: number;
   totalBookings: number;
-  rmbSentDisplay?: string;
   totalSpentDisplay?: string;
   lifetimeSpendNgn: number;
   joinedAt: string;
@@ -124,7 +95,7 @@ export interface StaffActivity {
   target?: string;
   details?: string;
   timestamp: string;
-  category?: 'payments' | 'listings' | 'rates' | 'content' | 'bookings';
+  category?: 'payments' | 'listings' | 'content' | 'bookings';
 }
 
 export interface WebsiteContentConfig {

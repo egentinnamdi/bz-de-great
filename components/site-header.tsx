@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { rmbRates, websiteContent } = useStore();
+  const { websiteContent } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
 
@@ -40,19 +40,14 @@ export function SiteHeader() {
       {/* 1. Top Utility Bar (Figma: 1440x40, fill=#4e0b13, p=10px 120px) */}
       <div className="bg-[#4e0b13] text-white text-xs border-b border-[#630f1a]">
         <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px] h-10 flex items-center justify-between gap-4">
-          {/* RMB rate ticker */}
+          {/* Quick service info */}
           <div className="flex items-center gap-3 overflow-x-auto py-1 no-scrollbar text-[12px] sm:text-[13px]">
-            <span className="w-4 h-4 rounded-full bg-[#81141f] text-white flex items-center justify-center font-bold text-[10px] shrink-0">
-              ¥
-            </span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
             <span className="text-[#ebc7cb] font-medium shrink-0">
-              RMB rates today
+              Verified listings across Abuja, Lagos, Asaba & Onitsha
             </span>
-            <span className="font-semibold text-white shrink-0">
-              Pay RMB ¥1 = ₦{rmbRates.payRmbRate.toFixed(2)}  ·  Pay naira ¥1 = ₦{rmbRates.payNairaRate.toFixed(2)}
-            </span>
-            <span className="hidden md:inline text-[#ebc7cb] font-normal text-xs shrink-0">
-              Updated {rmbRates.updatedAt}
+            <span className="hidden md:inline text-[#ebc7cb]/80 font-normal text-xs shrink-0">
+              · {SITE_CONFIG.operatingHours}
             </span>
           </div>
 

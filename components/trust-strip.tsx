@@ -16,12 +16,10 @@ export function TrustStrip({ className }: { className?: string }) {
     },
     {
       icon: (
-        <span className="text-[#81141f] font-bold text-lg leading-none shrink-0 mt-0.5">
-          ¥
-        </span>
+        <ShieldCheck className="w-5 h-5 text-[#81141f] shrink-0 mt-0.5" strokeWidth={1.8} />
       ),
-      title: 'Clear RMB rates',
-      description: 'Both rates shown upfront',
+      title: 'Transparent pricing',
+      description: 'Clear Naira fees shown upfront',
     },
     {
       icon: <MessageSquare className="w-5 h-5 text-[#81141f] shrink-0 mt-0.5" />,

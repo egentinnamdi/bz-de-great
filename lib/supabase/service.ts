@@ -1,10 +1,7 @@
 import { supabase, isSupabaseConfigured } from './client';
-import { formatRmbUpdatedAt } from '@/lib/utils';
 import type {
   Listing,
   Booking,
-  RmbExchangeRequest,
-  RmbRateConfig,
   Customer,
   StaffActivity,
   WebsiteContentConfig
@@ -228,170 +225,7 @@ export const supabaseService = {
   },
 
   // ============================================================================
-  // 3. RMB RATES
-  // ============================================================================
-  async fetchRmbRates(): Promise<RmbRateConfig | null> {
-    if (!isSupabaseConfigured()) return null;
-    try {
-      const { data, error } = await supabase
-        .from('rmb_rates')
-        .select('*')
-        .eq('is_current', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error || !data) return null;
-
-      return {
-        payRmbRate: Number(data.pay_rmb_rate),
-        payNairaRate: Number(data.pay_naira_rate),
-        updatedAt: formatRmbUpdatedAt(data.created_at, data.updated_at_display),
-        updatedBy: data.updated_by || 'Admin (Treasury Desk)'
-      };
-    } catch (err) {
-      return null;
-    }
-  },
-
-  async updateRmbRates(rates: { payRmbRate: number; payNairaRate: number }): Promise<boolean> {
-    if (!isSupabaseConfigured()) return false;
-    try {
-      await supabase.from('rmb_rates').update({ is_current: false }).eq('is_current', true);
-
-      const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ' Today';
-      const { error } = await supabase.from('rmb_rates').insert({
-        pay_rmb_rate: rates.payRmbRate,
-        pay_naira_rate: rates.payNairaRate,
-        updated_at_display: timeStr,
-        updated_by: 'Admin (Treasury Desk)',
-        is_current: true
-      });
-      return !error;
-    } catch (err) {
-      return false;
-    }
-  },
-
-  async fetchRmbRateHistory(): Promise<Array<{
-    id: string;
-    payRmbRate: number;
-    payNairaRate: number;
-    updatedAt: string;
-    updatedBy: string;
-    isCurrent: boolean;
-    createdAt: string;
-  }> | null> {
-    if (!isSupabaseConfigured()) return null;
-    try {
-      const { data, error } = await supabase
-        .from('rmb_rates')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error || !data) return null;
-
-      return data.map(row => ({
-        id: row.id,
-        payRmbRate: Number(row.pay_rmb_rate),
-        payNairaRate: Number(row.pay_naira_rate),
-        updatedAt: row.updated_at_display || 'Recently',
-        updatedBy: row.updated_by || 'Admin',
-        isCurrent: Boolean(row.is_current),
-        createdAt: row.created_at || new Date().toISOString()
-      }));
-    } catch (err) {
-      return null;
-    }
-  },
-
-  // ============================================================================
-  // 4. RMB EXCHANGE REQUESTS
-  // ============================================================================
-  async fetchRmbRequests(): Promise<RmbExchangeRequest[] | null> {
-    if (!isSupabaseConfigured()) return null;
-    try {
-      const { data, error } = await supabase
-        .from('rmb_exchange_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error || !data) return null;
-
-      return data.map(row => ({
-        id: row.id,
-        reference: row.reference || row.id,
-        direction: row.direction,
-        sourceAmount: Number(row.source_amount),
-        rateApplied: Number(row.rate_applied),
-        destinationAmount: Number(row.destination_amount),
-        customerName: row.customer_name,
-        customerEmail: row.customer_email,
-        customerWhatsApp: row.customer_whatsapp,
-        destinationChannel: row.destination_channel,
-        destinationAccountDetails: row.destination_account_details || undefined,
-        senderBank: row.sender_bank || undefined,
-        senderAccountName: row.sender_account_name || undefined,
-        receiptUrl: row.receipt_url || undefined,
-        status: row.status,
-        notes: row.notes || undefined,
-        createdAt: row.created_at || new Date().toISOString(),
-        updatedAt: row.updated_at || new Date().toISOString()
-      }));
-    } catch (err) {
-      return null;
-    }
-  },
-
-  async insertRmbRequest(req: RmbExchangeRequest): Promise<boolean> {
-    if (!isSupabaseConfigured()) return false;
-    try {
-      const { error } = await supabase.from('rmb_exchange_requests').insert({
-        id: req.id,
-        reference: req.reference || req.id,
-        direction: req.direction,
-        source_amount: req.sourceAmount,
-        rate_applied: req.rateApplied,
-        destination_amount: req.destinationAmount,
-        destination_channel: req.destinationChannel || 'Alipay, WeChat Pay or bank',
-        destination_account_details: req.destinationAccountDetails || null,
-        customer_name: req.customerName,
-        customer_email: req.customerEmail,
-        customer_whatsapp: req.customerWhatsApp,
-        sender_bank: req.senderBank || null,
-        sender_account_name: req.senderAccountName || null,
-        receipt_url: req.receiptUrl || null,
-        status: req.status,
-        notes: req.notes || null
-      });
-      return !error;
-    } catch (err) {
-      return false;
-    }
-  },
-
-  async updateRmbRequest(id: string, updates: Partial<RmbExchangeRequest>): Promise<boolean> {
-    if (!isSupabaseConfigured()) return false;
-    try {
-      const dbUpdates: Record<string, any> = {};
-      if (updates.status) dbUpdates.status = updates.status;
-      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
-      if (updates.receiptUrl !== undefined) dbUpdates.receipt_url = updates.receiptUrl;
-      if (updates.senderBank !== undefined) dbUpdates.sender_bank = updates.senderBank;
-      if (updates.senderAccountName !== undefined) dbUpdates.sender_account_name = updates.senderAccountName;
-      if (updates.destinationAccountDetails !== undefined) dbUpdates.destination_account_details = updates.destinationAccountDetails;
-      if (updates.destinationChannel !== undefined) dbUpdates.destination_channel = updates.destinationChannel;
-
-      const { error } = await supabase.from('rmb_exchange_requests').update(dbUpdates).eq('id', id);
-      return !error;
-    } catch (err) {
-      return false;
-    }
-  },
-
-  // ============================================================================
-  // 5. CUSTOMERS CRM
+  // 3. CUSTOMERS CRM
   // ============================================================================
   async fetchCustomers(): Promise<Customer[] | null> {
     if (!isSupabaseConfigured()) return null;
@@ -414,7 +248,6 @@ export const supabaseService = {
         uses: (row.uses as any) || 'Cars',
         bookingsCount: row.bookings_count || 0,
         totalBookings: row.bookings_count || 0,
-        rmbSentDisplay: row.rmb_sent_display || '¥0',
         totalSpentDisplay: row.total_spent_display || '₦0',
         lifetimeSpendNgn: Number(row.lifetime_spend_ngn) || 0,
         isVip: Boolean(row.is_vip),
@@ -455,7 +288,7 @@ export const supabaseService = {
       return {
         heroHeadline: data.hero_headline || 'Drive it. Live in it. Own it.',
         heroEyebrow: data.hero_eyebrow || 'Invest in value · Live the future',
-        heroSupportingText: data.hero_supporting_text || 'Rent or buy premium cars and homes, and change RMB and naira — all through one trusted team.',
+        heroSupportingText: data.hero_supporting_text || 'Rent or buy premium cars and homes across Abuja and Lagos — all through one trusted team.',
         founderBio: data.founder_bio || 'BZ De Great is a realtor, investment broker and entrepreneur working across four industries — real estate, automobiles, fashion and technology.',
         announcementEnabled: Boolean(data.announcement_enabled),
         announcementText: data.announcement_text !== undefined && data.announcement_text !== null ? data.announcement_text : '',

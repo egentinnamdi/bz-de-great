@@ -1,4 +1,4 @@
-import { Listing, Booking, RmbExchangeRequest, Customer, StaffActivity } from './types';
+import { Listing, Booking, Customer, StaffActivity } from './types';
 
 export const INITIAL_LISTINGS: Listing[] = [
   // --- CAR RENTALS (FIGMA DESKTOP · LISTINGS) ---
@@ -882,38 +882,6 @@ export const INITIAL_BOOKINGS: Booking[] = [
   }
 ];
 
-export const INITIAL_RMB_REQUESTS: RmbExchangeRequest[] = [
-  {
-    id: 'RMB-0142',
-    direction: 'naira_to_rmb',
-    sourceAmount: 21540000,
-    rateApplied: 215.40,
-    destinationAmount: 100000,
-    customerName: 'Ifeanyi Obi',
-    customerEmail: 'ifeanyi.obi@globaltrade.ng',
-    customerWhatsApp: '+234 704 753 1433',
-    status: 'approved',
-    createdAt: '2026-10-24T08:00:00Z',
-    updatedAt: '2026-10-24T08:30:00Z',
-    receiptUrl: '/photos/car-sedan-black.jpg',
-    notes: '¥100,000 factory settlement in Guangzhou.'
-  },
-  {
-    id: 'RMB-0143',
-    direction: 'rmb_to_naira',
-    sourceAmount: 50000,
-    rateApplied: 205.00,
-    destinationAmount: 10250000,
-    customerName: 'Zainab Abdullahi',
-    customerEmail: 'zainab@kadoimports.com',
-    customerWhatsApp: '+234 704 753 1433',
-    status: 'receipt_received',
-    createdAt: '2026-10-24T08:30:00Z',
-    updatedAt: '2026-10-24T08:45:00Z',
-    notes: 'Settlement for electronics shipment.'
-  }
-];
-
 export const INITIAL_CUSTOMERS: Customer[] = [
   {
     id: 'CUST-101',
@@ -965,9 +933,9 @@ export const INITIAL_ACTIVITIES: StaffActivity[] = [
   {
     id: 'ACT-01',
     actorName: 'Admin',
-    actorRole: 'Treasury Desk',
-    action: 'Approved RMB payout for RMB-0142 (¥100,000)',
-    targetId: 'RMB-0142',
+    actorRole: 'Operations Desk',
+    action: 'Verified rental transfer for BK-2292 (Lincoln Navigator 2022)',
+    targetId: 'BK-2292',
     timestamp: '10 mins ago'
   },
   {

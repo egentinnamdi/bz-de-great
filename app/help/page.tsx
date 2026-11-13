@@ -48,26 +48,6 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'Can I inspect a property before I pay?',
     answer:
       "Yes. Inspections are free — book one from any property page and we'll confirm the time and address on WhatsApp."
-  },
-  {
-    question: 'How does RMB exchange work?',
-    answer:
-      "Use the calculator, tap Get account and add your name, email and WhatsApp number. Paying RMB to get naira? We send our RMB account details to your WhatsApp. Paying naira to get RMB? You'll see our company account straight away."
-  },
-  {
-    question: 'What happens if the rate changes before I pay?',
-    answer:
-      "Your rate is locked for 25 minutes after you tap Get account. If you pay after that, we'll confirm the current rate with you on WhatsApp first."
-  },
-  {
-    question: 'How do I receive my naira or RMB?',
-    answer:
-      'Naira is paid into your Nigerian bank account. RMB can be sent to Alipay, WeChat Pay or a Chinese bank account. Share the details with us on WhatsApp.'
-  },
-  {
-    question: 'How long does an exchange take?',
-    answer:
-      'Most payments are confirmed within 30 minutes during business hours, and we pay out right after confirmation.'
   }
 ];
 
@@ -198,7 +178,7 @@ export default function HelpAndLegalPage() {
           </h1>
 
           <p className="text-[15px] sm:text-[16px] text-[#f6e3e5] mt-2.5 font-normal max-w-2xl leading-relaxed">
-            Answers to common questions about rentals, property and RMB exchange, plus our complete official terms of service and statutory privacy policy.
+            Answers to common questions about car rentals, vehicle sales and property services, plus our complete official terms of service and statutory privacy policy.
           </p>
         </div>
       </section>
@@ -339,7 +319,7 @@ export default function HelpAndLegalPage() {
                     Terms of service
                   </h2>
                   <p className="text-sm text-[#716769] mt-1">
-                    Official Terms &amp; Conditions for the BZ Group website (www.bzdegreat.com), covering car rentals, car sales, home rentals and RMB exchange.
+                    Official Terms &amp; Conditions for the BZ Group website (www.bzdegreat.com), covering car rentals, car sales, home rentals and property sales.
                   </p>
                 </div>
 
@@ -415,7 +395,7 @@ export default function HelpAndLegalPage() {
                     </div>
 
                     <p>
-                      <strong>1.3 Our services.</strong> Through this website and our offices we offer: <strong>car rentals</strong>, <strong>car sales</strong>, <strong>home rentals and property services</strong>, and <strong>RMB (Chinese Yuan) exchange</strong>. Each service has its own section below, which applies together with these general terms.
+                      <strong>1.3 Our services.</strong> Through this website and our offices we offer: <strong>car rentals</strong>, <strong>car sales</strong>, and <strong>home rentals and property services</strong>. Each service has its own section below, which applies together with these general terms.
                     </p>
 
                     <p>
@@ -602,55 +582,11 @@ export default function HelpAndLegalPage() {
                     </p>
                   </div>
 
-                  {/* 6. RMB (Chinese Yuan) Exchange */}
+                  {/* 6. Payments, Liability and Disputes */}
                   <div className="space-y-3.5">
                     <div className="flex items-center gap-2.5 pb-2 border-b border-[#eae3e4]">
                       <span className="w-7 h-7 rounded-full bg-[#fcf3f4] text-[#81141f] flex items-center justify-center font-bold text-xs">
                         6
-                      </span>
-                      <h3 className="font-serif text-xl font-bold text-[#1b1416]">
-                        RMB (Chinese Yuan) Exchange
-                      </h3>
-                    </div>
-
-                    <p>
-                      <strong>6.1 The service.</strong> We help customers exchange Naira for Chinese Yuan (RMB) and RMB for Naira, including payments to suppliers&apos; accounts in China (for example, bank accounts, Alipay or WeChat Pay), in compliance with the foreign exchange rules of the Central Bank of Nigeria (CBN).
-                    </p>
-
-                    <p>
-                      <strong>6.2 Know your customer.</strong> Before any exchange we must verify your identity (BVN or NIN, valid ID and phone number) and, for business payments, your business details and the purpose of the payment, such as an invoice from the supplier. We may ask for more information at any time.
-                    </p>
-
-                    <p>
-                      <strong>6.3 Rates.</strong> Exchange rates move constantly. The rate shown on the website or in a chat is indicative only. Your rate is fixed only when we confirm it in writing and receive your full payment within the time stated in the quote (usually 25 minutes). If payment arrives later, the rate on the day of receipt applies.
-                    </p>
-
-                    <p>
-                      <strong>6.4 Payment and delivery.</strong> You must pay into the official BZ Group account in the quote (<strong>Premium Trust Bank · 0010252664 · BZ DE GREAT HOMES AND PROPERTIES</strong>). We send the RMB (or Naira) to the account details you give us, usually within business hours of receiving cleared funds. You are responsible for giving correct recipient details; we will send a payment confirmation or receipt.
-                    </p>
-
-                    <p>
-                      <strong>6.5 Wrong details.</strong> If you give wrong recipient details, we will try to recover the funds but cannot guarantee it. Any charges for recovery or re-sending are paid by you.
-                    </p>
-
-                    <p>
-                      <strong>6.6 Delays.</strong> Payments can be delayed by bank holidays in Nigeria or China, checks by banks or payment platforms, or regulatory requirements. We are not liable for losses caused by such delays outside our control, but we will keep you informed.
-                    </p>
-
-                    <p>
-                      <strong>6.7 Prohibited transactions.</strong> We will refuse, hold or report any transaction we reasonably suspect involves fraud, money laundering, terrorist financing, sanctions breaches, illegal goods or false documents. We comply with Nigerian anti-money-laundering laws, and may share information with the authorities where required.
-                    </p>
-
-                    <p>
-                      <strong>6.8 Cancellations and refunds.</strong> Once RMB has been sent, a transaction cannot be cancelled. If we cannot complete a transaction, we refund the Naira you paid to the account it came from, less any bank charges, within 1 to 3 business days.
-                    </p>
-                  </div>
-
-                  {/* 7. Payments, Liability and Disputes */}
-                  <div className="space-y-3.5">
-                    <div className="flex items-center gap-2.5 pb-2 border-b border-[#eae3e4]">
-                      <span className="w-7 h-7 rounded-full bg-[#fcf3f4] text-[#81141f] flex items-center justify-center font-bold text-xs">
-                        7
                       </span>
                       <h3 className="font-serif text-xl font-bold text-[#1b1416]">
                         Payments, Liability and Disputes
@@ -780,12 +716,6 @@ export default function HelpAndLegalPage() {
                             </td>
                           </tr>
                           <tr>
-                            <td className="py-2.5 px-4 font-bold text-[#81141f]">RMB exchange</td>
-                            <td className="py-2.5 px-4">
-                              BVN or NIN, ID document, business details, purpose of payment, supplier invoices, recipient details in China, transaction records
-                            </td>
-                          </tr>
-                          <tr>
                             <td className="py-2.5 px-4 font-bold text-[#81141f]">Website</td>
                             <td className="py-2.5 px-4">
                               IP address, device and browser type, pages visited, cookies (see section 8)
@@ -861,7 +791,6 @@ export default function HelpAndLegalPage() {
                       <li>banks and payment providers that process your payments;</li>
                       <li>identity verification providers (for BVN/NIN checks);</li>
                       <li>landlords (for home rentals), and vehicle registration authorities (for car sales);</li>
-                      <li>for RMB exchange, our payment partners and the recipient&apos;s bank or payment platform in China;</li>
                       <li>IT, hosting and messaging providers working for us under contract;</li>
                       <li>the police, regulators or courts, where the law requires it.</li>
                     </ul>
@@ -879,7 +808,7 @@ export default function HelpAndLegalPage() {
                     </div>
 
                     <p>
-                      RMB exchange payments, and some IT services, involve sending data outside Nigeria (for example, to China). We do this only as needed to provide the service, and with safeguards required by the Nigeria Data Protection Act.
+                      Some IT and cloud hosting services involve sending data outside Nigeria. We do this only as needed to provide the service, and with safeguards required by the Nigeria Data Protection Act.
                     </p>
                   </div>
 

@@ -4,27 +4,22 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import {
   Listing,
   Booking,
-  RmbExchangeRequest,
-  RmbRateConfig,
   Customer,
   StaffActivity,
   WebsiteContentConfig
 } from './types';
-import { INITIAL_RMB_RATES } from './constants';
 import {
   INITIAL_LISTINGS,
   INITIAL_BOOKINGS,
-  INITIAL_RMB_REQUESTS,
   INITIAL_CUSTOMERS,
   INITIAL_ACTIVITIES
 } from './mock-data';
 import { supabaseService } from './supabase/service';
-import { formatRmbUpdatedAt } from './utils';
 
 const DEFAULT_WEBSITE_CONTENT: WebsiteContentConfig = {
   heroHeadline: 'Drive it. Live in it. Own it.',
   heroEyebrow: 'Invest in value · Live the future',
-  heroSupportingText: 'Rent or buy premium cars and homes, and change RMB and naira — all through one trusted team.',
+  heroSupportingText: 'Rent or buy premium cars and homes across Abuja and Lagos — all through one trusted team.',
   heroImage: '/photos/founder-bz-3.jpg',
   founderBio: 'BZ De Great is a realtor, investment broker and entrepreneur working across four industries — real estate, automobiles, fashion and technology.',
   founderImage: '/photos/founder-bz-3.jpg',
@@ -69,8 +64,6 @@ const DEFAULT_WEBSITE_CONTENT: WebsiteContentConfig = {
 interface StoreContextType {
   listings: Listing[];
   bookings: Booking[];
-  rmbRequests: RmbExchangeRequest[];
-  rmbRates: RmbRateConfig;
   customers: Customer[];
   activities: StaffActivity[];
   websiteContent: WebsiteContentConfig;
@@ -85,10 +78,6 @@ interface StoreContextType {
   createBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Promise<Booking>;
   updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>;
 
-  createRmbRequest: (req: Omit<RmbExchangeRequest, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; reference?: string }) => Promise<RmbExchangeRequest>;
-  updateRmbRequest: (id: string, updates: Partial<RmbExchangeRequest>) => Promise<void>;
-
-  updateRmbRates: (rates: { payRmbRate: number; payNairaRate: number }) => Promise<void>;
   updateCustomerNotes: (customerId: string, notes: string) => Promise<void>;
   addActivity: (activity: Omit<StaffActivity, 'id' | 'timestamp'>) => Promise<void>;
   clearActivities: () => Promise<void>;
@@ -102,8 +91,6 @@ const CACHE_KEY_PREFIX = 'bz_group_supabase_cache_';
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [listings, setListings] = useState<Listing[]>(INITIAL_LISTINGS);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
-  const [rmbRequests, setRmbRequests] = useState<RmbExchangeRequest[]>(INITIAL_RMB_REQUESTS);
-  const [rmbRates, setRmbRates] = useState<RmbRateConfig>(INITIAL_RMB_RATES);
   const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
   const [activities, setActivities] = useState<StaffActivity[]>(INITIAL_ACTIVITIES);
   const [websiteContent, setWebsiteContent] = useState<WebsiteContentConfig>(DEFAULT_WEBSITE_CONTENT);
@@ -113,27 +100,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const refreshData = useCallback(async () => {
     try {
       const [
-        remoteRates,
         remoteListings,
         remoteBookings,
-        remoteRmb,
         remoteCustomers,
         remoteActivities,
         remoteContent
       ] = await Promise.all([
-        supabaseService.fetchRmbRates(),
         supabaseService.fetchListings(),
         supabaseService.fetchBookings(),
-        supabaseService.fetchRmbRequests(),
         supabaseService.fetchCustomers(),
         supabaseService.fetchActivities(),
         supabaseService.fetchWebsiteContent()
       ]);
 
-      if (remoteRates) setRmbRates(remoteRates);
       if (remoteListings !== null) setListings(remoteListings);
       if (remoteBookings !== null) setBookings(remoteBookings);
-      if (remoteRmb !== null) setRmbRequests(remoteRmb);
       if (remoteCustomers !== null) setCustomers(remoteCustomers);
       if (remoteActivities !== null) setActivities(remoteActivities);
       if (remoteContent) {
@@ -168,19 +149,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (Array.isArray(p) && p.length > 0) setBookings(p);
       }
 
-      const cRmb = localStorage.getItem(CACHE_KEY_PREFIX + 'rmb');
-      if (cRmb) {
-        const p = JSON.parse(cRmb);
-        if (Array.isArray(p) && p.length > 0) setRmbRequests(p);
-      }
-
-      const cRates = localStorage.getItem(CACHE_KEY_PREFIX + 'rates');
-      if (cRates) {
-        const parsed = JSON.parse(cRates);
-        parsed.updatedAt = formatRmbUpdatedAt(parsed.updatedAtIso, parsed.updatedAt);
-        setRmbRates(parsed);
-      }
-
       const cCust = localStorage.getItem(CACHE_KEY_PREFIX + 'cust');
       if (cCust) {
         const p = JSON.parse(cCust);
@@ -209,15 +177,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(CACHE_KEY_PREFIX + 'listings', JSON.stringify(listings));
       localStorage.setItem(CACHE_KEY_PREFIX + 'bookings', JSON.stringify(bookings));
-      localStorage.setItem(CACHE_KEY_PREFIX + 'rmb', JSON.stringify(rmbRequests));
-      localStorage.setItem(CACHE_KEY_PREFIX + 'rates', JSON.stringify(rmbRates));
       localStorage.setItem(CACHE_KEY_PREFIX + 'cust', JSON.stringify(customers));
       localStorage.setItem(CACHE_KEY_PREFIX + 'act', JSON.stringify(activities));
       localStorage.setItem(CACHE_KEY_PREFIX + 'content', JSON.stringify(websiteContent));
     } catch (e) {
       // Ignore cache write errors
     }
-  }, [listings, bookings, rmbRequests, rmbRates, customers, activities, websiteContent, isLoading]);
+  }, [listings, bookings, customers, activities, websiteContent, isLoading]);
 
   // ==========================================================================
   // MUTATIONS (Optimistic UI + Persistent Supabase write)
@@ -263,42 +229,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const updateBooking = async (id: string, updates: Partial<Booking>) => {
     setBookings(prev => prev.map(b => (b.id === id ? { ...b, ...updates } : b)));
     await supabaseService.updateBooking(id, updates);
-  };
-
-  const createRmbRequest = async (item: Omit<RmbExchangeRequest, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; reference?: string }) => {
-    const num = Math.floor(100 + Math.random() * 900);
-    const newId = item.id || `RMB-0${num}`;
-    const newRef = item.reference || newId;
-    const now = new Date().toISOString();
-    const newReq: RmbExchangeRequest = {
-      ...item,
-      id: newId,
-      reference: newRef,
-      createdAt: now,
-      updatedAt: now
-    };
-    setRmbRequests(prev => [newReq, ...prev]);
-    await supabaseService.insertRmbRequest(newReq);
-    return newReq;
-  };
-
-  const updateRmbRequest = async (id: string, updates: Partial<RmbExchangeRequest>) => {
-    const now = new Date().toISOString();
-    setRmbRequests(prev => prev.map(r => (r.id === id ? { ...r, ...updates, updatedAt: now } : r)));
-    await supabaseService.updateRmbRequest(id, updates);
-  };
-
-  const updateRmbRates = async (newRates: { payRmbRate: number; payNairaRate: number }) => {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' Today';
-    const updated: RmbRateConfig = {
-      payRmbRate: newRates.payRmbRate,
-      payNairaRate: newRates.payNairaRate,
-      updatedAt: timeStr,
-      updatedBy: 'Admin (Treasury Desk)'
-    };
-    setRmbRates(updated);
-    await supabaseService.updateRmbRates(newRates);
   };
 
   const updateCustomerNotes = async (customerId: string, notes: string) => {
@@ -350,8 +280,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       value={{
         listings,
         bookings,
-        rmbRequests,
-        rmbRates,
         customers,
         activities,
         websiteContent,
@@ -362,9 +290,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         deleteListing,
         createBooking,
         updateBooking,
-        createRmbRequest,
-        updateRmbRequest,
-        updateRmbRates,
         updateCustomerNotes,
         addActivity,
         clearActivities,

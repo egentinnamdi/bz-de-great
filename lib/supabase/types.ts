@@ -12,9 +12,7 @@ export type ListingStatus = 'available' | 'rented' | 'sold' | 'reserved' | 'unde
 export type BookingType = 'car_rental' | 'car_test_drive' | 'property_inspection';
 export type PaymentStatus = 'pending' | 'receipt_uploaded' | 'verified' | 'refunded';
 export type BookingStatus = 'requested' | 'confirmed' | 'active' | 'returned' | 'declined' | 'rescheduled';
-export type ExchangeDirection = 'rmb_to_naira' | 'naira_to_rmb';
-export type ExchangeStatus = 'requested' | 'account_sent' | 'receipt_received' | 'approved' | 'paid_out' | 'rejected';
-export type UserRole = 'admin' | 'treasury' | 'concierge' | 'customer';
+export type UserRole = 'admin' | 'concierge' | 'customer';
 
 export interface Database {
   public: {
@@ -183,98 +181,6 @@ export interface Database {
           payment_status?: PaymentStatus;
           booking_status?: BookingStatus;
           receipt_url?: string | null;
-          notes?: string | null;
-          updated_at?: string;
-        };
-      };
-      rmb_rates: {
-        Row: {
-          id: string;
-          pay_rmb_rate: number;
-          pay_naira_rate: number;
-          updated_at_display: string;
-          updated_by: string;
-          is_current: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          pay_rmb_rate: number;
-          pay_naira_rate: number;
-          updated_at_display?: string;
-          updated_by?: string;
-          is_current?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          pay_rmb_rate?: number;
-          pay_naira_rate?: number;
-          updated_at_display?: string;
-          updated_by?: string;
-          is_current?: boolean;
-        };
-      };
-      rmb_exchange_requests: {
-        Row: {
-          id: string;
-          direction: ExchangeDirection;
-          source_amount: number;
-          rate_applied: number;
-          destination_amount: number;
-          destination_channel: string;
-          destination_account_details: string | null;
-          customer_id: string | null;
-          customer_name: string;
-          customer_email: string;
-          customer_whatsapp: string;
-          sender_bank: string | null;
-          sender_account_name: string | null;
-          receipt_url: string | null;
-          status: ExchangeStatus;
-          rate_locked_until: string | null;
-          notes: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          direction: ExchangeDirection;
-          source_amount: number;
-          rate_applied: number;
-          destination_amount: number;
-          destination_channel?: string;
-          destination_account_details?: string | null;
-          customer_id?: string | null;
-          customer_name: string;
-          customer_email: string;
-          customer_whatsapp: string;
-          sender_bank?: string | null;
-          sender_account_name?: string | null;
-          receipt_url?: string | null;
-          status?: ExchangeStatus;
-          rate_locked_until?: string | null;
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          direction?: ExchangeDirection;
-          source_amount?: number;
-          rate_applied?: number;
-          destination_amount?: number;
-          destination_channel?: string;
-          destination_account_details?: string | null;
-          customer_id?: string | null;
-          customer_name?: string;
-          customer_email?: string;
-          customer_whatsapp?: string;
-          sender_bank?: string | null;
-          sender_account_name?: string | null;
-          receipt_url?: string | null;
-          status?: ExchangeStatus;
-          rate_locked_until?: string | null;
           notes?: string | null;
           updated_at?: string;
         };

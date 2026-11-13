@@ -8,7 +8,7 @@ export interface ServiceItem {
   title: string
   description: string
   href: string
-  iconName: "car" | "car-sale" | "house" | "apartment" | "property-sale" | "rmb"
+  iconName: "car" | "car-sale" | "house" | "apartment" | "property-sale"
   featured?: boolean
   linkText?: string
 }
@@ -53,16 +53,6 @@ export const SERVICES_DATA: ServiceItem[] = [
     href: "/properties/buy",
     iconName: "property-sale",
     linkText: "Explore",
-  },
-  {
-    id: "rmb-exchange",
-    title: "RMB exchange",
-    description:
-      "Pay RMB and get naira, or pay naira and get RMB, at today's rate.",
-    href: "/rmb-exchange",
-    iconName: "rmb",
-    featured: true,
-    linkText: "See today's rates",
   },
 ]
 
@@ -121,10 +111,6 @@ export function ServiceTile({
               isFeatured ? "text-white" : "text-[#81141f]"
             )}
           />
-        )
-      case "rmb":
-        return (
-          <span className="text-xl leading-none font-bold text-white">¥</span>
         )
       default:
         return <Car className="h-6 w-6 text-[#81141f]" />

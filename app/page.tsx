@@ -26,9 +26,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { SearchPanel } from "@/components/search-panel"
 import { TrustStrip } from "@/components/trust-strip"
 import { ServiceTile, SERVICES_DATA } from "@/components/service-tile"
-import { RmbCalculator } from "@/components/rmb-calculator"
 import { GalleryViewer } from "@/components/gallery-viewer"
-import { GetAccountModal } from "@/components/get-account-modal"
 import { BookingModal } from "@/components/booking-modal"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { useStore } from "@/lib/store"
@@ -42,13 +40,6 @@ export default function HomePage() {
   // Modals state
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryIndex, setGalleryIndex] = useState(0)
-
-  const [accountModalOpen, setAccountModalOpen] = useState(false)
-  const [accountDirection, setAccountDirection] = useState<
-    "rmb_to_naira" | "naira_to_rmb"
-  >("rmb_to_naira")
-  const [accountSourceAmount, setAccountSourceAmount] = useState(10000)
-  const [accountDestAmount, setAccountDestAmount] = useState(2050000)
 
   // Selected booking modal state
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
@@ -127,17 +118,6 @@ export default function HomePage() {
     "/photos/gallery-bz-6.jpg",
   ]
 
-  const handleOpenAccountModal = (
-    direction: "rmb_to_naira" | "naira_to_rmb",
-    sourceAmount: number,
-    destAmount: number
-  ) => {
-    setAccountDirection(direction)
-    setAccountSourceAmount(sourceAmount)
-    setAccountDestAmount(destAmount)
-    setAccountModalOpen(true)
-  }
-
   return (
     <div className="flex min-h-screen flex-col bg-white font-sans text-[#1b1416]">
       {/* 1. Global Site Header */}
@@ -188,10 +168,10 @@ export default function HomePage() {
                 </Link>
 
                 <Link
-                  href="/rmb-exchange"
+                  href="/my-booking"
                   className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/40 px-8 py-3.5 text-[14px] font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-white hover:bg-white/10 active:scale-[0.98]"
                 >
-                  <span>Exchange RMB</span>
+                  <span>Track booking</span>
                 </Link>
               </div>
             </div>
@@ -208,7 +188,7 @@ export default function HomePage() {
           <TrustStrip />
         </ScrollReveal>
 
-        {/* 4. "WHAT WE DO" - Six services, one trusted team matching Screenshot 2 */}
+        {/* 4. "WHAT WE DO" - Five services, one trusted team matching Screenshot 2 */}
         <section id="services" className="bg-white py-20 lg:py-24">
           <div className="mx-auto max-w-[1440px] space-y-12 px-4 lg:px-[120px]">
             <ScrollReveal animation="fade-in-up">
@@ -217,12 +197,11 @@ export default function HomePage() {
                   WHAT WE DO
                 </span>
                 <h2 className="font-serif text-3xl font-semibold text-[#1b1416] sm:text-4xl">
-                  Six services, one trusted team
+                  Five services, one trusted team
                 </h2>
                 <p className="text-xs leading-relaxed text-[#716769] sm:text-sm">
                   Whether you need a car for the weekend, a home for the year or
-                  naira for your RMB by tomorrow, BZ Group handles it end to
-                  end.
+                  a property to own, BZ Group handles it end to end.
                 </p>
               </div>
             </ScrollReveal>
@@ -808,87 +787,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 9. "RMB EXCHANGE" matching Screenshot 4 */}
-        <section id="rmb" className="bg-[#540911] py-20 text-white lg:py-24">
-          <div className="mx-auto max-w-[1440px] px-4 lg:px-[120px]">
-            <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
-              {/* Left Copy */}
-              <ScrollReveal
-                animation="slide-in-left"
-                className="flex flex-col space-y-6 lg:col-span-7"
-              >
-                <div>
-                  <span className="mb-2 block text-xs font-bold tracking-wider text-[#ebc7cb] uppercase">
-                    RMB EXCHANGE
-                  </span>
-                  <h2 className="font-serif text-3xl leading-tight font-semibold text-white sm:text-4xl lg:text-[46px]">
-                    Change RMB and naira at a rate you can see.
-                  </h2>
-                </div>
-
-                <p className="max-w-xl text-xs leading-relaxed text-[#f6e3e5] sm:text-sm">
-                  Pay RMB and get naira, or pay naira and get RMB. Rates are set
-                  every morning in our dashboard and shown upfront.
-                </p>
-
-                {/* 4 Numbered Steps */}
-                <div className="space-y-3 pt-2 text-xs text-[#f6e3e5]">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/40 text-[10px] font-bold">
-                      1
-                    </span>
-                    <span>Calculate with today&apos;s rate</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/40 text-[10px] font-bold">
-                      2
-                    </span>
-                    <span>
-                      Tap Get account and add your name, email and WhatsApp
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/40 text-[10px] font-bold">
-                      3
-                    </span>
-                    <span>
-                      Paying RMB? We send our RMB account to your WhatsApp
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/40 text-[10px] font-bold">
-                      4
-                    </span>
-                    <span>
-                      Paying naira? You&apos;ll see our company account straight
-                      away
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <Link
-                    href="/rmb-exchange"
-                    className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-xs font-semibold text-[#7A0C1A] shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#faf7f7] active:scale-95"
-                  >
-                    <span>Start an exchange</span>
-                    <ArrowRight className="h-3.5 w-3.5 text-[#7A0C1A]" />
-                  </Link>
-                </div>
-              </ScrollReveal>
-
-              {/* Right Calculator Card */}
-              <ScrollReveal
-                animation="slide-in-right"
-                className="flex justify-center lg:col-span-5 lg:justify-end"
-              >
-                <RmbCalculator />
-              </ScrollReveal>
-            </div>
-          </div>
-        </section>
-
-        {/* 10. "HOW IT WORKS" matching Screenshot 4 */}
+        {/* 9. "HOW IT WORKS" matching Screenshot 4 */}
         <section className="border-t border-[#eae3e4] bg-white py-20 lg:py-24">
           <div className="mx-auto max-w-[1440px] space-y-12 px-4 lg:px-[120px]">
             <ScrollReveal animation="fade-in-up">
@@ -915,8 +814,8 @@ export default function HomePage() {
                     Find
                   </h3>
                   <p className="text-xs leading-relaxed text-[#716769]">
-                    Browse verified cars and properties, or check today&apos;s
-                    RMB rate.
+                    Browse verified cars and properties across our fleet and
+                    portfolio.
                   </p>
                 </div>
               </ScrollReveal>
@@ -1028,14 +927,6 @@ export default function HomePage() {
         initialIndex={galleryIndex}
         isOpen={galleryOpen}
         onClose={() => setGalleryOpen(false)}
-      />
-
-      <GetAccountModal
-        isOpen={accountModalOpen}
-        onClose={() => setAccountModalOpen(false)}
-        direction={accountDirection}
-        sourceAmount={accountSourceAmount}
-        destinationAmount={accountDestAmount}
       />
 
       {selectedListing && (
