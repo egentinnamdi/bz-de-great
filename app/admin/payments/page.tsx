@@ -38,7 +38,19 @@ interface PaymentRow {
 
 export default function AdminPaymentsPage() {
   const { toast } = useToast();
-  const { bookings: storeBookings, updateBooking, addActivity } = useStore();
+  const {
+    bookings: storeBookings,
+    productOrders,
+    studioBookings,
+    equipmentRentals,
+    digitalTickets,
+    updateBooking,
+    updateProductOrder,
+    updateStudioBooking,
+    updateEquipmentRental,
+    updateDigitalTicket,
+    addActivity,
+  } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [tableSearch, setTableSearch] = useState('');
   const [timeFilter, setTimeFilter] = useState('This week');
@@ -51,9 +63,9 @@ export default function AdminPaymentsPage() {
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
-  // Interactive state for All payments table
+  // Interactive state for All payments table across Bookings, Marketplace Orders, Studio, Rentals & Tickets
   const payments: PaymentRow[] = React.useMemo(() => {
-    return storeBookings.map(b => ({
+    const bRows: PaymentRow[] = storeBookings.map(b => ({
       id: b.id,
       reference: b.reference || b.id,
       customerName: b.customerName,
@@ -66,7 +78,65 @@ export default function AdminPaymentsPage() {
       status: (b.paymentStatus === 'verified' ? 'approved' : b.paymentStatus === 'refunded' ? 'rejected' : 'pending'),
       rejectionReason: b.notes
     }));
-  }, [storeBookings]);
+
+    const oRows: PaymentRow[] = productOrders.map(o => ({
+      id: o.id,
+      reference: o.reference || o.id,
+      customerName: o.customerName,
+      customerPhone: o.customerPhone,
+      type: 'Marketplace Order',
+      amount: o.totalAmount,
+      amountFormatted: `₦${Number(o.totalAmount).toLocaleString('en-NG')}`,
+      receiptUrl: o.receiptUrl,
+      submittedAt: formatDateDisplay(o.createdAt),
+      status: (o.paymentStatus === 'verified' ? 'approved' : o.paymentStatus === 'refunded' ? 'rejected' : 'pending'),
+      rejectionReason: o.notes
+    }));
+
+    const sRows: PaymentRow[] = studioBookings.map(s => ({
+      id: s.id,
+      reference: s.reference || s.id,
+      customerName: s.customerName,
+      customerPhone: s.customerPhone,
+      type: 'Lagos Studio Booking',
+      amount: s.totalAmount,
+      amountFormatted: `₦${Number(s.totalAmount).toLocaleString('en-NG')}`,
+      receiptUrl: s.receiptUrl,
+      submittedAt: formatDateDisplay(s.createdAt),
+      status: (s.paymentStatus === 'verified' ? 'approved' : s.paymentStatus === 'refunded' ? 'rejected' : 'pending'),
+      rejectionReason: s.notes
+    }));
+
+    const rRows: PaymentRow[] = equipmentRentals.map(r => ({
+      id: r.id,
+      reference: r.reference || r.id,
+      customerName: r.customerName,
+      customerPhone: r.customerPhone,
+      type: 'Equipment Rental',
+      amount: r.totalAmount,
+      amountFormatted: `₦${Number(r.totalAmount).toLocaleString('en-NG')}`,
+      receiptUrl: r.receiptUrl,
+      submittedAt: formatDateDisplay(r.createdAt),
+      status: (r.paymentStatus === 'verified' ? 'approved' : r.paymentStatus === 'refunded' ? 'rejected' : 'pending'),
+      rejectionReason: r.notes
+    }));
+
+    const tRows: PaymentRow[] = digitalTickets.map(t => ({
+      id: t.id,
+      reference: t.ticketCode || t.id,
+      customerName: t.customerName,
+      customerPhone: t.customerPhone,
+      type: 'Event Digital Ticket',
+      amount: t.totalAmount,
+      amountFormatted: `₦${Number(t.totalAmount).toLocaleString('en-NG')}`,
+      receiptUrl: t.receiptUrl,
+      submittedAt: formatDateDisplay(t.createdAt),
+      status: (t.paymentStatus === 'verified' ? 'approved' : t.paymentStatus === 'refunded' ? 'rejected' : 'pending'),
+      rejectionReason: t.notes
+    }));
+
+    return [...oRows, ...sRows, ...rRows, ...tRows, ...bRows];
+  }, [storeBookings, productOrders, studioBookings, equipmentRentals, digitalTickets]);
 
   // Dynamic live aggregations for payments
   const paymentMetrics = React.useMemo(() => {
@@ -98,7 +168,17 @@ export default function AdminPaymentsPage() {
 
   // Actions for payments table
   const handleApprove = async (payment: PaymentRow) => {
-    await updateBooking(payment.id, { paymentStatus: 'verified', bookingStatus: 'confirmed' });
+    if (payment.id.startsWith('ORD-')) {
+      await updateProductOrder(payment.id, { paymentStatus: 'verified', orderStatus: 'confirmed' });
+    } else if (payment.id.startsWith('STU-')) {
+      await updateStudioBooking(payment.id, { paymentStatus: 'verified', bookingStatus: 'confirmed' });
+    } else if (payment.id.startsWith('RNT-')) {
+      await updateEquipmentRental(payment.id, { paymentStatus: 'verified', rentalStatus: 'confirmed' });
+    } else if (payment.id.startsWith('TKT-')) {
+      await updateDigitalTicket(payment.id, { paymentStatus: 'verified', ticketStatus: 'valid' });
+    } else {
+      await updateBooking(payment.id, { paymentStatus: 'verified', bookingStatus: 'confirmed' });
+    }
     await addActivity({
       actorName: 'Admin',
       actorRole: 'Operations Desk',
@@ -131,7 +211,17 @@ export default function AdminPaymentsPage() {
 
   const handleReject = async (payment: PaymentRow) => {
     const rejectionNote = 'Transfer receipt verification failed. Please verify with your bank or send updated proof.';
-    await updateBooking(payment.id, { paymentStatus: 'refunded', notes: rejectionNote });
+    if (payment.id.startsWith('ORD-')) {
+      await updateProductOrder(payment.id, { paymentStatus: 'refunded', notes: rejectionNote });
+    } else if (payment.id.startsWith('STU-')) {
+      await updateStudioBooking(payment.id, { paymentStatus: 'refunded', notes: rejectionNote });
+    } else if (payment.id.startsWith('RNT-')) {
+      await updateEquipmentRental(payment.id, { paymentStatus: 'refunded', notes: rejectionNote });
+    } else if (payment.id.startsWith('TKT-')) {
+      await updateDigitalTicket(payment.id, { paymentStatus: 'refunded', ticketStatus: 'cancelled', notes: rejectionNote });
+    } else {
+      await updateBooking(payment.id, { paymentStatus: 'refunded', notes: rejectionNote });
+    }
     await addActivity({
       actorName: 'Admin',
       actorRole: 'Operations Desk',
