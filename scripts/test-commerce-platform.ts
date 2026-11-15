@@ -1,0 +1,219 @@
+import assert from 'node:assert/strict';
+import {
+  INITIAL_PRODUCT_CATEGORIES,
+  INITIAL_PRODUCTS,
+  INITIAL_STUDIO_SERVICES,
+  INITIAL_STUDIO_BOOKINGS,
+  INITIAL_EQUIPMENT_ITEMS,
+  INITIAL_EQUIPMENT_RENTALS,
+  INITIAL_EVENTS,
+  INITIAL_DIGITAL_TICKETS,
+  calculateOrderAuthoritative,
+  validateStudioSlotConflict,
+  calculateEquipmentAvailableQty,
+  calculateEquipmentRentalAuthoritative,
+  purchaseEventTicketAuthoritative,
+  validateAndCheckInTicket,
+} from '../lib/commerce-engine';
+
+console.log('=== Running Multi-Service Commerce Platform Test Suite ===\n');
+
+// 1. Marketplace Categories & Products Coverage
+{
+  const slugs = INITIAL_PRODUCT_CATEGORIES.map((c) => c.slug);
+  for (const required of [
+    'phones',
+    'laptops',
+    'gadgets',
+    'electronics',
+    'solar-inverters',
+    'clothing',
+    'jewelry',
+  ]) {
+    assert.ok(slugs.includes(required), `Missing required category slug: ${required}`);
+    const hasProd = INITIAL_PRODUCTS.some(
+      (p) => p.categorySlug === required && p.status === 'published'
+    );
+    assert.ok(hasProd, `Missing published seed product for category: ${required}`);
+  }
+  console.log('✓ [Marketplace] All 7 product categories and specifications verified');
+}
+
+// 2. Authoritative Order Calculation, Stock Validation & Variant Pricing
+{
+  const phone = INITIAL_PRODUCTS.find((p) => p.id === 'prod-phone-1')!;
+  const variant = phone.variants![0];
+  const initialVariantStock = variant.stock;
+
+  const orderRes = calculateOrderAuthoritative(
+    [{ productId: phone.id, variantId: variant.id, quantity: 2 }],
+    INITIAL_PRODUCTS,
+    'Abuja (FCT)'
+  );
+  assert.equal(orderRes.ok, true, 'Valid order should succeed');
+  assert.equal(orderRes.subtotalAmount, variant.price * 2);
+  assert.equal(orderRes.deliveryFee, 15000);
+  assert.equal(orderRes.totalAmount, variant.price * 2 + 15000);
+
+  const updatedPhone = orderRes.updatedProducts.find((p) => p.id === phone.id)!;
+  const updatedVar = updatedPhone.variants!.find((v) => v.id === variant.id)!;
+  assert.equal(
+    updatedVar.stock,
+    initialVariantStock - 2,
+    'Variant stock should decrement by ordered quantity'
+  );
+
+  // Out-of-stock rejection
+  const overStockRes = calculateOrderAuthoritative(
+    [{ productId: phone.id, variantId: variant.id, quantity: 999 }],
+    INITIAL_PRODUCTS,
+    'Lagos State'
+  );
+  assert.equal(overStockRes.ok, false, 'Order exceeding stock must be rejected');
+  console.log('✓ [Orders & Checkout] Authoritative pricing, variant handling, and stock enforcement verified');
+}
+
+// 3. Lagos Studio Double-Booking Conflict Prevention
+{
+  assert.ok(INITIAL_STUDIO_SERVICES.length >= 4, 'Studio services should be populated');
+  const existing = INITIAL_STUDIO_BOOKINGS[0]; // 2026-11-20 @ 12:00 PM
+
+  const conflictCheck = validateStudioSlotConflict(
+    INITIAL_STUDIO_BOOKINGS,
+    existing.serviceId,
+    existing.date,
+    existing.timeSlot
+  );
+  assert.equal(
+    conflictCheck.conflict,
+    true,
+    'Booking the same date and time slot must trigger a conflict'
+  );
+
+  const freeCheck = validateStudioSlotConflict(
+    INITIAL_STUDIO_BOOKINGS,
+    existing.serviceId,
+    existing.date,
+    '03:00 PM'
+  );
+  assert.equal(
+    freeCheck.conflict,
+    false,
+    'Different time slot on the same date should be available'
+  );
+
+  // Cancelled booking should free the slot
+  const cancelledList = INITIAL_STUDIO_BOOKINGS.map((b) => ({
+    ...b,
+    bookingStatus: 'cancelled' as const,
+  }));
+  const freedCheck = validateStudioSlotConflict(
+    cancelledList,
+    existing.serviceId,
+    existing.date,
+    existing.timeSlot
+  );
+  assert.equal(
+    freedCheck.conflict,
+    false,
+    'Cancelled studio booking must release the slot'
+  );
+  console.log('✓ [Lagos Studio] Slot availability and double-booking prevention verified');
+}
+
+// 4. Camera & Media Equipment Date-Range Conflict & Deposit Calculation
+{
+  const fx3 = INITIAL_EQUIPMENT_ITEMS.find((e) => e.id === 'eq-cam-1')!; // quantityTotal = 3, 1 rented 2026-11-18..2026-11-20
+  const availOverlap = calculateEquipmentAvailableQty(
+    fx3,
+    INITIAL_EQUIPMENT_RENTALS,
+    '2026-11-19',
+    '2026-11-21'
+  );
+  assert.equal(
+    availOverlap,
+    2,
+    'Overlapping date range should reflect 1 reserved unit (3 - 1 = 2 available)'
+  );
+
+  // Requesting 3 units during overlap must fail
+  const overRent = calculateEquipmentRentalAuthoritative(
+    fx3,
+    INITIAL_EQUIPMENT_RENTALS,
+    '2026-11-19',
+    '2026-11-21',
+    3
+  );
+  assert.equal(
+    overRent.ok,
+    false,
+    'Renting more units than available in overlapping date range must fail'
+  );
+
+  // Requesting 2 units for 3 days must succeed with exact rate + deposit
+  const validRent = calculateEquipmentRentalAuthoritative(
+    fx3,
+    INITIAL_EQUIPMENT_RENTALS,
+    '2026-11-19',
+    '2026-11-21',
+    2
+  );
+  assert.equal(validRent.ok, true);
+  assert.equal(validRent.days, 3);
+  assert.equal(
+    validRent.totalAmount,
+    fx3.dailyRate * 3 * 2 + fx3.depositAmount * 2
+  );
+  console.log('✓ [Equipment Rental] Date-range conflict guard and deposit calculation verified');
+}
+
+// 5. Events, Ticket Tier Capacity, Digital Ticket & QR Duplicate Check-In Guard
+{
+  const gala = INITIAL_EVENTS[0];
+  const vipTier = gala.ticketTiers.find((t) => t.id === 'tier-gala-vip')!;
+  const initialSold = vipTier.sold;
+
+  const purchase = purchaseEventTicketAuthoritative(gala, vipTier.id, 2, {
+    customerName: 'Barrister Clara',
+    customerPhone: '+234 818 990 0112',
+    customerEmail: 'clara@juristpartners.ng',
+  });
+  assert.equal(purchase.ok, true, 'Valid ticket purchase should succeed');
+  assert.ok(purchase.ticket?.ticketCode.startsWith('BZ-'), 'Unique ticket code generated');
+  assert.equal(purchase.ticket?.totalAmount, vipTier.price * 2);
+
+  const updatedVip = purchase.updatedEvent!.ticketTiers.find(
+    (t) => t.id === vipTier.id
+  )!;
+  assert.equal(updatedVip.sold, initialSold + 2, 'Sold count should increment by 2');
+
+  // Exceeding capacity must fail
+  const overCap = purchaseEventTicketAuthoritative(gala, vipTier.id, 999, {
+    customerName: 'Test User',
+    customerPhone: '08000000000',
+    customerEmail: 'test@example.com',
+  });
+  assert.equal(overCap.ok, false, 'Exceeding ticket tier capacity must be rejected');
+
+  // First check-in succeeds
+  const ticketsPool = [purchase.ticket!, ...INITIAL_DIGITAL_TICKETS];
+  const firstScan = validateAndCheckInTicket(
+    ticketsPool,
+    purchase.ticket!.ticketCode,
+    'Gate Scanner 1'
+  );
+  assert.equal(firstScan.ok, true, 'First ticket check-in should succeed');
+  assert.equal(firstScan.ticket?.ticketStatus, 'checked_in');
+
+  // Second check-in of the same ticket must be blocked as duplicate
+  const duplicateScan = validateAndCheckInTicket(
+    firstScan.updatedTickets,
+    purchase.ticket!.qrPayload,
+    'Gate Scanner 2'
+  );
+  assert.equal(duplicateScan.ok, false, 'Duplicate ticket check-in must be blocked');
+  assert.equal(duplicateScan.reason, 'already_checked_in');
+  console.log('✓ [Events & Ticketing] Tier capacity, QR ticket generation, and duplicate check-in prevention verified');
+}
+
+console.log('\nALL MULTI-SERVICE COMMERCE TESTS PASSED SUCCESSFULLY!');
