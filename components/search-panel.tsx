@@ -195,6 +195,13 @@ export function SearchPanel({ className }: { className?: string }) {
           >
             Land &amp; plots
           </button>
+          <button
+            type="button"
+            onClick={() => router.push('/marketplace')}
+            className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border border-[#81141f]/30 bg-[#fbf3f4] text-[#81141f] hover:bg-[#81141f] hover:text-white"
+          >
+            Marketplace &amp; Studio →
+          </button>
         </div>
       </div>
 

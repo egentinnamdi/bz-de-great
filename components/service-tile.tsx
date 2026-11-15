@@ -1,6 +1,6 @@
 import React from "react"
 import Link from "next/link"
-import { Car, Building, Home, Coins, ArrowRight, Tag, Key } from "lucide-react"
+import { Car, Building, Home, ShoppingBag, ArrowRight, Tag, Key } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface ServiceItem {
@@ -8,7 +8,7 @@ export interface ServiceItem {
   title: string
   description: string
   href: string
-  iconName: "car" | "car-sale" | "house" | "apartment" | "property-sale"
+  iconName: "car" | "car-sale" | "house" | "apartment" | "property-sale" | "marketplace"
   featured?: boolean
   linkText?: string
 }
@@ -53,6 +53,15 @@ export const SERVICES_DATA: ServiceItem[] = [
     href: "/properties/buy",
     iconName: "property-sale",
     linkText: "Explore",
+  },
+  {
+    id: "marketplace-studio-events",
+    title: "Marketplace, Studio & Events",
+    description: "Phones, laptops, solar, clothing & jewelry — plus Lagos studio sessions, gear rentals and event tickets.",
+    href: "/marketplace",
+    iconName: "marketplace",
+    featured: true,
+    linkText: "Shop & book now",
   },
 ]
 
@@ -106,6 +115,15 @@ export function ServiceTile({
       case "property-sale":
         return (
           <Key
+            className={cn(
+              "h-6 w-6",
+              isFeatured ? "text-white" : "text-[#81141f]"
+            )}
+          />
+        )
+      case "marketplace":
+        return (
+          <ShoppingBag
             className={cn(
               "h-6 w-6",
               isFeatured ? "text-white" : "text-[#81141f]"

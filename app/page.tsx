@@ -28,6 +28,7 @@ import { TrustStrip } from "@/components/trust-strip"
 import { ServiceTile, SERVICES_DATA } from "@/components/service-tile"
 import { GalleryViewer } from "@/components/gallery-viewer"
 import { BookingModal } from "@/components/booking-modal"
+import { CommerceHubWidget } from "@/components/commerce-hub-widget"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { useStore } from "@/lib/store"
 import { SITE_CONFIG } from "@/lib/constants"
@@ -168,10 +169,10 @@ export default function HomePage() {
                 </Link>
 
                 <Link
-                  href="/my-booking"
+                  href="/marketplace"
                   className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/40 px-8 py-3.5 text-[14px] font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-white hover:bg-white/10 active:scale-[0.98]"
                 >
-                  <span>Track booking</span>
+                  <span>Marketplace &amp; Studio</span>
                 </Link>
               </div>
             </div>
@@ -188,7 +189,7 @@ export default function HomePage() {
           <TrustStrip />
         </ScrollReveal>
 
-        {/* 4. "WHAT WE DO" - Five services, one trusted team matching Screenshot 2 */}
+        {/* 4. "WHAT WE DO" - Six services, one trusted team matching Screenshot 2 */}
         <section id="services" className="bg-white py-20 lg:py-24">
           <div className="mx-auto max-w-[1440px] space-y-12 px-4 lg:px-[120px]">
             <ScrollReveal animation="fade-in-up">
@@ -197,11 +198,11 @@ export default function HomePage() {
                   WHAT WE DO
                 </span>
                 <h2 className="font-serif text-3xl font-semibold text-[#1b1416] sm:text-4xl">
-                  Five services, one trusted team
+                  Six services, one trusted team
                 </h2>
                 <p className="text-xs leading-relaxed text-[#716769] sm:text-sm">
-                  Whether you need a car for the weekend, a home for the year or
-                  a property to own, BZ Group handles it end to end.
+                  Whether you need a car for the weekend, a home for the year,
+                  flagship electronics, or a Lagos studio session, BZ Group handles it end to end.
                 </p>
               </div>
             </ScrollReveal>
@@ -787,7 +788,106 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 9. "HOW IT WORKS" matching Screenshot 4 */}
+        {/* 9. "MARKETPLACE, LAGOS STUDIO & EVENTS" replacing removed RMB Exchange section */}
+        <section id="marketplace" className="bg-[#540911] py-20 text-white lg:py-24">
+          <div className="mx-auto max-w-[1440px] px-4 lg:px-[120px]">
+            <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
+              {/* Left 7 Cols: Overview & 4 Pillars */}
+              <ScrollReveal
+                animation="slide-in-left"
+                className="flex flex-col space-y-6 lg:col-span-7"
+              >
+                <div className="space-y-2">
+                  <span className="block text-xs font-bold tracking-widest text-white/80 uppercase">
+                    MARKETPLACE · LAGOS STUDIO · RENTALS · EVENTS
+                  </span>
+                  <h2 className="font-serif text-3xl leading-tight font-semibold text-white sm:text-4xl lg:text-[42px]">
+                    Shop flagship tech &amp; luxury, book our Lagos studio, or reserve event passes
+                  </h2>
+                </div>
+
+                <p className="max-w-xl text-xs leading-relaxed text-white/80 sm:text-sm">
+                  Everything handled directly by the BZ De Great team — from factory-unlocked phones, laptops, solar power systems, bespoke clothing, and 18K gold jewelry to our Lekki-Ajah creative studio, cinema equipment rentals, and digital QR event tickets.
+                </p>
+
+                {/* 4 Pillars */}
+                <div className="space-y-3 pt-2">
+                  {[
+                    {
+                      num: "1",
+                      text: "Marketplace: Phones, laptops, gadgets, electronics, solar & inverters, clothing & fine jewelry.",
+                      href: "/marketplace",
+                    },
+                    {
+                      num: "2",
+                      text: "Lagos Studio: Book portrait, commercial product, or full photo + video cyclorama sessions in Lagos State.",
+                      href: "/studio",
+                    },
+                    {
+                      num: "3",
+                      text: "Equipment Rental: Sony FX3, RED Komodo 6K, G-Master lenses, Aputure 600d lighting & wireless audio.",
+                      href: "/equipment-rental",
+                    },
+                    {
+                      num: "4",
+                      text: "Events & Tickets: Book Regular, VIP & VVIP digital passes with instant QR verification.",
+                      href: "/events",
+                    },
+                  ].map((step) => (
+                    <Link
+                      key={step.num}
+                      href={step.href}
+                      className="flex items-center gap-3.5 text-xs text-white/95 sm:text-sm hover:text-white group"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white group-hover:bg-white group-hover:text-[#540911] transition-colors">
+                        {step.num}
+                      </span>
+                      <span className="underline-offset-4 group-hover:underline">{step.text}</span>
+                    </Link>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <Link
+                    href="/marketplace"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-6 py-3 text-xs font-semibold text-[#540911] shadow-md transition-all hover:bg-[#faf7f7]"
+                  >
+                    <span>Explore Marketplace</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                  <Link
+                    href="/studio"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/35 px-5 py-3 text-xs font-semibold text-white transition-all hover:bg-white/10"
+                  >
+                    <span>Book Lagos Studio</span>
+                  </Link>
+                  <Link
+                    href="/equipment-rental"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/35 px-5 py-3 text-xs font-semibold text-white transition-all hover:bg-white/10"
+                  >
+                    <span>Rent Cinema Gear</span>
+                  </Link>
+                  <Link
+                    href="/events"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/35 px-5 py-3 text-xs font-semibold text-white transition-all hover:bg-white/10"
+                  >
+                    <span>Event Tickets</span>
+                  </Link>
+                </div>
+              </ScrollReveal>
+
+              {/* Right 5 Cols: Interactive Multi-Service Hub Card */}
+              <ScrollReveal
+                animation="slide-in-right"
+                className="lg:col-span-5"
+              >
+                <CommerceHubWidget />
+              </ScrollReveal>
+            </div>
+          </div>
+        </section>
+
+        {/* 10. "HOW IT WORKS" matching Screenshot 4 */}
         <section className="border-t border-[#eae3e4] bg-white py-20 lg:py-24">
           <div className="mx-auto max-w-[1440px] space-y-12 px-4 lg:px-[120px]">
             <ScrollReveal animation="fade-in-up">
