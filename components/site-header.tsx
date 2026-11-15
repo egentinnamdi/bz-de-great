@@ -38,8 +38,8 @@ export function SiteHeader() {
         </div>
       )}
 
-      {/* 1. Top Utility Bar (Figma: 1440x40, fill=#4e0b13, p=10px 120px) */}
-      <div className="bg-[#4e0b13] text-white text-xs border-b border-[#630f1a]">
+      {/* 1. Top Utility Bar (Figma: 1440x40, fill=#000000, p=10px 120px) */}
+      <div className="bg-black text-white text-xs border-b border-white/10">
         <div className="max-w-[1440px] mx-auto px-4 lg:px-8 xl:px-16 2xl:px-[120px] h-10 flex items-center justify-between gap-4">
           {/* Quick service info */}
           <div className="flex items-center gap-3 overflow-x-auto py-1 no-scrollbar text-[12px] sm:text-[13px]">

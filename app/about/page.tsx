@@ -71,9 +71,9 @@ export default function AboutPage() {
 
       <main className="flex-1">
         {/* ========================================================
-            1. HERO / INTRO SECTION (Figma: Intro [fill=#4e0b13])
+            1. HERO / INTRO SECTION
            ======================================================== */}
-        <section className="w-full border-b border-[#630f1a] bg-[#4e0b13] pt-10 pb-16 text-white lg:pb-24">
+        <section className="w-full border-b border-white/10 bg-black pt-10 pb-16 text-white lg:pb-24">
           <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
             {/* Breadcrumb */}
             <nav
@@ -304,9 +304,9 @@ export default function AboutPage() {
                 </div>
               </ScrollReveal>
 
-              {/* Card 2: Vision (Deep Wine #4e0b13) */}
+              {/* Card 2: Vision (Black) */}
               <ScrollReveal animation="fade-in-up" delayMs={100}>
-                <div className="hover-luxury-lift space-y-4 rounded-[20px] border border-white/10 bg-[#4e0b13] p-8 text-white shadow-md transition-all duration-300 hover:border-white/25 sm:p-10">
+                <div className="hover-luxury-lift space-y-4 rounded-[20px] border border-white/10 bg-black p-8 text-white shadow-md transition-all duration-300 hover:border-white/25 sm:p-10">
                   <div className="flex items-center justify-between">
                     <span className="text-[12px] font-bold tracking-[0.2em] text-[#ebc7cb] uppercase">
                       VISION
@@ -572,7 +572,7 @@ export default function AboutPage() {
         {/* ========================================================
             6. BOTTOM CTA (Figma: CTA)
            ======================================================== */}
-        <section className="bg-[#4e0b13] py-20 text-white lg:py-24">
+        <section className="bg-black py-20 text-white lg:py-24">
           <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
             <ScrollReveal
               animation="fade-in-up"

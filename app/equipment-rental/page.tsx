@@ -187,7 +187,7 @@ export default function EquipmentRentalPage() {
               </Link>
               <Link
                 href="/equipment-rental"
-                className="inline-flex items-center gap-2 rounded-xl bg-white text-[#4e0b13] px-4 py-2.5 text-xs font-bold shadow-xs"
+                className="inline-flex items-center gap-2 rounded-xl bg-white text-[#1b1416] px-4 py-2.5 text-xs font-bold shadow-xs"
               >
                 <Video className="w-4 h-4 text-[#81141f]" />
                 <span>Camera &amp; Gear Rental</span>
@@ -274,7 +274,7 @@ export default function EquipmentRentalPage() {
 
                     {/* Top Floating Badges */}
                     <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between gap-2">
-                      <span className="rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider truncate">
+                      <span className="rounded-full bg-black/80 backdrop-blur-sm text-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider truncate">
                         {item.category} · {item.condition}
                       </span>
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-[#1b1416] shadow-xs shrink-0">

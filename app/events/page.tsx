@@ -163,7 +163,7 @@ export default function EventsTicketingPage() {
               </Link>
               <Link
                 href="/events"
-                className="inline-flex items-center gap-2 rounded-xl bg-white text-[#4e0b13] px-4 py-2.5 text-xs font-bold shadow-xs"
+                className="inline-flex items-center gap-2 rounded-xl bg-white text-[#1b1416] px-4 py-2.5 text-xs font-bold shadow-xs"
               >
                 <Ticket className="w-4 h-4 text-[#81141f]" />
                 <span>Events &amp; Tickets</span>
@@ -217,7 +217,7 @@ export default function EventsTicketingPage() {
 
                     {/* Top Floating Badges */}
                     <div className="absolute top-4 inset-x-4 flex items-center justify-between gap-2">
-                      <span className="rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider">
+                      <span className="rounded-full bg-black/80 backdrop-blur-sm text-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider">
                         {evt.city}
                       </span>
                       <span className="rounded-full bg-white/90 backdrop-blur-sm text-[#1b1416] px-3 py-1 text-[11px] font-bold shadow-xs">
@@ -301,7 +301,7 @@ export default function EventsTicketingPage() {
             <div className="rounded-2xl border border-[#eae3e4] bg-white p-6 sm:p-7 shadow-lg">
               {issuedTicket ? (
                 <div className="space-y-5">
-                  <div className="rounded-2xl bg-[#4e0b13] text-white p-6 space-y-4 border border-[#81141f]">
+                  <div className="rounded-2xl bg-black text-white p-6 space-y-4 border border-[#81141f]">
                     <div className="flex items-center justify-between border-b border-white/15 pb-3">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-widest text-[#ebc7cb]">

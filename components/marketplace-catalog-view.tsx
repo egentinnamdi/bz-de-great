@@ -261,7 +261,7 @@ export function MarketplaceCatalogView({
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <Link
                 href="/marketplace"
-                className="inline-flex items-center gap-2 rounded-xl bg-white text-[#4e0b13] px-4 py-2.5 text-xs font-bold shadow-xs"
+                className="inline-flex items-center gap-2 rounded-xl bg-white text-[#1b1416] px-4 py-2.5 text-xs font-bold shadow-xs"
               >
                 <ShoppingBag className="w-4 h-4 text-[#81141f]" />
                 <span>Marketplace ({publishedProducts.length})</span>
@@ -490,7 +490,7 @@ export function MarketplaceCatalogView({
 
                     {/* Top Minimal Badges */}
                     <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between gap-2">
-                      <span className="rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider truncate">
+                      <span className="rounded-full bg-black/80 backdrop-blur-sm text-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider truncate">
                         {product.brand} · {product.condition}
                       </span>
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-[#1b1416] shadow-xs shrink-0">
@@ -560,99 +560,6 @@ export function MarketplaceCatalogView({
               })}
             </div>
           )}
-
-          {/* Cross-Division Banner for Studio, Equipment & Events */}
-          <div className="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Link
-              href="/studio"
-              className="h-[290px] rounded-2xl relative overflow-hidden border border-[#eae3e4] bg-[#f8f5f5] shadow-xs hover:shadow-xl transition-all duration-300 group block"
-            >
-              <img
-                src="/photos/founder-bz-3.jpg"
-                alt="Lagos State Photo & Video Studio"
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/15 pointer-events-none" />
-              <div className="absolute top-3.5 left-3.5">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
-                  <Camera className="w-3 h-3" />
-                  Lagos Studio
-                </span>
-              </div>
-              <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/88 backdrop-blur-md border border-white/80 p-4 shadow-lg transition-all duration-300 group-hover:bg-white/95 space-y-1.5">
-                <h3 className="text-base font-bold text-[#1b1416] line-clamp-1">
-                  Lagos State Photo &amp; Video Studio
-                </h3>
-                <p className="text-[11px] text-[#5a5052] line-clamp-2 leading-relaxed">
-                  Book our acoustic-treated cyclorama &amp; portrait studio in Lekki-Ajah, Lagos State with live slot protection.
-                </p>
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#81141f] pt-1">
-                  <span>Book Studio Session</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </Link>
-
-            <Link
-              href="/equipment-rental"
-              className="h-[290px] rounded-2xl relative overflow-hidden border border-[#eae3e4] bg-[#f8f5f5] shadow-xs hover:shadow-xl transition-all duration-300 group block"
-            >
-              <img
-                src="/photos/gallery-bz-4.jpg"
-                alt="Camera & Media Gear Rentals"
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/15 pointer-events-none" />
-              <div className="absolute top-3.5 left-3.5">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
-                  <Video className="w-3 h-3" />
-                  Gear Rental
-                </span>
-              </div>
-              <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/88 backdrop-blur-md border border-white/80 p-4 shadow-lg transition-all duration-300 group-hover:bg-white/95 space-y-1.5">
-                <h3 className="text-base font-bold text-[#1b1416] line-clamp-1">
-                  Camera &amp; Media Gear Rentals
-                </h3>
-                <p className="text-[11px] text-[#5a5052] line-clamp-2 leading-relaxed">
-                  Rent Sony FX3, RED Komodo 6K, G-Master lenses, Aputure 600d Pro lights, and wireless audio kits by the day.
-                </p>
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#81141f] pt-1">
-                  <span>Browse Rental Gear</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </Link>
-
-            <Link
-              href="/events"
-              className="h-[290px] rounded-2xl relative overflow-hidden border border-[#eae3e4] bg-[#f8f5f5] shadow-xs hover:shadow-xl transition-all duration-300 group block"
-            >
-              <img
-                src="/photos/hero-villa-suv.jpg"
-                alt="Events & QR Digital Tickets"
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/15 pointer-events-none" />
-              <div className="absolute top-3.5 left-3.5">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
-                  <Ticket className="w-3 h-3" />
-                  Events &amp; Tickets
-                </span>
-              </div>
-              <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/88 backdrop-blur-md border border-white/80 p-4 shadow-lg transition-all duration-300 group-hover:bg-white/95 space-y-1.5">
-                <h3 className="text-base font-bold text-[#1b1416] line-clamp-1">
-                  Events &amp; QR Digital Tickets
-                </h3>
-                <p className="text-[11px] text-[#5a5052] line-clamp-2 leading-relaxed">
-                  Reserve Regular, VIP, and VVIP passes for upcoming BZ Group galas, investor briefings, and masterclasses.
-                </p>
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#81141f] pt-1">
-                  <span>View Upcoming Events</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </Link>
-          </div>
         </div>
       </main>
 
@@ -811,7 +718,7 @@ export function MarketplaceCatalogView({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end">
           <div className="bg-white w-full max-w-xl h-full flex flex-col shadow-2xl border-l border-[#eae3e4]">
             {/* Drawer Header */}
-            <div className="px-6 py-5 border-b border-[#eae3e4] bg-[#4e0b13] text-white flex items-center justify-between">
+            <div className="px-6 py-5 border-b border-[#eae3e4] bg-black text-white flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[#ebc7cb]">
                   BZ MARKETPLACE CHECKOUT
