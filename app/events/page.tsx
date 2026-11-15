@@ -4,10 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Ticket,
-  Calendar,
-  Clock,
   MapPin,
-  Sparkles,
   CheckCircle2,
   Upload,
   ShoppingBag,
@@ -117,42 +114,51 @@ export default function EventsTicketingPage() {
       <SiteHeader />
 
       {/* Hero Header */}
-      <section className="bg-[#4e0b13] text-white py-14 lg:py-16 border-b border-[#630f1a]">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px]">
+      <section className="relative overflow-hidden bg-[#4e0b13] text-white py-14 lg:py-16 border-b border-[#630f1a]">
+        {/* Background Events Image (70% visibility over #4e0b13) */}
+        <div
+          className="absolute inset-0 overflow-hidden pointer-events-none select-none"
+          aria-hidden="true"
+        >
+          <img
+            src="/photos/hero-villa-suv.jpg"
+            alt=""
+            className="w-full h-full object-cover object-center opacity-70"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#4e0b13]/80 via-[#4e0b13]/50 to-[#4e0b13]/70" />
+        </div>
+
+        <div className="relative z-10 max-w-[1440px] mx-auto px-4 lg:px-[120px]">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
             <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#81141f] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#f6e3e5]">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>LAGOS &amp; ABUJA EVENTS · INSTANT QR PASSES</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight leading-[1.12]">
+              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight text-white leading-[1.12] drop-shadow-xs">
                 Upcoming Events &amp; Digital Tickets
               </h1>
-              <p className="text-sm sm:text-base text-[#ebc7cb] leading-relaxed">
+              <p className="text-sm sm:text-base text-[#f6e3e5] leading-relaxed">
                 Reserve Regular, VIP, and VVIP tickets for exclusive BZ De Great galas, creative studio masterclasses, and private real estate briefings — complete with cryptographic QR digital passes.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <Link
                 href="/marketplace"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
-                <ShoppingBag className="w-4 h-4 text-[#ebc7cb]" />
+                <ShoppingBag className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Marketplace</span>
               </Link>
               <Link
                 href="/studio"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
-                <Camera className="w-4 h-4 text-[#ebc7cb]" />
+                <Camera className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Lagos Studio Booking</span>
               </Link>
               <Link
                 href="/equipment-rental"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
-                <Video className="w-4 h-4 text-[#ebc7cb]" />
+                <Video className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Camera &amp; Gear Rental</span>
               </Link>
               <Link
@@ -195,57 +201,45 @@ export default function EventsTicketingPage() {
                       setIssuedTicket(null);
                       setErrorMsg(null);
                     }}
-                    className={`rounded-2xl border overflow-hidden transition-all cursor-pointer ${
+                    className={`h-[430px] sm:h-[440px] rounded-2xl relative overflow-hidden border transition-all duration-300 cursor-pointer group ${
                       isSelected
-                        ? 'border-[#81141f] bg-[#fbf3f4]/50 shadow-md ring-1 ring-[#81141f]'
-                        : 'border-[#eae3e4] bg-white hover:border-[#81141f]/50'
+                        ? 'border-[#81141f] ring-2 ring-[#81141f] shadow-lg'
+                        : 'border-[#eae3e4] bg-[#f8f5f5] shadow-xs hover:shadow-xl'
                     }`}
                   >
-                    <div className="relative h-56 bg-[#f8f5f5]">
-                      <img
-                        src={evt.image || '/photos/hero-villa-suv.jpg'}
-                        alt={evt.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-3 left-3 flex items-center gap-2">
-                        <span className="rounded-md bg-[#4e0b13]/95 text-white px-3 py-1 text-xs font-bold">
-                          {evt.city}
-                        </span>
-                        <span className="rounded-md bg-white/95 text-[#1b1416] px-3 py-1 text-xs font-bold shadow-xs">
-                          {evt.date}
-                        </span>
-                      </div>
+                    {/* Full-bleed Event Image */}
+                    <img
+                      src={evt.image || '/photos/hero-villa-suv.jpg'}
+                      alt={evt.name}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-black/20 pointer-events-none" />
+
+                    {/* Top Floating Badges */}
+                    <div className="absolute top-4 inset-x-4 flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider">
+                        {evt.city}
+                      </span>
+                      <span className="rounded-full bg-white/90 backdrop-blur-sm text-[#1b1416] px-3 py-1 text-[11px] font-bold shadow-xs">
+                        {evt.date} · {evt.startTime}
+                      </span>
                     </div>
 
-                    <div className="p-6 space-y-4">
+                    {/* Bottom Translucent Glass Details Card */}
+                    <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/90 backdrop-blur-md border border-white/80 p-4 sm:p-5 shadow-lg transition-all duration-300 group-hover:bg-white/95 space-y-3">
                       <div>
-                        <h3 className="text-xl font-bold text-[#1b1416]">{evt.name}</h3>
-                        <p className="text-xs text-[#4d4547] mt-1.5 leading-relaxed">
-                          {evt.description}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-[#716769]">
-                        <span className="inline-flex items-center gap-1.5 font-semibold text-[#1b1416]">
-                          <Calendar className="w-3.5 h-3.5 text-[#81141f]" />
-                          {evt.date}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 font-semibold text-[#1b1416]">
-                          <Clock className="w-3.5 h-3.5 text-[#81141f]" />
-                          {evt.startTime} – {evt.endTime}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-[#81141f]" />
-                          {evt.venue}
-                        </span>
+                        <h3 className="text-lg sm:text-xl font-bold text-[#1b1416] line-clamp-1">
+                          {evt.name}
+                        </h3>
+                        <div className="flex items-center gap-1.5 text-xs text-[#5a5052] mt-1">
+                          <MapPin className="w-3.5 h-3.5 text-[#81141f] shrink-0" />
+                          <span className="truncate">{evt.venue}</span>
+                        </div>
                       </div>
 
                       {/* Configurable Ticket Tiers */}
-                      <div className="pt-3 border-t border-[#eae3e4]">
-                        <span className="block text-[10px] font-bold uppercase tracking-wider text-[#716769] mb-2">
-                          Available Ticket Tiers
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="pt-2.5 border-t border-[#eae3e4]/80">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           {evt.ticketTiers.map((tier) => {
                             const left = tier.capacity - tier.sold;
                             const isTierChosen =
@@ -261,16 +255,16 @@ export default function EventsTicketingPage() {
                                   setSelectedTierId(tier.id);
                                   setIssuedTicket(null);
                                 }}
-                                className={`rounded-xl border p-3 text-left transition-all ${
+                                className={`rounded-xl border p-2.5 text-left transition-all ${
                                   left <= 0
                                     ? 'bg-neutral-100 border-neutral-200 opacity-60 cursor-not-allowed'
                                     : isTierChosen
                                     ? 'bg-[#81141f] border-[#81141f] text-white cursor-pointer'
-                                    : 'bg-white border-[#eae3e4] hover:border-[#81141f] cursor-pointer'
+                                    : 'bg-white/85 border-[#eae3e4] hover:border-[#81141f] cursor-pointer'
                                 }`}
                               >
                                 <span
-                                  className={`block text-xs font-bold ${
+                                  className={`block text-[11px] font-bold truncate ${
                                     isTierChosen ? 'text-white' : 'text-[#1b1416]'
                                   }`}
                                 >
@@ -284,7 +278,7 @@ export default function EventsTicketingPage() {
                                   ₦{tier.price.toLocaleString()}
                                 </span>
                                 <span
-                                  className={`block text-[10px] mt-1 font-semibold ${
+                                  className={`block text-[10px] mt-0.5 font-semibold ${
                                     isTierChosen ? 'text-white/80' : 'text-[#716769]'
                                   }`}
                                 >

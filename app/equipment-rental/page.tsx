@@ -7,7 +7,6 @@ import {
   Camera,
   ShoppingBag,
   Ticket,
-  Sparkles,
   CheckCircle2,
   Upload,
   AlertCircle,
@@ -146,35 +145,44 @@ export default function EquipmentRentalPage() {
       <SiteHeader />
 
       {/* Hero Header */}
-      <section className="bg-[#4e0b13] text-white py-14 lg:py-16 border-b border-[#630f1a]">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px]">
+      <section className="relative overflow-hidden bg-[#4e0b13] text-white py-14 lg:py-16 border-b border-[#630f1a]">
+        {/* Background Equipment Image (70% visibility over #4e0b13) */}
+        <div
+          className="absolute inset-0 overflow-hidden pointer-events-none select-none"
+          aria-hidden="true"
+        >
+          <img
+            src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1000&q=85"
+            alt=""
+            className="w-full h-full object-cover object-center opacity-70"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#4e0b13]/80 via-[#4e0b13]/50 to-[#4e0b13]/70" />
+        </div>
+
+        <div className="relative z-10 max-w-[1440px] mx-auto px-4 lg:px-[120px]">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
             <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#81141f] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#f6e3e5]">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>CINEMA CAMERAS, LIGHTING &amp; AUDIO GEAR</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight leading-[1.12]">
+              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight text-white leading-[1.12] drop-shadow-xs">
                 Camera &amp; Media Equipment Rental
               </h1>
-              <p className="text-sm sm:text-base text-[#ebc7cb] leading-relaxed">
+              <p className="text-sm sm:text-base text-[#f6e3e5] leading-relaxed">
                 Rent cinema cameras, G-Master lenses, Aputure COB lighting, fluid-head tripods, and broadcast wireless audio kits inspected by our studio technicians.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <Link
                 href="/marketplace"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
-                <ShoppingBag className="w-4 h-4 text-[#ebc7cb]" />
+                <ShoppingBag className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Marketplace</span>
               </Link>
               <Link
                 href="/studio"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
-                <Camera className="w-4 h-4 text-[#ebc7cb]" />
+                <Camera className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Lagos Studio Booking</span>
               </Link>
               <Link
@@ -186,30 +194,12 @@ export default function EquipmentRentalPage() {
               </Link>
               <Link
                 href="/events"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
-                <Ticket className="w-4 h-4 text-[#ebc7cb]" />
+                <Ticket className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Events &amp; Tickets</span>
               </Link>
             </div>
-          </div>
-
-          {/* Equipment Category Chips */}
-          <div className="mt-8 pt-6 border-t border-white/10 flex items-center gap-2 overflow-x-auto no-scrollbar">
-            {EQUIPMENT_CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
-                  selectedCategory === cat
-                    ? 'bg-white text-[#4e0b13]'
-                    : 'bg-[#63101a]/70 text-[#f6e3e5] hover:bg-[#81141f]'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
           </div>
         </div>
       </section>
@@ -217,94 +207,123 @@ export default function EquipmentRentalPage() {
       {/* Main Content */}
       <main className="flex-1 py-12 lg:py-16">
         <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px] grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          {/* Left 7 Columns: Equipment Catalog */}
-          <div className="lg:col-span-7 space-y-5">
-            {filteredItems.map((item) => {
-              const isSelected = selectedItem?.id === item.id;
-              const availForDates = calculateEquipmentAvailableQty(
-                item,
-                equipmentRentals,
-                startDate,
-                endDate
-              );
+          {/* Left 7 Columns: Direct Category Chips + Equipment Catalog */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Direct Equipment Category Filter Chips */}
+            <div className="pb-4 border-b border-[#eae3e4] space-y-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-[#1b1416]">
+                  {selectedCategory === 'All' ? 'All Production Equipment' : selectedCategory}
+                </h2>
+                <span className="text-xs text-[#716769]">
+                  {filteredItems.length} item{filteredItems.length === 1 ? '' : 's'} available
+                </span>
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                {EQUIPMENT_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold shrink-0 border transition-all cursor-pointer ${
+                      selectedCategory === cat
+                        ? 'bg-[#81141f] border-[#81141f] text-white shadow-xs'
+                        : 'bg-[#f8f5f5] border-[#eae3e4] text-[#4d4547] hover:border-[#81141f] hover:text-[#81141f]'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => {
-                    setSelectedItemId(item.id);
-                    setConfirmedRental(null);
-                    setErrorMsg(null);
-                  }}
-                  className={`rounded-2xl border p-6 transition-all cursor-pointer ${
-                    isSelected
-                      ? 'border-[#81141f] bg-[#fbf3f4]/60 shadow-sm ring-1 ring-[#81141f]'
-                      : 'border-[#eae3e4] bg-white hover:border-[#81141f]/50'
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {filteredItems.map((item) => {
+                const isSelected = selectedItem?.id === item.id;
+                const availForDates = calculateEquipmentAvailableQty(
+                  item,
+                  equipmentRentals,
+                  startDate,
+                  endDate
+                );
+                const specSummary = Object.values(item.specifications)
+                  .slice(0, 2)
+                  .join(' · ');
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      setSelectedItemId(item.id);
+                      setConfirmedRental(null);
+                      setErrorMsg(null);
+                    }}
+                    className={`h-[380px] rounded-2xl relative overflow-hidden border transition-all duration-300 cursor-pointer group ${
+                      isSelected
+                        ? 'border-[#81141f] ring-2 ring-[#81141f] shadow-lg'
+                        : 'border-[#eae3e4] bg-[#f8f5f5] shadow-xs hover:shadow-xl'
+                    }`}
+                  >
+                    {/* Full-bleed Gear Photo */}
                     <img
                       src={item.images[0] || '/photos/gallery-bz-1.jpg'}
                       alt={item.name}
-                      className="w-full sm:w-44 h-36 rounded-xl object-cover border border-[#eae3e4] shrink-0"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="rounded-md bg-[#4e0b13] text-white px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                              {item.category}
-                            </span>
-                            <span className="text-xs font-semibold text-[#716769]">
-                              {item.condition}
-                            </span>
-                          </div>
-                          <h3 className="text-lg font-bold text-[#1b1416] mt-1">
-                            {item.name}
-                          </h3>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="block text-xl font-extrabold text-[#81141f]">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15 pointer-events-none" />
+
+                    {/* Top Floating Badges */}
+                    <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider truncate">
+                        {item.category} · {item.condition}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-[#1b1416] shadow-xs shrink-0">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            availForDates > 0 ? 'bg-emerald-600' : 'bg-red-600'
+                          }`}
+                        />
+                        <span>
+                          {availForDates > 0
+                            ? `${availForDates}/${item.quantityTotal} open`
+                            : 'Booked out'}
+                        </span>
+                      </span>
+                    </div>
+
+                    {/* Bottom Translucent Glass Details Card */}
+                    <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/88 backdrop-blur-md border border-white/80 p-4 shadow-lg transition-all duration-300 group-hover:bg-white/95">
+                      <h3 className="text-[15px] sm:text-base font-bold text-[#1b1416] line-clamp-1 leading-snug">
+                        {item.name}
+                      </h3>
+                      <p className="text-[11px] font-medium text-[#5a5052] line-clamp-1 mt-0.5">
+                        {specSummary || item.description}
+                      </p>
+
+                      <div className="mt-3 pt-2.5 border-t border-[#eae3e4]/80 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="text-base sm:text-lg font-extrabold text-[#1b1416]">
                             ₦{item.dailyRate.toLocaleString()}/day
                           </span>
-                          <span className="text-[11px] text-[#716769] font-semibold">
+                          <span className="block text-[10px] font-semibold text-[#5a5052]">
                             Deposit: ₦{item.depositAmount.toLocaleString()}
                           </span>
                         </div>
-                      </div>
-
-                      <p className="text-xs text-[#4d4547] leading-relaxed">
-                        {item.description}
-                      </p>
-
-                      <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-[#eae3e4]">
-                        {Object.entries(item.specifications).map(([k, v]) => (
-                          <div key={k} className="text-xs truncate">
-                            <span className="text-[#716769] font-medium">{k}: </span>
-                            <span className="font-semibold text-[#1b1416]">{v}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 text-xs">
                         <span
-                          className={`font-bold ${
-                            availForDates > 0 ? 'text-emerald-700' : 'text-red-600'
+                          className={`h-8 px-3 rounded-lg inline-flex items-center text-[11px] font-bold shrink-0 transition-colors ${
+                            isSelected
+                              ? 'bg-[#81141f] text-white'
+                              : 'bg-white border border-[#eae3e4] text-[#1b1416] group-hover:border-[#81141f]'
                           }`}
                         >
-                          {availForDates > 0
-                            ? `${availForDates} of ${item.quantityTotal} available (${startDate} → ${endDate})`
-                            : `Booked out for ${startDate} → ${endDate}`}
-                        </span>
-                        <span className="font-bold text-[#81141f]">
-                          {isSelected ? 'Selected for Rental ✓' : 'Select Gear →'}
+                          {isSelected ? 'Selected ✓' : 'Rent Gear'}
                         </span>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           {/* Right 5 Columns: Sticky Rental Date-Range Calculator & Booking Form */}

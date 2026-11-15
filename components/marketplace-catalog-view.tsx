@@ -232,8 +232,8 @@ export function MarketplaceCatalogView({
       )}
 
       {/* Marketplace Hero Banner */}
-      <section className="relative overflow-hidden bg-[#4e0b13] text-white border-b border-[#630f1a]">
-        {/* Background Commerce Image (35-45% visibility over #4e0b13) */}
+      <section className="relative overflow-hidden bg-[#4e0b13] text-white py-14 lg:py-16 border-b border-[#630f1a]">
+        {/* Background Commerce Image (70% visibility over #4e0b13) */}
         <div
           className="absolute inset-0 overflow-hidden pointer-events-none select-none"
           aria-hidden="true"
@@ -241,90 +241,53 @@ export function MarketplaceCatalogView({
           <img
             src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=2000&q=85"
             alt=""
-            className="w-full h-full object-cover object-center opacity-40 scale-105"
+            className="w-full h-full object-cover object-center opacity-70"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#4e0b13]/50 via-[#4e0b13]/25 to-[#4e0b13]/65" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(78,11,19,0.20)_0%,rgba(78,11,19,0.60)_100%)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#4e0b13]/80 via-[#4e0b13]/50 to-[#4e0b13]/70" />
         </div>
 
-        {/* Centered Hero Content */}
-        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-20 lg:py-24 text-center space-y-6">
-          <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight text-white leading-[1.08] drop-shadow-sm">
-            {resolvedTitle}
-          </h1>
-          <p className="text-sm sm:text-base lg:text-lg text-white/85 max-w-2xl mx-auto font-medium leading-relaxed">
-            {resolvedSubtitle}
-          </p>
-
-          {/* Standard Unified Search Bar */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              document
-                .getElementById('marketplace-catalog-grid')
-                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            className="max-w-2xl mx-auto pt-1"
-          >
-            <div className="flex items-center w-full bg-white rounded-xl p-1.5 shadow-2xl border border-white/20 focus-within:ring-2 focus-within:ring-[#81141f]">
-              <Search className="w-5 h-5 text-[#716769] ml-3 shrink-0" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products, brands, or keywords..."
-                className="w-full h-11 sm:h-12 px-3 text-sm sm:text-base text-[#1b1416] placeholder:text-[#716769] bg-transparent focus:outline-none"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="p-2 text-[#716769] hover:text-[#1b1416] cursor-pointer"
-                  title="Clear search"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-              <button
-                type="submit"
-                className="h-11 sm:h-12 px-6 sm:px-7 rounded-lg bg-[#81141f] hover:bg-[#6b121c] text-white text-xs sm:text-sm font-bold tracking-wide shrink-0 transition-colors cursor-pointer flex items-center gap-1.5"
-              >
-                <span>Search</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+        <div className="relative z-10 max-w-[1440px] mx-auto px-4 lg:px-[120px]">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+            <div className="space-y-3 max-w-2xl">
+              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight text-white leading-[1.12] drop-shadow-xs">
+                {resolvedTitle}
+              </h1>
+              <p className="text-sm sm:text-base text-[#f6e3e5] leading-relaxed">
+                {resolvedSubtitle}
+              </p>
             </div>
-          </form>
 
-          {/* Centered Service Pillar Switcher Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
-            <Link
-              href="/marketplace"
-              className="inline-flex items-center gap-2 rounded-xl bg-white text-[#4e0b13] px-4 py-2.5 text-xs font-bold shadow-xs"
-            >
-              <ShoppingBag className="w-4 h-4 text-[#81141f]" />
-              <span>Marketplace ({publishedProducts.length})</span>
-            </Link>
-            <Link
-              href="/studio"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/20 backdrop-blur-sm transition-colors"
-            >
-              <Camera className="w-4 h-4 text-[#f6e3e5]" />
-              <span>Lagos Studio Booking</span>
-            </Link>
-            <Link
-              href="/equipment-rental"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/20 backdrop-blur-sm transition-colors"
-            >
-              <Video className="w-4 h-4 text-[#f6e3e5]" />
-              <span>Camera &amp; Gear Rental</span>
-            </Link>
-            <Link
-              href="/events"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/20 backdrop-blur-sm transition-colors"
-            >
-              <Ticket className="w-4 h-4 text-[#f6e3e5]" />
-              <span>Events &amp; Tickets</span>
-            </Link>
+            {/* Service Pillar Switcher Pills */}
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <Link
+                href="/marketplace"
+                className="inline-flex items-center gap-2 rounded-xl bg-white text-[#4e0b13] px-4 py-2.5 text-xs font-bold shadow-xs"
+              >
+                <ShoppingBag className="w-4 h-4 text-[#81141f]" />
+                <span>Marketplace ({publishedProducts.length})</span>
+              </Link>
+              <Link
+                href="/studio"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
+              >
+                <Camera className="w-4 h-4 text-[#f6e3e5]" />
+                <span>Lagos Studio Booking</span>
+              </Link>
+              <Link
+                href="/equipment-rental"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
+              >
+                <Video className="w-4 h-4 text-[#f6e3e5]" />
+                <span>Camera &amp; Gear Rental</span>
+              </Link>
+              <Link
+                href="/events"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
+              >
+                <Ticket className="w-4 h-4 text-[#f6e3e5]" />
+                <span>Events &amp; Tickets</span>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -332,16 +295,42 @@ export function MarketplaceCatalogView({
       {/* Main Catalog Grid */}
       <main id="marketplace-catalog-grid" className="flex-1 py-12 lg:py-16 scroll-mt-[100px]">
         <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px]">
-          {/* Unified Catalog Header & Controls Row */}
-          <div className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-[#eae3e4]">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#1b1416]">
-                {activeCategoryObj ? activeCategoryObj.name : 'All Verified Products'}
-              </h2>
-              <p className="text-xs sm:text-sm text-[#716769]">
-                Showing {filteredProducts.length} item{filteredProducts.length === 1 ? '' : 's'} · Direct bank transfer verification &amp; nationwide insured delivery
-              </p>
-            </div>
+          {/* Row 1: Standard Search Bar & Filter/Sort/Bag Controls */}
+          <div className="mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                document
+                  .getElementById('marketplace-catalog-grid')
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="flex items-center w-full lg:max-w-md bg-white rounded-xl p-1 border border-[#d6ccce] focus-within:border-[#81141f] shadow-2xs"
+            >
+              <Search className="w-4 h-4 text-[#716769] ml-2.5 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products, brands, or keywords..."
+                className="w-full h-9 px-2.5 text-xs sm:text-sm text-[#1b1416] placeholder:text-[#716769] bg-transparent focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="p-1.5 text-[#716769] hover:text-[#1b1416] cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                type="submit"
+                className="h-9 px-4 rounded-lg bg-[#81141f] hover:bg-[#6b121c] text-white text-xs font-bold shrink-0 transition-colors cursor-pointer"
+              >
+                Search
+              </button>
+            </form>
 
             {/* Brand Filter, Sort & Cart Button */}
             <div className="flex flex-wrap items-center gap-2.5">
@@ -390,6 +379,60 @@ export function MarketplaceCatalogView({
                   </span>
                 )}
               </Button>
+            </div>
+          </div>
+
+          {/* Row 2: Direct Category Filter Chips directly above Product Cards */}
+          <div className="mb-8 pb-5 border-b border-[#eae3e4] space-y-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#1b1416]">
+                {activeCategoryObj ? activeCategoryObj.name : 'All Verified Products'}
+              </h2>
+              <p className="text-xs sm:text-sm text-[#716769]">
+                Showing {filteredProducts.length} item{filteredProducts.length === 1 ? '' : 's'} · Direct bank transfer verification &amp; nationwide insured delivery
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCategory('all');
+                  setSelectedBrand('all');
+                }}
+                className={`px-4 py-2 rounded-full text-xs font-bold shrink-0 border transition-all cursor-pointer ${
+                  activeCategory === 'all'
+                    ? 'bg-[#81141f] border-[#81141f] text-white shadow-xs'
+                    : 'bg-[#f8f5f5] border-[#eae3e4] text-[#4d4547] hover:border-[#81141f] hover:text-[#81141f]'
+                }`}
+              >
+                All Categories ({publishedProducts.length})
+              </button>
+              {productCategories
+                .filter((c) => c.active)
+                .map((cat) => {
+                  const count = publishedProducts.filter(
+                    (p) => p.categorySlug === cat.slug
+                  ).length;
+                  const isSelected = activeCategory === cat.slug;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveCategory(cat.slug);
+                        setSelectedBrand('all');
+                      }}
+                      className={`px-4 py-2 rounded-full text-xs font-bold shrink-0 border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#81141f] border-[#81141f] text-white shadow-xs'
+                          : 'bg-[#f8f5f5] border-[#eae3e4] text-[#4d4547] hover:border-[#81141f] hover:text-[#81141f]'
+                      }`}
+                    >
+                      {cat.name} ({count})
+                    </button>
+                  );
+                })}
             </div>
           </div>
 
@@ -519,63 +562,96 @@ export function MarketplaceCatalogView({
           )}
 
           {/* Cross-Division Banner for Studio, Equipment & Events */}
-          <div className="mt-16 rounded-2xl bg-[#fbf3f4] border border-[#e6d3d6] p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="rounded-xl bg-white p-6 border border-[#eae3e4] space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-[#fbf3f4] text-[#81141f] flex items-center justify-center">
-                <Camera className="w-5 h-5" />
+          <div className="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Link
+              href="/studio"
+              className="h-[290px] rounded-2xl relative overflow-hidden border border-[#eae3e4] bg-[#f8f5f5] shadow-xs hover:shadow-xl transition-all duration-300 group block"
+            >
+              <img
+                src="/photos/founder-bz-3.jpg"
+                alt="Lagos State Photo & Video Studio"
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/15 pointer-events-none" />
+              <div className="absolute top-3.5 left-3.5">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
+                  <Camera className="w-3 h-3" />
+                  Lagos Studio
+                </span>
               </div>
-              <h3 className="text-lg font-bold text-[#1b1416]">
-                Lagos State Photo &amp; Video Studio
-              </h3>
-              <p className="text-xs text-[#716769] leading-relaxed">
-                Book our acoustic-treated cyclorama &amp; portrait studio in Lekki-Ajah, Lagos State with live slot conflict protection.
-              </p>
-              <Link
-                href="/studio"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#81141f] hover:underline pt-1"
-              >
-                <span>Book Studio Session</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+              <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/88 backdrop-blur-md border border-white/80 p-4 shadow-lg transition-all duration-300 group-hover:bg-white/95 space-y-1.5">
+                <h3 className="text-base font-bold text-[#1b1416] line-clamp-1">
+                  Lagos State Photo &amp; Video Studio
+                </h3>
+                <p className="text-[11px] text-[#5a5052] line-clamp-2 leading-relaxed">
+                  Book our acoustic-treated cyclorama &amp; portrait studio in Lekki-Ajah, Lagos State with live slot protection.
+                </p>
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#81141f] pt-1">
+                  <span>Book Studio Session</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </Link>
 
-            <div className="rounded-xl bg-white p-6 border border-[#eae3e4] space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-[#fbf3f4] text-[#81141f] flex items-center justify-center">
-                <Video className="w-5 h-5" />
+            <Link
+              href="/equipment-rental"
+              className="h-[290px] rounded-2xl relative overflow-hidden border border-[#eae3e4] bg-[#f8f5f5] shadow-xs hover:shadow-xl transition-all duration-300 group block"
+            >
+              <img
+                src="/photos/gallery-bz-4.jpg"
+                alt="Camera & Media Gear Rentals"
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/15 pointer-events-none" />
+              <div className="absolute top-3.5 left-3.5">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
+                  <Video className="w-3 h-3" />
+                  Gear Rental
+                </span>
               </div>
-              <h3 className="text-lg font-bold text-[#1b1416]">
-                Camera &amp; Media Gear Rentals
-              </h3>
-              <p className="text-xs text-[#716769] leading-relaxed">
-                Rent Sony FX3, RED Komodo 6K, G-Master lenses, Aputure 600d Pro lights, and wireless audio kits by the day.
-              </p>
-              <Link
-                href="/equipment-rental"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#81141f] hover:underline pt-1"
-              >
-                <span>Browse Rental Gear</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+              <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/88 backdrop-blur-md border border-white/80 p-4 shadow-lg transition-all duration-300 group-hover:bg-white/95 space-y-1.5">
+                <h3 className="text-base font-bold text-[#1b1416] line-clamp-1">
+                  Camera &amp; Media Gear Rentals
+                </h3>
+                <p className="text-[11px] text-[#5a5052] line-clamp-2 leading-relaxed">
+                  Rent Sony FX3, RED Komodo 6K, G-Master lenses, Aputure 600d Pro lights, and wireless audio kits by the day.
+                </p>
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#81141f] pt-1">
+                  <span>Browse Rental Gear</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </Link>
 
-            <div className="rounded-xl bg-white p-6 border border-[#eae3e4] space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-[#fbf3f4] text-[#81141f] flex items-center justify-center">
-                <Ticket className="w-5 h-5" />
+            <Link
+              href="/events"
+              className="h-[290px] rounded-2xl relative overflow-hidden border border-[#eae3e4] bg-[#f8f5f5] shadow-xs hover:shadow-xl transition-all duration-300 group block"
+            >
+              <img
+                src="/photos/hero-villa-suv.jpg"
+                alt="Events & QR Digital Tickets"
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/15 pointer-events-none" />
+              <div className="absolute top-3.5 left-3.5">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
+                  <Ticket className="w-3 h-3" />
+                  Events &amp; Tickets
+                </span>
               </div>
-              <h3 className="text-lg font-bold text-[#1b1416]">
-                Events &amp; QR Digital Tickets
-              </h3>
-              <p className="text-xs text-[#716769] leading-relaxed">
-                Reserve Regular, VIP, and VVIP passes for upcoming BZ Group galas, investor briefings, and masterclasses.
-              </p>
-              <Link
-                href="/events"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#81141f] hover:underline pt-1"
-              >
-                <span>View Upcoming Events</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+              <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/88 backdrop-blur-md border border-white/80 p-4 shadow-lg transition-all duration-300 group-hover:bg-white/95 space-y-1.5">
+                <h3 className="text-base font-bold text-[#1b1416] line-clamp-1">
+                  Events &amp; QR Digital Tickets
+                </h3>
+                <p className="text-[11px] text-[#5a5052] line-clamp-2 leading-relaxed">
+                  Reserve Regular, VIP, and VVIP passes for upcoming BZ Group galas, investor briefings, and masterclasses.
+                </p>
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#81141f] pt-1">
+                  <span>View Upcoming Events</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </Link>
           </div>
         </div>
       </main>

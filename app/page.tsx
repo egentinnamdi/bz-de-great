@@ -589,80 +589,79 @@ export default function HomePage() {
                   animation="fade-in-up"
                   delayMs={idx * 100}
                 >
-                  <div className="group hover-luxury-lift flex flex-col overflow-hidden rounded-2xl border border-[#eae3e4] bg-white transition-all duration-300 hover:border-[#7A0C1A]/40">
-                    {/* Photo with Badge & Heart */}
-                    <div className="relative h-60 w-full overflow-hidden bg-[#faf7f7]">
-                      <Image
-                        src={car.image}
-                        alt={car.title}
-                        fill
-                        className="object-cover transition-transform duration-700 ease-out group-hover:scale-106"
+                  <div className="group hover-luxury-lift relative h-[400px] sm:h-[420px] overflow-hidden rounded-2xl border border-[#eae3e4] bg-[#faf7f7] transition-all duration-300 hover:border-[#81141f]/50">
+                    {/* Full-bleed Photo */}
+                    <Image
+                      src={car.image}
+                      alt={car.title}
+                      fill
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15" />
+
+                    {/* Top Overlay Badges */}
+                    <span className="absolute top-3.5 left-3.5 z-10 rounded-full bg-[#4e0b13]/85 px-3 py-1 text-[11px] font-bold tracking-wider text-white uppercase backdrop-blur-sm">
+                      {car.badge}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => toggleFavorite(car.id, e)}
+                      className="absolute top-3.5 right-3.5 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-[#716769] shadow-xs transition-all duration-150 hover:bg-white hover:text-[#7A0C1A] active:scale-75"
+                      aria-label="Save car"
+                    >
+                      <Heart
+                        className={cn(
+                          "h-4 w-4 transition-colors duration-200",
+                          savedFavorites[car.id] &&
+                            "fill-[#7A0C1A] text-[#7A0C1A]"
+                        )}
                       />
-                      <span className="absolute top-3 left-3 rounded-md bg-white px-2.5 py-1 text-[11px] font-medium text-[#1b1416] shadow-2xs">
-                        {car.badge}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => toggleFavorite(car.id, e)}
-                        className="absolute top-3 right-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white text-[#716769] shadow-2xs transition-all duration-150 hover:text-[#7A0C1A] active:scale-75"
-                        aria-label="Save car"
-                      >
-                        <Heart
-                          className={cn(
-                            "h-4 w-4 transition-colors duration-200",
-                            savedFavorites[car.id] &&
-                              "fill-[#7A0C1A] text-[#7A0C1A]"
-                          )}
-                        />
-                      </button>
-                    </div>
+                    </button>
 
-                    {/* Body */}
-                    <div className="flex flex-1 flex-col justify-between space-y-4 p-5">
-                      <div>
-                        <h3 className="line-clamp-1 text-base font-semibold text-[#1b1416] transition-colors duration-200 group-hover:text-[#7A0C1A]">
-                          {car.title}
-                        </h3>
-                        <div className="mt-1 flex items-center gap-1.5 text-xs text-[#716769]">
-                          <MapPin className="h-3.5 w-3.5" />
-                          <span>{car.location}</span>
+                    {/* Bottom Translucent Glass Details Card */}
+                    <div className="absolute inset-x-3 bottom-3 z-10 rounded-xl border border-white/80 bg-white/88 p-4 shadow-lg backdrop-blur-md transition-all duration-300 group-hover:bg-white/95">
+                      <h3 className="line-clamp-1 text-base font-bold text-[#1b1416] transition-colors duration-200 group-hover:text-[#7A0C1A]">
+                        {car.title}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-1.5 text-xs text-[#5a5052]">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-[#81141f]" />
+                        <span className="truncate">{car.location}</span>
+                      </div>
+
+                      {/* Minimal Spec Strip */}
+                      <div className="mt-2 flex items-center gap-3 text-[11px] font-medium text-[#5a5052]">
+                        <div className="flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" />
+                          <span>{car.seats} seats</span>
                         </div>
-
-                        {/* Specs */}
-                        <div className="mt-3 flex items-center gap-3 text-xs text-[#716769]">
-                          <div className="flex items-center gap-1">
-                            <Users className="h-3.5 w-3.5" />
-                            <span>{car.seats} seats</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Settings className="h-3.5 w-3.5" />
-                            <span>{car.transmission}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Fuel className="h-3.5 w-3.5" />
-                            <span>{car.fuel}</span>
-                          </div>
+                        <div className="flex items-center gap-1">
+                          <Settings className="h-3.5 w-3.5" />
+                          <span>{car.transmission}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Fuel className="h-3.5 w-3.5" />
+                          <span>{car.fuel}</span>
                         </div>
                       </div>
 
                       {/* Price & View */}
-                      <div className="flex items-center justify-between border-t border-[#eae3e4] pt-3">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-base font-bold text-[#1b1416]">
+                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#eae3e4]/80 pt-2.5">
+                        <div className="flex min-w-0 items-baseline gap-1">
+                          <span className="text-lg font-extrabold text-[#1b1416]">
                             {car.price}
                           </span>
                           {car.period && (
-                            <span className="text-xs text-[#716769]">
+                            <span className="text-[11px] font-medium text-[#5a5052]">
                               {car.period}
                             </span>
                           )}
                         </div>
                         <Link
                           href={car.href}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#7A0C1A] hover:underline"
+                          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-[#81141f] px-3 text-[11px] font-bold text-white transition-colors hover:bg-[#6b121c]"
                         >
                           <span>View</span>
-                          <ArrowRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-1" />
+                          <ArrowRight className="h-3 w-3" />
                         </Link>
                       </div>
                     </div>
@@ -704,80 +703,79 @@ export default function HomePage() {
                   animation="fade-in-up"
                   delayMs={idx * 100}
                 >
-                  <div className="group hover-luxury-lift flex flex-col overflow-hidden rounded-2xl border border-[#eae3e4] bg-white transition-all duration-300 hover:border-[#7A0C1A]/40">
-                    {/* Photo with Badge & Heart */}
-                    <div className="relative h-60 w-full overflow-hidden bg-[#faf7f7]">
-                      <Image
-                        src={prop.image}
-                        alt={prop.title}
-                        fill
-                        className="object-cover transition-transform duration-700 ease-out group-hover:scale-106"
+                  <div className="group hover-luxury-lift relative h-[400px] sm:h-[420px] overflow-hidden rounded-2xl border border-[#eae3e4] bg-[#faf7f7] transition-all duration-300 hover:border-[#81141f]/50">
+                    {/* Full-bleed Photo */}
+                    <Image
+                      src={prop.image}
+                      alt={prop.title}
+                      fill
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15" />
+
+                    {/* Top Overlay Badges */}
+                    <span className="absolute top-3.5 left-3.5 z-10 rounded-full bg-[#4e0b13]/85 px-3 py-1 text-[11px] font-bold tracking-wider text-white uppercase backdrop-blur-sm">
+                      {prop.badge}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => toggleFavorite(prop.id, e)}
+                      className="absolute top-3.5 right-3.5 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-[#716769] shadow-xs transition-all duration-150 hover:bg-white hover:text-[#7A0C1A] active:scale-75"
+                      aria-label="Save property"
+                    >
+                      <Heart
+                        className={cn(
+                          "h-4 w-4 transition-colors duration-200",
+                          savedFavorites[prop.id] &&
+                            "fill-[#7A0C1A] text-[#7A0C1A]"
+                        )}
                       />
-                      <span className="absolute top-3 left-3 rounded-md bg-white px-2.5 py-1 text-[11px] font-medium text-[#1b1416] shadow-2xs">
-                        {prop.badge}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => toggleFavorite(prop.id, e)}
-                        className="absolute top-3 right-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white text-[#716769] shadow-2xs transition-all duration-150 hover:text-[#7A0C1A] active:scale-75"
-                        aria-label="Save property"
-                      >
-                        <Heart
-                          className={cn(
-                            "h-4 w-4 transition-colors duration-200",
-                            savedFavorites[prop.id] &&
-                              "fill-[#7A0C1A] text-[#7A0C1A]"
-                          )}
-                        />
-                      </button>
-                    </div>
+                    </button>
 
-                    {/* Body */}
-                    <div className="flex flex-1 flex-col justify-between space-y-4 p-5">
-                      <div>
-                        <h3 className="line-clamp-1 text-base font-semibold text-[#1b1416] transition-colors duration-200 group-hover:text-[#7A0C1A]">
-                          {prop.title}
-                        </h3>
-                        <div className="mt-1 flex items-center gap-1.5 text-xs text-[#716769]">
-                          <MapPin className="h-3.5 w-3.5" />
-                          <span>{prop.location}</span>
+                    {/* Bottom Translucent Glass Details Card */}
+                    <div className="absolute inset-x-3 bottom-3 z-10 rounded-xl border border-white/80 bg-white/88 p-4 shadow-lg backdrop-blur-md transition-all duration-300 group-hover:bg-white/95">
+                      <h3 className="line-clamp-1 text-base font-bold text-[#1b1416] transition-colors duration-200 group-hover:text-[#7A0C1A]">
+                        {prop.title}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-1.5 text-xs text-[#5a5052]">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-[#81141f]" />
+                        <span className="truncate">{prop.location}</span>
+                      </div>
+
+                      {/* Minimal Spec Strip */}
+                      <div className="mt-2 flex items-center gap-3 text-[11px] font-medium text-[#5a5052]">
+                        <div className="flex items-center gap-1">
+                          <Bed className="h-3.5 w-3.5" />
+                          <span>{prop.beds} beds</span>
                         </div>
-
-                        {/* Specs */}
-                        <div className="mt-3 flex items-center gap-3 text-xs text-[#716769]">
-                          <div className="flex items-center gap-1">
-                            <Bed className="h-3.5 w-3.5" />
-                            <span>{prop.beds} beds</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Bath className="h-3.5 w-3.5" />
-                            <span>{prop.baths} baths</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Maximize2 className="h-3.5 w-3.5" />
-                            <span>{prop.sqm}</span>
-                          </div>
+                        <div className="flex items-center gap-1">
+                          <Bath className="h-3.5 w-3.5" />
+                          <span>{prop.baths} baths</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Maximize2 className="h-3.5 w-3.5" />
+                          <span>{prop.sqm}</span>
                         </div>
                       </div>
 
                       {/* Price & View */}
-                      <div className="flex items-center justify-between border-t border-[#eae3e4] pt-3">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-base font-bold text-[#1b1416]">
+                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#eae3e4]/80 pt-2.5">
+                        <div className="flex min-w-0 items-baseline gap-1">
+                          <span className="text-lg font-extrabold text-[#1b1416]">
                             {prop.price}
                           </span>
                           {prop.period && (
-                            <span className="text-xs text-[#716769]">
+                            <span className="text-[11px] font-medium text-[#5a5052]">
                               {prop.period}
                             </span>
                           )}
                         </div>
                         <Link
                           href={prop.href}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#7A0C1A] hover:underline"
+                          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-[#81141f] px-3 text-[11px] font-bold text-white transition-colors hover:bg-[#6b121c]"
                         >
                           <span>View</span>
-                          <ArrowRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-1" />
+                          <ArrowRight className="h-3 w-3" />
                         </Link>
                       </div>
                     </div>

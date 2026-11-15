@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Calendar,
   Upload,
-  Sparkles,
   ShoppingBag,
   Video,
   Ticket,
@@ -111,28 +110,37 @@ export default function StudioBookingPage() {
       <SiteHeader />
 
       {/* Hero Header */}
-      <section className="bg-[#4e0b13] text-white py-14 lg:py-16 border-b border-[#630f1a]">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px]">
+      <section className="relative overflow-hidden bg-[#4e0b13] text-white py-14 lg:py-16 border-b border-[#630f1a]">
+        {/* Background Studio Image (70% visibility over #4e0b13) */}
+        <div
+          className="absolute inset-0 overflow-hidden pointer-events-none select-none"
+          aria-hidden="true"
+        >
+          <img
+            src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=1000&q=85"
+            alt=""
+            className="w-full h-full object-cover object-center opacity-70"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#4e0b13]/80 via-[#4e0b13]/50 to-[#4e0b13]/70" />
+        </div>
+
+        <div className="relative z-10 max-w-[1440px] mx-auto px-4 lg:px-[120px]">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
             <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#81141f] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#f6e3e5]">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>LAGOS STATE PRODUCTION &amp; PORTRAIT STUDIO</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight leading-[1.12]">
+              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight text-white leading-[1.12] drop-shadow-xs">
                 Book a Photography or Studio Session in Lagos
               </h1>
-              <p className="text-sm sm:text-base text-[#ebc7cb] leading-relaxed">
+              <p className="text-sm sm:text-base text-[#f6e3e5] leading-relaxed">
                 Our acoustic-treated Lekki-Ajah creative studio features a full cyclorama wall, Profoto strobes, Aputure cinema lighting, private wardrobe green rooms, and 24/7 uninterrupted solar + generator power.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <Link
                 href="/marketplace"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
-                <ShoppingBag className="w-4 h-4 text-[#ebc7cb]" />
+                <ShoppingBag className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Marketplace</span>
               </Link>
               <Link
@@ -144,16 +152,16 @@ export default function StudioBookingPage() {
               </Link>
               <Link
                 href="/equipment-rental"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
-                <Video className="w-4 h-4 text-[#ebc7cb]" />
+                <Video className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Camera &amp; Gear Rental</span>
               </Link>
               <Link
                 href="/events"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
-                <Ticket className="w-4 h-4 text-[#ebc7cb]" />
+                <Ticket className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Events &amp; Tickets</span>
               </Link>
             </div>
@@ -175,7 +183,7 @@ export default function StudioBookingPage() {
               </h2>
             </div>
 
-            <div className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {activeServices.map((srv) => {
                 const isSelected = selectedService?.id === srv.id;
                 return (
@@ -188,58 +196,56 @@ export default function StudioBookingPage() {
                       }
                       setConfirmedBooking(null);
                     }}
-                    className={`rounded-2xl border p-6 transition-all cursor-pointer ${
+                    className={`h-[380px] rounded-2xl relative overflow-hidden border transition-all duration-300 cursor-pointer group ${
                       isSelected
-                        ? 'border-[#81141f] bg-[#fbf3f4]/60 shadow-sm ring-1 ring-[#81141f]'
-                        : 'border-[#eae3e4] bg-white hover:border-[#81141f]/50'
+                        ? 'border-[#81141f] ring-2 ring-[#81141f] shadow-lg'
+                        : 'border-[#eae3e4] bg-[#f8f5f5] shadow-xs hover:shadow-xl'
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row gap-5">
-                      <img
-                        src={srv.images[0] || '/photos/founder-bz-3.jpg'}
-                        alt={srv.name}
-                        className="w-full sm:w-44 h-36 rounded-xl object-cover border border-[#eae3e4] shrink-0"
-                      />
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <span className="inline-block rounded-md bg-[#4e0b13] text-white px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                              {srv.serviceType}
-                            </span>
-                            <h3 className="text-lg font-bold text-[#1b1416] mt-1">
-                              {srv.name}
-                            </h3>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <span className="block text-xl font-extrabold text-[#81141f]">
-                              ₦{srv.price.toLocaleString()}
-                            </span>
-                            <span className="text-xs text-[#716769] font-semibold">
-                              {srv.durationHours} Hours
-                            </span>
-                          </div>
-                        </div>
+                    {/* Full-bleed Studio Image */}
+                    <img
+                      src={srv.images[0] || '/photos/founder-bz-3.jpg'}
+                      alt={srv.name}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15 pointer-events-none" />
 
-                        <p className="text-xs text-[#4d4547] leading-relaxed">
-                          {srv.description}
-                        </p>
+                    {/* Top Floating Badges */}
+                    <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider truncate">
+                        {srv.serviceType}
+                      </span>
+                      <span className="rounded-full bg-white/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-[#1b1416] shadow-xs shrink-0">
+                        {srv.durationHours} Hours
+                      </span>
+                    </div>
 
-                        <div className="flex items-center gap-2 text-xs text-[#716769]">
-                          <MapPin className="w-3.5 h-3.5 text-[#81141f] shrink-0" />
-                          <span>{srv.location}</span>
-                        </div>
+                    {/* Bottom Translucent Glass Details Card */}
+                    <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/88 backdrop-blur-md border border-white/80 p-4 shadow-lg transition-all duration-300 group-hover:bg-white/95">
+                      <h3 className="text-[15px] sm:text-base font-bold text-[#1b1416] line-clamp-1 leading-snug">
+                        {srv.name}
+                      </h3>
+                      <p className="text-[11px] font-medium text-[#5a5052] line-clamp-1 mt-0.5">
+                        {srv.includes.slice(0, 2).join(' · ') || srv.description}
+                      </p>
+                      <div className="flex items-center gap-1 text-[11px] text-[#5a5052] mt-1">
+                        <MapPin className="w-3 h-3 text-[#81141f] shrink-0" />
+                        <span className="truncate">{srv.location}</span>
+                      </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-2 border-t border-[#eae3e4]">
-                          {srv.includes.map((inc) => (
-                            <div
-                              key={inc}
-                              className="flex items-center gap-1.5 text-xs text-[#1b1416]"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5 text-[#81141f] shrink-0" />
-                              <span className="truncate">{inc}</span>
-                            </div>
-                          ))}
-                        </div>
+                      <div className="mt-3 pt-2.5 border-t border-[#eae3e4]/80 flex items-center justify-between gap-2">
+                        <span className="text-base sm:text-lg font-extrabold text-[#1b1416]">
+                          ₦{srv.price.toLocaleString()}
+                        </span>
+                        <span
+                          className={`h-8 px-3 rounded-lg inline-flex items-center text-[11px] font-bold transition-colors ${
+                            isSelected
+                              ? 'bg-[#81141f] text-white'
+                              : 'bg-white border border-[#eae3e4] text-[#1b1416] group-hover:border-[#81141f]'
+                          }`}
+                        >
+                          {isSelected ? 'Selected ✓' : 'Select Package'}
+                        </span>
                       </div>
                     </div>
                   </div>
