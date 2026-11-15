@@ -73,7 +73,7 @@ console.log('=== Running Multi-Service Commerce Platform Test Suite ===\n');
   console.log('✓ [Orders & Checkout] Authoritative pricing, variant handling, and stock enforcement verified');
 }
 
-// 3. Lagos Studio Double-Booking Conflict Prevention
+// 3. Studio Double-Booking Conflict Prevention
 {
   assert.ok(INITIAL_STUDIO_SERVICES.length >= 4, 'Studio services should be populated');
   const existing = INITIAL_STUDIO_BOOKINGS[0]; // 2026-11-20 @ 12:00 PM
@@ -118,7 +118,7 @@ console.log('=== Running Multi-Service Commerce Platform Test Suite ===\n');
     false,
     'Cancelled studio booking must release the slot'
   );
-  console.log('✓ [Lagos Studio] Slot availability and double-booking prevention verified');
+  console.log('✓ [Studio] Slot availability and double-booking prevention verified');
 }
 
 // 4. Camera & Media Equipment Date-Range Conflict & Deposit Calculation

@@ -247,13 +247,13 @@ export function MarketplaceCatalogView({
     pageTitle ||
     (activeCategoryObj
       ? `${activeCategoryObj.name} Marketplace`
-      : 'Marketplace, Lagos Studio & Events');
+      : 'Marketplace, Studio & Events');
 
   const resolvedSubtitle =
     pageSubtitle ||
     (activeCategoryObj
       ? activeCategoryObj.description
-      : 'Shop verified phones, laptops, gadgets, electronics, solar & inverter systems, bespoke clothing, and fine jewelry — or book our Lagos State creative studio, cinema gear, and event tickets.');
+      : 'Shop verified phones, laptops, gadgets, electronics, solar & inverter systems, bespoke clothing, and fine jewelry — or book our creative studio, cinema gear, and event tickets.');
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#1b1416]">
@@ -314,7 +314,7 @@ export function MarketplaceCatalogView({
                 className="inline-flex items-center gap-2 rounded-xl bg-black/60 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
                 <Camera className="w-4 h-4 text-[#f6e3e5]" />
-                <span>Lagos Studio Booking</span>
+                <span>Studio Booking</span>
               </Link>
               <Link
                 href="/equipment-rental"

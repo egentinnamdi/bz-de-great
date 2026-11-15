@@ -32,11 +32,11 @@ export default function AdminStudioPage() {
       serviceType,
       description:
         description.trim() ||
-        'Professional studio session at BZ De Great Studio in Lagos State.',
+        'Professional studio session at BZ De Great Studio.',
       durationHours: Number(durationHours) || 2,
       price: Number(price) || 150000,
       images: ['/photos/founder-bz-3.jpg'],
-      location: 'BZ De Great Creative Studio — Lekki-Ajah Expressway, Lagos State',
+      location: 'BZ De Great Studio',
       includes: ['Full Lighting Rig', 'Studio Assistant', 'Uninterrupted Power'],
       availableSlots: slots
         .split(',')
@@ -53,7 +53,7 @@ export default function AdminStudioPage() {
     <div className="p-6 lg:p-8 space-y-6">
       <div>
         <span className="text-xs font-bold uppercase tracking-widest text-[#81141f]">
-          LAGOS STATE CREATIVE STUDIO
+          BZ DE GREAT STUDIO
         </span>
         <h1 className="text-2xl font-extrabold text-[#1b1416]">
           Studio Packages &amp; Session Bookings
@@ -172,7 +172,7 @@ export default function AdminStudioPage() {
         >
           <h3 className="text-sm font-bold text-[#1b1416] flex items-center gap-1.5">
             <Plus className="w-4 h-4 text-[#81141f]" />
-            <span>Add Lagos Studio Service</span>
+            <span>Add Studio Service</span>
           </h3>
           <div>
             <label className="block text-xs font-bold mb-1">Service Name *</label>

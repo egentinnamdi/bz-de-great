@@ -202,7 +202,7 @@ export default function HomePage() {
                 </h2>
                 <p className="text-xs leading-relaxed text-[#716769] sm:text-sm">
                   Whether you need a car for the weekend, a home for the year,
-                  flagship electronics, or a Lagos studio session, BZ Group handles it end to end.
+                  flagship electronics, or a studio session, BZ Group handles it end to end.
                 </p>
               </div>
             </ScrollReveal>
@@ -786,7 +786,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 9. "MARKETPLACE, LAGOS STUDIO & EVENTS" replacing removed RMB Exchange section */}
+        {/* 9. "MARKETPLACE, STUDIO & EVENTS" replacing removed RMB Exchange section */}
         <section id="marketplace" className="bg-[#540911] py-20 text-white lg:py-24">
           <div className="mx-auto max-w-[1440px] px-4 lg:px-[120px]">
             <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
@@ -797,15 +797,15 @@ export default function HomePage() {
               >
                 <div className="space-y-2">
                   <span className="block text-xs font-bold tracking-widest text-white/80 uppercase">
-                    MARKETPLACE · LAGOS STUDIO · RENTALS · EVENTS
+                    MARKETPLACE · STUDIO · RENTALS · EVENTS
                   </span>
                   <h2 className="font-serif text-3xl leading-tight font-semibold text-white sm:text-4xl lg:text-[42px]">
-                    Shop flagship tech &amp; luxury, book our Lagos studio, or reserve event passes
+                    Shop flagship tech &amp; luxury, book our studio, or reserve event passes
                   </h2>
                 </div>
 
                 <p className="max-w-xl text-xs leading-relaxed text-white/80 sm:text-sm">
-                  Everything handled directly by the BZ De Great team — from factory-unlocked phones, laptops, solar power systems, bespoke clothing, and 18K gold jewelry to our Lekki-Ajah creative studio, cinema equipment rentals, and digital QR event tickets.
+                  Everything handled directly by the BZ De Great team — from factory-unlocked phones, laptops, solar power systems, bespoke clothing, and 18K gold jewelry to our creative studio, cinema equipment rentals, and digital QR event tickets.
                 </p>
 
                 {/* 4 Pillars */}
@@ -818,7 +818,7 @@ export default function HomePage() {
                     },
                     {
                       num: "2",
-                      text: "Lagos Studio: Book portrait, commercial product, or full photo + video cyclorama sessions in Lagos State.",
+                      text: "Studio: Book portrait, commercial product, or full photo + video cyclorama sessions.",
                       href: "/studio",
                     },
                     {
@@ -857,7 +857,7 @@ export default function HomePage() {
                     href="/studio"
                     className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/35 px-5 py-3 text-xs font-semibold text-white transition-all hover:bg-white/10"
                   >
-                    <span>Book Lagos Studio</span>
+                    <span>Book Studio</span>
                   </Link>
                   <Link
                     href="/equipment-rental"

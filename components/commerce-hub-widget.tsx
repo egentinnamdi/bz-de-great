@@ -187,12 +187,12 @@ export function CommerceHubWidget() {
         </div>
       )}
 
-      {/* TAB 2: LAGOS STUDIO */}
+      {/* TAB 2: STUDIO */}
       {activeTab === 'studio' && activeStudio && (
         <div className="mt-5 space-y-4">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-[#81141f]">
             <MapPin className="w-3.5 h-3.5 shrink-0" />
-            <span>BZ De Great Creative Studio — Lekki-Ajah, Lagos State</span>
+            <span>BZ De Great Creative Studio</span>
           </div>
 
           <div>

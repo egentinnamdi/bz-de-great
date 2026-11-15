@@ -57,7 +57,7 @@ export const SERVICES_DATA: ServiceItem[] = [
   {
     id: "marketplace-studio-events",
     title: "Marketplace, Studio & Events",
-    description: "Phones, laptops, solar, clothing & jewelry — plus Lagos studio sessions, gear rentals and event tickets.",
+    description: "Phones, laptops, solar, clothing & jewelry — plus studio sessions, gear rentals and event tickets.",
     href: "/marketplace",
     iconName: "marketplace",
     featured: true,

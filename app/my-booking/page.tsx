@@ -429,13 +429,13 @@ function MyBookingContent() {
                     </div>
                   )}
 
-                  {/* CASE 3: LAGOS STUDIO BOOKING */}
+                  {/* CASE 3: STUDIO BOOKING */}
                   {trackedItem.kind === 'studio' && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 text-wine-800">
                         <Camera className="w-4 h-4" />
                         <span className="text-xs font-bold uppercase tracking-wider">
-                          Lagos Studio Session ({trackedItem.data.bookingStatus.toUpperCase()})
+                          Studio Session ({trackedItem.data.bookingStatus.toUpperCase()})
                         </span>
                       </div>
                       <h3 className="text-2xl font-bold text-text-main">

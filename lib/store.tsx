@@ -789,7 +789,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (conflict) {
       return {
         ok: false,
-        error: `The ${payload.timeSlot} slot on ${payload.date} is already booked at our Lagos Studio. Please choose another time slot or date.`,
+        error: `The ${payload.timeSlot} slot on ${payload.date} is already booked at our Studio. Please choose another time slot or date.`,
       };
     }
 
@@ -827,7 +827,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     await addActivity({
       actorName: payload.customerName,
-      actorRole: 'Lagos Studio Desk',
+      actorRole: 'Studio Desk',
       action: `Booked studio session ${newBooking.id}: ${service.name} (${payload.date} @ ${payload.timeSlot})`,
       targetId: newBooking.id,
       category: 'bookings',
@@ -908,7 +908,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       customerName: payload.customerName,
       customerPhone: payload.customerPhone,
       customerEmail: payload.customerEmail,
-      pickupLocation: payload.pickupLocation || 'BZ De Great Studio — Lekki-Ajah, Lagos State',
+      pickupLocation: payload.pickupLocation || 'BZ De Great Creative Studio',
       rentalStatus: payload.receiptUrl ? 'payment_pending' : 'pending',
       paymentStatus: payload.receiptUrl ? 'receipt_uploaded' : 'pending',
       receiptUrl: payload.receiptUrl,

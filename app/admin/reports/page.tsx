@@ -235,7 +235,7 @@ export default function AdminReportsPage() {
         color: '#2B2B2B'
       },
       {
-        label: 'Lagos Studio & Gear Rentals',
+        label: 'Studio & Gear Rentals',
         amountNum: studioAndRentalRev,
         amount: formatNgnDisplay(studioAndRentalRev),
         pct: Math.round((studioAndRentalRev / totalDiv) * 100),

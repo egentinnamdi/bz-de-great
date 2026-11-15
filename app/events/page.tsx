@@ -186,7 +186,7 @@ export default function EventsTicketingPage() {
                 className="inline-flex items-center gap-2 rounded-xl bg-black/60 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
                 <Camera className="w-4 h-4 text-[#f6e3e5]" />
-                <span>Lagos Studio Booking</span>
+                <span>Studio Booking</span>
               </Link>
               <Link
                 href="/equipment-rental"

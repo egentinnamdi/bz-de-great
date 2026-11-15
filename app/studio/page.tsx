@@ -154,10 +154,10 @@ export default function StudioBookingPage() {
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
             <div className="space-y-3 max-w-2xl">
               <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight text-white leading-[1.12] drop-shadow-xs">
-                Book a Photography or Studio Session in Lagos
+                Book a Photography or Studio Session
               </h1>
               <p className="text-sm sm:text-base text-white/85 leading-relaxed">
-                Our acoustic-treated Lekki-Ajah creative studio features a full cyclorama wall, Profoto strobes, Aputure cinema lighting, private wardrobe green rooms, and 24/7 uninterrupted solar + generator power.
+                Our acoustic-treated creative studio features a full cyclorama wall, Profoto strobes, Aputure cinema lighting, private wardrobe green rooms, and 24/7 uninterrupted solar + generator power.
               </p>
             </div>
 
@@ -174,7 +174,7 @@ export default function StudioBookingPage() {
                 className="inline-flex items-center gap-2 rounded-xl bg-white text-[#4e0b13] px-4 py-2.5 text-xs font-bold shadow-xs"
               >
                 <Camera className="w-4 h-4 text-[#81141f]" />
-                <span>Lagos Studio Booking</span>
+                <span>Studio Booking</span>
               </Link>
               <Link
                 href="/equipment-rental"
@@ -205,7 +205,7 @@ export default function StudioBookingPage() {
                 SELECT YOUR SESSION PACKAGE
               </span>
               <h2 className="text-2xl font-bold text-[#1b1416] mt-1">
-                Lagos Studio &amp; Photography Packages
+                Studio &amp; Photography Packages
               </h2>
             </div>
 

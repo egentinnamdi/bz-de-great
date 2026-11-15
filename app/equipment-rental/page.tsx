@@ -71,7 +71,7 @@ export default function EquipmentRentalPage() {
   const [endDate, setEndDate] = useState<string>('2026-11-26');
   const [quantity, setQuantity] = useState<number>(1);
   const [pickupLocation, setPickupLocation] = useState<string>(
-    'BZ De Great Studio — Lekki-Ajah, Lagos State'
+    'BZ De Great Creative Studio'
   );
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -209,7 +209,7 @@ export default function EquipmentRentalPage() {
                 className="inline-flex items-center gap-2 rounded-xl bg-black/60 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
                 <Camera className="w-4 h-4 text-[#f6e3e5]" />
-                <span>Lagos Studio Booking</span>
+                <span>Studio Booking</span>
               </Link>
               <Link
                 href="/equipment-rental"
@@ -495,8 +495,8 @@ export default function EquipmentRentalPage() {
                         onChange={(e) => setPickupLocation(e.target.value)}
                         className="w-full h-10 rounded-lg border border-[#eae3e4] bg-white px-3 text-xs font-semibold text-[#1b1416]"
                       >
-                        <option value="BZ De Great Studio — Lekki-Ajah, Lagos State">
-                          Lagos Studio (Lekki-Ajah)
+                        <option value="BZ De Great Creative Studio">
+                          Creative Studio Desk
                         </option>
                         <option value="Abuja Desk — Karmo / Wuse 2, Abuja">
                           Abuja Office Desk

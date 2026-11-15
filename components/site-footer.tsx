@@ -88,7 +88,7 @@ export function SiteFooter() {
                   <Link href="/marketplace" className="hover:text-white transition-colors">Marketplace &amp; Gadgets</Link>
                 </li>
                 <li>
-                  <Link href="/studio" className="hover:text-white transition-colors">Lagos Studio Booking</Link>
+                  <Link href="/studio" className="hover:text-white transition-colors">Studio Booking</Link>
                 </li>
                 <li>
                   <Link href="/equipment-rental" className="hover:text-white transition-colors">Camera &amp; Gear Rental</Link>

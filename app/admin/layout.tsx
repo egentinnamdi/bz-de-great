@@ -61,7 +61,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       group: 'COMMERCE & STUDIO',
       items: [
         { label: 'Marketplace', href: '/admin/marketplace', icon: ShoppingBag, badge: productOrders.length || undefined },
-        { label: 'Lagos Studio', href: '/admin/studio', icon: Camera, badge: studioBookings.length || undefined },
+        { label: 'Studio', href: '/admin/studio', icon: Camera, badge: studioBookings.length || undefined },
         { label: 'Gear Rentals', href: '/admin/equipment', icon: Video, badge: equipmentRentals.length || undefined },
         { label: 'Events & QR Gate', href: '/admin/events', icon: Ticket, badge: digitalTickets.length || undefined },
       ]

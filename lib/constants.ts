@@ -47,7 +47,7 @@ export const FOOTER_LINKS = {
     { label: 'Homes for rent', href: '/homes/rent' },
     { label: 'Property for sale', href: '/properties/buy' },
     { label: 'Marketplace & Gadgets', href: '/marketplace' },
-    { label: 'Lagos Studio & Gear Rental', href: '/studio' },
+    { label: 'Studio & Gear Rental', href: '/studio' },
     { label: 'Events & Tickets', href: '/events' },
     { label: 'Chauffeured VIP escort', href: '/cars/rent?driver=Chauffeured' },
   ],

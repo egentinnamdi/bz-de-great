@@ -102,7 +102,7 @@ export default function AdminPaymentsPage() {
       reference: s.reference || s.id,
       customerName: s.customerName,
       customerPhone: s.customerPhone,
-      type: 'Lagos Studio Booking',
+      type: 'Studio Booking',
       amount: s.totalAmount,
       amountFormatted: `₦${Number(s.totalAmount).toLocaleString('en-NG')}`,
       receiptUrl: s.receiptUrl,
