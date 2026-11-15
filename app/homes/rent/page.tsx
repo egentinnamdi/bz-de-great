@@ -10,6 +10,8 @@ import { CatalogHeader } from '@/components/catalog-header';
 import { CardProperty } from '@/components/card-property';
 import { Button } from '@/components/ui/button';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
+import { NigeriaLocationOptions } from '@/components/nigeria-location-options';
+import { matchesLocationFilter } from '@/lib/locations';
 import { useStore } from '@/lib/store';
 
 function HomesForRentContent() {
@@ -32,7 +34,7 @@ function HomesForRentContent() {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   React.useEffect(() => {
-    if (searchParams.get('location')) setSelectedLocation(searchParams.get('location')!);
+    setSelectedLocation(searchParams.get('location') || 'all');
     if (searchParams.get('type')) setSelectedTypes([searchParams.get('type')!]);
     if (searchParams.get('beds')) setSelectedBeds(searchParams.get('beds')!);
     if (searchParams.get('req')) setSelectedReq(searchParams.get('req')!);
@@ -76,13 +78,7 @@ function HomesForRentContent() {
           item.tags?.some(t => t.toLowerCase().includes(kw))
         );
       })
-      .filter(item => {
-        if (selectedLocation === 'all' || selectedLocation === 'Abuja, FCT') return true;
-        return (
-          item.location.toLowerCase().includes(selectedLocation.toLowerCase()) ||
-          selectedLocation.toLowerCase().includes(item.location.toLowerCase())
-        );
-      })
+      .filter(item => matchesLocationFilter(item.location, selectedLocation))
       .filter(item => {
         if (selectedTypes.length === 0) return true;
         const type = item.propertySpecs?.type || '';
@@ -118,7 +114,7 @@ function HomesForRentContent() {
       <CatalogHeader
         breadcrumbItem="Rent a home"
         title="Homes for rent"
-        subtitle="22 homes to rent · Yearly leases and short-lets in Abuja"
+        subtitle="Verified residences to rent · Yearly leases and short-lets across Nigeria"
         activeMode="rent"
         activeCategory="Houses"
       />
@@ -149,20 +145,14 @@ function HomesForRentContent() {
               {/* Location Select */}
               <div className="space-y-2">
                 <label className="text-[13px] font-semibold text-[#1b1416] block">
-                  Location in Abuja
+                  Location across Nigeria
                 </label>
                 <select
                   value={selectedLocation}
                   onChange={e => setSelectedLocation(e.target.value)}
                   className="w-full h-[44px] px-3.5 bg-white border border-[#eae3e4] rounded-[10px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] cursor-pointer"
                 >
-                  <option value="all">Abuja (All areas)</option>
-                  <option value="Maitama">Maitama</option>
-                  <option value="Jabi">Jabi</option>
-                  <option value="Guzape">Guzape</option>
-                  <option value="Wuse">Wuse 2</option>
-                  <option value="Asokoro">Asokoro</option>
-                  <option value="Central">Central Area</option>
+                  <NigeriaLocationOptions />
                 </select>
               </div>
 

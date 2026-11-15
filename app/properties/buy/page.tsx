@@ -10,6 +10,8 @@ import { CatalogHeader } from '@/components/catalog-header';
 import { CardProperty } from '@/components/card-property';
 import { Button } from '@/components/ui/button';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
+import { NigeriaLocationOptions } from '@/components/nigeria-location-options';
+import { matchesLocationFilter } from '@/lib/locations';
 import { useStore } from '@/lib/store';
 
 function PropertiesForSaleContent() {
@@ -32,7 +34,7 @@ function PropertiesForSaleContent() {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   React.useEffect(() => {
-    if (searchParams.get('location')) setSelectedLocation(searchParams.get('location')!);
+    setSelectedLocation(searchParams.get('location') || 'all');
     if (searchParams.get('type')) setSelectedTypes([searchParams.get('type')!]);
     if (searchParams.get('title')) setSelectedTitles([searchParams.get('title')!]);
     if (searchParams.get('beds')) setSelectedBeds(searchParams.get('beds')!);
@@ -82,13 +84,7 @@ function PropertiesForSaleContent() {
           item.tags?.some(t => t.toLowerCase().includes(kw))
         );
       })
-      .filter(item => {
-        if (selectedLocation === 'all' || selectedLocation === 'Abuja, FCT') return true;
-        return (
-          item.location.toLowerCase().includes(selectedLocation.toLowerCase()) ||
-          selectedLocation.toLowerCase().includes(item.location.toLowerCase())
-        );
-      })
+      .filter(item => matchesLocationFilter(item.location, selectedLocation))
       .filter(item => {
         if (selectedTypes.length === 0) return true;
         const type = item.propertySpecs?.type || '';
@@ -121,7 +117,7 @@ function PropertiesForSaleContent() {
       <CatalogHeader
         breadcrumbItem="Buy property"
         title="Property for sale"
-        subtitle="38 properties for sale · Houses, apartments and land in Abuja and Asaba"
+        subtitle="Verified houses, apartments and land for sale across Nigeria"
         activeMode="buy"
         activeCategory="Land & plots"
       />
@@ -152,19 +148,14 @@ function PropertiesForSaleContent() {
               {/* Location Select */}
               <div className="space-y-2">
                 <label className="text-[13px] font-semibold text-[#1b1416] block">
-                  Location (Abuja & Asaba)
+                  Location across Nigeria
                 </label>
                 <select
                   value={selectedLocation}
                   onChange={e => setSelectedLocation(e.target.value)}
                   className="w-full h-[44px] px-3.5 bg-white border border-[#eae3e4] rounded-[10px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] cursor-pointer"
                 >
-                  <option value="all">All Locations</option>
-                  <option value="Maitama">Maitama, Abuja</option>
-                  <option value="Wuse">Wuse 2, Abuja</option>
-                  <option value="Guzape">Guzape, Abuja</option>
-                  <option value="Asokoro">Asokoro, Abuja</option>
-                  <option value="Asaba">Okpanam, Asaba</option>
+                  <NigeriaLocationOptions />
                 </select>
               </div>
 

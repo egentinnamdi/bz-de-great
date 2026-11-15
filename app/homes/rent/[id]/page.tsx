@@ -415,7 +415,7 @@ export default function HomeRentDetailPage() {
                     Similar rental residences
                   </h3>
                   <p className="text-[14px] text-[#716769]">
-                    Other serviced homes and apartments currently vacant in prime Abuja locations.
+                    Other serviced homes and apartments currently vacant in prime Nigerian locations.
                   </p>
                 </div>
                 <Link

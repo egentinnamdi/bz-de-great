@@ -176,7 +176,7 @@ function AddListingForm() {
       price: numericPrice,
       currency: 'NGN',
       pricePeriod: listingType === 'For rent' ? (pricePeriod.toLowerCase().includes('year') ? '/year' : '/day') : 'total',
-      location: location.trim() || 'Abuja, Nigeria',
+      location: location.trim() || 'Nigeria',
       images: photos.length > 0 ? photos : ['/photos/car-suv-white.jpg'],
       status: publishStatus,
       featured: featureOnHomepage,
@@ -420,7 +420,7 @@ function AddListingForm() {
                     required
                     value={location}
                     onChange={e => setLocation(e.target.value)}
-                    placeholder="e.g. Maitama, Abuja"
+                    placeholder="e.g. Lekki, Lagos or Maitama, Abuja"
                     className="w-full h-[46px] pl-9 pr-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors"
                   />
                 </div>

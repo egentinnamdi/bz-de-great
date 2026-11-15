@@ -45,7 +45,7 @@ export function SiteHeader() {
           <div className="flex items-center gap-3 overflow-x-auto py-1 no-scrollbar text-[12px] sm:text-[13px]">
             <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
             <span className="text-[#ebc7cb] font-medium shrink-0">
-              Verified listings across Abuja, Lagos, Asaba & Onitsha
+              Verified listings across Nigeria
             </span>
             <span className="hidden md:inline text-[#ebc7cb]/80 font-normal text-xs shrink-0">
               · {SITE_CONFIG.operatingHours}

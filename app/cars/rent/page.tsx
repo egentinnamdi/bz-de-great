@@ -10,6 +10,8 @@ import { CatalogHeader } from '@/components/catalog-header';
 import { CardCar } from '@/components/card-car';
 import { Button } from '@/components/ui/button';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
+import { NigeriaLocationOptions } from '@/components/nigeria-location-options';
+import { matchesLocationFilter } from '@/lib/locations';
 import { useStore } from '@/lib/store';
 
 function CarRentalsContent() {
@@ -33,7 +35,7 @@ function CarRentalsContent() {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   React.useEffect(() => {
-    if (searchParams.get('location')) setSelectedLocation(searchParams.get('location')!);
+    setSelectedLocation(searchParams.get('location') || 'all');
     if (searchParams.get('driver')) setSelectedDriver(searchParams.get('driver')!);
     if (searchParams.get('brand')) setSelectedBrands([searchParams.get('brand')!]);
     if (searchParams.get('type')) setSelectedTypes([searchParams.get('type')!]);
@@ -84,13 +86,7 @@ function CarRentalsContent() {
           item.tags?.some(t => t.toLowerCase().includes(kw))
         );
       })
-      .filter(item => {
-        if (selectedLocation === 'all' || selectedLocation === 'Abuja, FCT') return true;
-        return (
-          item.location.toLowerCase().includes(selectedLocation.toLowerCase()) ||
-          selectedLocation.toLowerCase().includes(item.location.toLowerCase())
-        );
-      })
+      .filter(item => matchesLocationFilter(item.location, selectedLocation))
       .filter(item => {
         if (selectedDriver === 'all' || selectedDriver === 'All') return true;
         const driver = item.vehicleSpecs?.driverOption;
@@ -118,8 +114,8 @@ function CarRentalsContent() {
       {/* Figma Page Header [1440x254] */}
       <CatalogHeader
         breadcrumbItem="Rent a car"
-        title="Cars for rent in Abuja"
-        subtitle="24 cars available · Self-drive or with a driver"
+        title="Cars for rent across Nigeria"
+        subtitle="Verified luxury & executive fleet · Self-drive or with a driver nationwide"
         activeMode="rent"
         activeCategory="Cars"
       />
@@ -150,20 +146,14 @@ function CarRentalsContent() {
               {/* Location Select */}
               <div className="space-y-2">
                 <label className="text-[13px] font-semibold text-[#1b1416] block">
-                  Pickup & dropoff location
+                  Location across Nigeria
                 </label>
                 <select
                   value={selectedLocation}
                   onChange={e => setSelectedLocation(e.target.value)}
                   className="w-full h-[44px] px-3.5 bg-white border border-[#eae3e4] rounded-[10px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] cursor-pointer"
                 >
-                  <option value="all">Abuja (All areas)</option>
-                  <option value="Maitama">Maitama</option>
-                  <option value="Wuse">Wuse 2</option>
-                  <option value="Asokoro">Asokoro</option>
-                  <option value="Central">Central Area</option>
-                  <option value="Garki">Garki</option>
-                  <option value="Airport">Nnamdi Azikiwe Airport</option>
+                  <NigeriaLocationOptions />
                 </select>
               </div>
 

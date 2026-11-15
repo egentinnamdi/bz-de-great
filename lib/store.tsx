@@ -45,7 +45,7 @@ import { supabaseService } from './supabase/service';
 const DEFAULT_WEBSITE_CONTENT: WebsiteContentConfig = {
   heroHeadline: 'Drive it. Live in it. Own it.',
   heroEyebrow: 'Invest in value · Live the future',
-  heroSupportingText: 'Rent or buy premium cars and homes across Abuja and Lagos — all through one trusted team.',
+  heroSupportingText: 'Rent or buy premium cars and homes across Nigeria — all through one trusted team.',
   heroImage: '/photos/founder-bz-3.jpg',
   founderBio: 'BZ De Great is a realtor, investment broker and entrepreneur working across four industries — real estate, automobiles, fashion and technology.',
   founderImage: '/photos/founder-bz-3.jpg',
@@ -443,7 +443,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           email,
           phone,
           phoneFull: phone,
-          location: location || 'Abuja / Lagos',
+          location: location || 'Nigeria',
           totalBookings: 1,
           bookingsCount: 1,
           lifetimeSpendNgn: spendNgn,

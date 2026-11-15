@@ -10,6 +10,8 @@ import { CatalogHeader } from '@/components/catalog-header';
 import { CardCar } from '@/components/card-car';
 import { Button } from '@/components/ui/button';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
+import { NigeriaLocationOptions } from '@/components/nigeria-location-options';
+import { matchesLocationFilter } from '@/lib/locations';
 import { useStore } from '@/lib/store';
 
 function CarsForSaleContent() {
@@ -32,7 +34,7 @@ function CarsForSaleContent() {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   React.useEffect(() => {
-    if (searchParams.get('location')) setSelectedLocation(searchParams.get('location')!);
+    setSelectedLocation(searchParams.get('location') || 'all');
     if (searchParams.get('condition')) setSelectedCondition(searchParams.get('condition')!);
     if (searchParams.get('brand')) setSelectedBrands([searchParams.get('brand')!]);
     if (searchParams.get('type')) setSelectedTypes([searchParams.get('type')!]);
@@ -82,13 +84,7 @@ function CarsForSaleContent() {
           item.tags?.some(t => t.toLowerCase().includes(kw))
         );
       })
-      .filter(item => {
-        if (selectedLocation === 'all' || selectedLocation === 'Abuja, FCT') return true;
-        return (
-          item.location.toLowerCase().includes(selectedLocation.toLowerCase()) ||
-          selectedLocation.toLowerCase().includes(item.location.toLowerCase())
-        );
-      })
+      .filter(item => matchesLocationFilter(item.location, selectedLocation))
       .filter(item => {
         if (selectedCondition === 'all') return true;
         return item.tags?.some(tag => tag.toLowerCase().includes(selectedCondition.toLowerCase()));
@@ -115,8 +111,8 @@ function CarsForSaleContent() {
       {/* Figma Page Header [1440x254] */}
       <CatalogHeader
         breadcrumbItem="Buy a car"
-        title="Cars for sale in Abuja"
-        subtitle="16 cars for sale · Inspected, cleared and documented"
+        title="Cars for sale across Nigeria"
+        subtitle="Verified vehicles for sale · Inspected, cleared and documented nationwide"
         activeMode="buy"
         activeCategory="Cars"
       />
@@ -147,19 +143,14 @@ function CarsForSaleContent() {
               {/* Location Select */}
               <div className="space-y-2">
                 <label className="text-[13px] font-semibold text-[#1b1416] block">
-                  Showroom location
+                  Location across Nigeria
                 </label>
                 <select
                   value={selectedLocation}
                   onChange={e => setSelectedLocation(e.target.value)}
                   className="w-full h-[44px] px-3.5 bg-white border border-[#eae3e4] rounded-[10px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] cursor-pointer"
                 >
-                  <option value="all">Abuja (All areas)</option>
-                  <option value="Wuse">Wuse 2</option>
-                  <option value="Central">Central Area</option>
-                  <option value="Maitama">Maitama</option>
-                  <option value="Asokoro">Asokoro</option>
-                  <option value="Garki">Garki</option>
+                  <NigeriaLocationOptions />
                 </select>
               </div>
 

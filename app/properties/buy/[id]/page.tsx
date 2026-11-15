@@ -441,7 +441,7 @@ export default function PropertySaleDetailPage() {
                     Similar prime properties for sale
                   </h3>
                   <p className="text-[14px] text-[#716769]">
-                    Other verified residential and commercial opportunities in Abuja and Asaba.
+                    Other verified residential and commercial opportunities across Nigeria.
                   </p>
                 </div>
                 <Link

@@ -409,9 +409,13 @@ export default function CarDetailPage() {
                       className="w-full h-[42px] px-3 bg-white border border-[#eae3e4] rounded-[10px] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f] cursor-pointer"
                     >
                       <option value="Abuja Central Delivery">Abuja Central Delivery (Free)</option>
-                      <option value="Maitama Office">Maitama Office Pick-up</option>
-                      <option value="Airport VIP Delivery">Nnamdi Azikiwe Airport VIP Delivery</option>
+                      <option value="Maitama Office">Maitama Office Pick-up (Abuja)</option>
+                      <option value="Airport VIP Delivery">Nnamdi Azikiwe Airport VIP Delivery (Abuja)</option>
                       <option value="Transcorp Hilton">Transcorp Hilton Hotel Delivery</option>
+                      <option value="Lagos Delivery">Lagos Delivery (VI / Ikoyi / Lekki)</option>
+                      <option value="Asaba Office">Asaba Office Pick-up (Delta State)</option>
+                      <option value="Onitsha Office">Onitsha Head Office Pick-up (Anambra)</option>
+                      <option value="Nationwide Concierge">Nationwide Concierge Delivery (Custom Quote)</option>
                     </select>
                   </div>
                 </div>
@@ -489,7 +493,7 @@ export default function CarDetailPage() {
                     Similar vehicles you may like
                   </h3>
                   <p className="text-[14px] text-[#716769]">
-                    Alternative luxury cars in our Abuja fleet available for immediate reservation.
+                    Alternative luxury cars in our Nigeria fleet available for immediate reservation.
                   </p>
                 </div>
                 <Link

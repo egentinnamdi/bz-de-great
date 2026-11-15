@@ -15,6 +15,11 @@ import {
   purchaseEventTicketAuthoritative,
   validateAndCheckInTicket,
 } from '../lib/commerce-engine';
+import {
+  NIGERIA_STATES,
+  NIGERIA_MAJOR_CITIES,
+  matchesLocationFilter,
+} from '../lib/locations';
 
 console.log('=== Running Multi-Service Commerce Platform Test Suite ===\n');
 
@@ -214,6 +219,30 @@ console.log('=== Running Multi-Service Commerce Platform Test Suite ===\n');
   assert.equal(duplicateScan.ok, false, 'Duplicate ticket check-in must be blocked');
   assert.equal(duplicateScan.reason, 'already_checked_in');
   console.log('✓ [Events & Ticketing] Tier capacity, QR ticket generation, and duplicate check-in prevention verified');
+}
+
+// 6. All-Nigeria Location Options & Filter Matching
+{
+  assert.equal(NIGERIA_STATES.length, 37, 'All 36 Nigerian states plus FCT must be present');
+  const uniqueValues = new Set([
+    ...NIGERIA_MAJOR_CITIES.map((c) => c.value),
+    ...NIGERIA_STATES.map((s) => s.value),
+  ]);
+  assert.equal(
+    uniqueValues.size,
+    NIGERIA_MAJOR_CITIES.length + NIGERIA_STATES.length,
+    'Every location option value must be unique'
+  );
+
+  assert.equal(matchesLocationFilter('Okpanam, Asaba', 'all'), true);
+  assert.equal(matchesLocationFilter('Maitama, Abuja', 'All Nigeria'), true);
+  assert.equal(matchesLocationFilter('Okpanam, Asaba', 'Delta State'), true);
+  assert.equal(matchesLocationFilter('Lekki, Lagos', 'Lagos State'), true);
+  assert.equal(matchesLocationFilter('Maitama, Abuja', 'Abuja'), true);
+  assert.equal(matchesLocationFilter('Asokoro, Abuja', 'Maitama, Abuja'), false);
+  assert.equal(matchesLocationFilter('Nigeria', 'Niger State'), false, 'Niger State must not false-match Nigeria');
+  assert.equal(matchesLocationFilter('Minna, Niger State', 'Niger State'), true);
+  console.log('✓ [Locations] Nationwide Nigeria coverage (36 states + FCT) and filter aliases verified');
 }
 
 console.log('\nALL MULTI-SERVICE COMMERCE TESTS PASSED SUCCESSFULLY!');

@@ -244,7 +244,7 @@ export const supabaseService = {
         email: row.email,
         phone: row.phone,
         phoneFull: row.phone_full || row.phone,
-        location: row.location || 'Abuja, FCT',
+        location: row.location || 'Nigeria',
         uses: (row.uses as any) || 'Cars',
         bookingsCount: row.bookings_count || 0,
         totalBookings: row.bookings_count || 0,
@@ -288,7 +288,7 @@ export const supabaseService = {
       return {
         heroHeadline: data.hero_headline || 'Drive it. Live in it. Own it.',
         heroEyebrow: data.hero_eyebrow || 'Invest in value · Live the future',
-        heroSupportingText: data.hero_supporting_text || 'Rent or buy premium cars and homes across Abuja and Lagos — all through one trusted team.',
+        heroSupportingText: data.hero_supporting_text || 'Rent or buy premium cars and homes across Nigeria — all through one trusted team.',
         founderBio: data.founder_bio || 'BZ De Great is a realtor, investment broker and entrepreneur working across four industries — real estate, automobiles, fashion and technology.',
         announcementEnabled: Boolean(data.announcement_enabled),
         announcementText: data.announcement_text !== undefined && data.announcement_text !== null ? data.announcement_text : '',

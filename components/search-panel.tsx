@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Calendar, Users, ChevronDown, ArrowRight, Search, Car, Building2, Home } from 'lucide-react';
+import { NigeriaLocationOptions } from '@/components/nigeria-location-options';
+import { DEFAULT_NIGERIA_LOCATION } from '@/lib/locations';
 import { cn } from '@/lib/utils';
 
 export type SearchMode = 'rent' | 'buy';
@@ -14,11 +16,11 @@ export function SearchPanel({ className }: { className?: string }) {
   const [mode, setMode] = useState<SearchMode>('rent');
   const [category, setCategory] = useState<SearchCategory>('cars');
 
-  // Search keyword (e.g. "G-Wagon", "Maitama Penthouse")
+  // Search keyword (e.g. "G-Wagon", "Lekki Villa", "Maitama Penthouse")
   const [query, setQuery] = useState('');
 
   // Location filter
-  const [location, setLocation] = useState('Abuja, FCT');
+  const [location, setLocation] = useState(DEFAULT_NIGERIA_LOCATION);
 
   // Car Rental dates (Default to today and 3 days from today)
   const todayDate = new Date();
@@ -50,7 +52,7 @@ export function SearchPanel({ className }: { className?: string }) {
     }
 
     // Location
-    if (location && location !== 'Abuja, FCT') {
+    if (location && location !== DEFAULT_NIGERIA_LOCATION) {
       params.set('location', location);
     }
 
@@ -217,7 +219,7 @@ export function SearchPanel({ className }: { className?: string }) {
             placeholder={
               category === 'cars'
                 ? 'Search by model, brand or keyword (e.g. Mercedes G-Wagon, Land Cruiser, Rolls-Royce)...'
-                : 'Search by keyword, estate or feature (e.g. Maitama Penthouse, Swimming Pool, Diplomatic Zone)...'
+                : 'Search by keyword, estate or feature (e.g. Lekki Villa, Maitama Penthouse, Swimming Pool)...'
             }
             className="w-full h-11 pl-10 pr-4 rounded-xl border border-[#eae3e4] bg-[#faf7f7]/60 text-xs text-[#1b1416] placeholder:text-[#716769] focus:outline-none focus:border-[#7A0C1A] focus:bg-white transition-all font-medium"
           />
@@ -227,7 +229,7 @@ export function SearchPanel({ className }: { className?: string }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
           {/* Location Field */}
           <div className="lg:col-span-3 h-16 rounded-xl border border-[#eae3e4] px-4 py-2 flex flex-col justify-between hover:border-[#7A0C1A]/60 transition-colors bg-white relative">
-            <span className="text-[11px] font-medium text-[#716769]">Prime Location</span>
+            <span className="text-[11px] font-medium text-[#716769]">Location</span>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0 w-full">
                 <MapPin className="w-3.5 h-3.5 text-[#7A0C1A] shrink-0" />
@@ -236,14 +238,7 @@ export function SearchPanel({ className }: { className?: string }) {
                   onChange={e => setLocation(e.target.value)}
                   className="bg-transparent text-xs font-bold text-[#1b1416] focus:outline-none cursor-pointer appearance-none pr-4 w-full truncate"
                 >
-                  <option value="Abuja, FCT">All Abuja</option>
-                  <option value="Maitama, Abuja">Maitama, Abuja</option>
-                  <option value="Asokoro, Abuja">Asokoro, Abuja</option>
-                  <option value="Wuse 2, Abuja">Wuse 2, Abuja</option>
-                  <option value="Jabi, Abuja">Jabi, Abuja</option>
-                  <option value="Guzape, Abuja">Guzape, Abuja</option>
-                  <option value="Gwarinpa, Abuja">Gwarinpa, Abuja</option>
-                  <option value="Katampe, Abuja">Katampe Extension, Abuja</option>
+                  <NigeriaLocationOptions />
                 </select>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-[#716769] pointer-events-none shrink-0" />
