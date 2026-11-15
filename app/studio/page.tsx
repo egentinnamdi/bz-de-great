@@ -110,8 +110,8 @@ export default function StudioBookingPage() {
       <SiteHeader />
 
       {/* Hero Header */}
-      <section className="relative overflow-hidden bg-[#4e0b13] text-white py-14 lg:py-16 border-b border-[#630f1a]">
-        {/* Background Studio Image (70% visibility over #4e0b13) */}
+      <section className="relative overflow-hidden bg-black text-white py-14 lg:py-16 border-b border-white/10">
+        {/* Background Studio Image (70% visibility over black) */}
         <div
           className="absolute inset-0 overflow-hidden pointer-events-none select-none"
           aria-hidden="true"
@@ -121,7 +121,7 @@ export default function StudioBookingPage() {
             alt=""
             className="w-full h-full object-cover object-center opacity-70"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#4e0b13]/80 via-[#4e0b13]/50 to-[#4e0b13]/70" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/70" />
         </div>
 
         <div className="relative z-10 max-w-[1440px] mx-auto px-4 lg:px-[120px]">
@@ -130,7 +130,7 @@ export default function StudioBookingPage() {
               <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight text-white leading-[1.12] drop-shadow-xs">
                 Book a Photography or Studio Session in Lagos
               </h1>
-              <p className="text-sm sm:text-base text-[#f6e3e5] leading-relaxed">
+              <p className="text-sm sm:text-base text-white/85 leading-relaxed">
                 Our acoustic-treated Lekki-Ajah creative studio features a full cyclorama wall, Profoto strobes, Aputure cinema lighting, private wardrobe green rooms, and 24/7 uninterrupted solar + generator power.
               </p>
             </div>
@@ -138,7 +138,7 @@ export default function StudioBookingPage() {
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <Link
                 href="/marketplace"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-black/60 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
                 <ShoppingBag className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Marketplace</span>
@@ -152,14 +152,14 @@ export default function StudioBookingPage() {
               </Link>
               <Link
                 href="/equipment-rental"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-black/60 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
                 <Video className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Camera &amp; Gear Rental</span>
               </Link>
               <Link
                 href="/events"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#4e0b13]/75 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-black/60 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/25 backdrop-blur-sm transition-colors"
               >
                 <Ticket className="w-4 h-4 text-[#f6e3e5]" />
                 <span>Events &amp; Tickets</span>
