@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Phone, MessageSquare, Menu, X, ArrowUpRight } from 'lucide-react';
+import { Phone, MessageSquare, Menu, X, ShoppingBag } from 'lucide-react';
 import { BrandLogo } from './brand-logo';
 import { Button } from './ui/button';
 import { SITE_CONFIG, NAV_LINKS } from '@/lib/constants';
@@ -12,9 +12,10 @@ import { cn } from '@/lib/utils';
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { websiteContent } = useStore();
+  const { websiteContent, cart } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white transition-all shadow-xs">
@@ -104,7 +105,20 @@ export function SiteHeader() {
           </nav>
 
           {/* Action CTA (Figma: Button [139x44] r=8 fill=#81141f text=#ffffff 14px font 600) */}
-          <div className="hidden sm:flex items-center">
+          <div className="hidden sm:flex items-center gap-3">
+            <Link
+              href="/marketplace?cart=open"
+              className="relative inline-flex items-center gap-1.5 h-11 px-3.5 rounded-lg border border-[#eae3e4] bg-[#fbf3f4]/50 hover:bg-[#fbf3f4] text-[#1b1416] text-xs font-semibold transition-colors"
+              title="Marketplace Cart"
+            >
+              <ShoppingBag className="w-4 h-4 text-[#81141f]" />
+              <span>Cart</span>
+              {cartCount > 0 && (
+                <span className="ml-0.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#81141f] text-white text-[11px] font-bold">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
             <Link href="/cars/rent">
               <Button
                 className="h-11 px-5 rounded-lg bg-[#81141f] hover:bg-[#6b121c] text-white font-semibold text-sm shadow-xs transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer"

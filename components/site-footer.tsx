@@ -85,13 +85,22 @@ export function SiteFooter() {
               <h4 className="text-[15px] font-semibold text-white tracking-tight">Services</h4>
               <ul className="space-y-2.5 text-sm text-[#f6e3e5]">
                 <li>
+                  <Link href="/marketplace" className="hover:text-white transition-colors">Marketplace &amp; Gadgets</Link>
+                </li>
+                <li>
+                  <Link href="/studio" className="hover:text-white transition-colors">Lagos Studio Booking</Link>
+                </li>
+                <li>
+                  <Link href="/equipment-rental" className="hover:text-white transition-colors">Camera &amp; Gear Rental</Link>
+                </li>
+                <li>
+                  <Link href="/events" className="hover:text-white transition-colors">Events &amp; Tickets</Link>
+                </li>
+                <li>
                   <Link href="/help#inspection" className="hover:text-white transition-colors">Property inspection</Link>
                 </li>
                 <li>
                   <Link href="/cars/rent?driver=Chauffeured" className="hover:text-white transition-colors">Chauffeur service</Link>
-                </li>
-                <li>
-                  <Link href="/cars/rent" className="hover:text-white transition-colors">Car delivery</Link>
                 </li>
               </ul>
             </div>

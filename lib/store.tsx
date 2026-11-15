@@ -6,14 +6,40 @@ import {
   Booking,
   Customer,
   StaffActivity,
-  WebsiteContentConfig
+  WebsiteContentConfig,
+  ProductCategory,
+  Product,
+  ProductOrder,
+  CartItem,
+  StudioService,
+  StudioBooking,
+  EquipmentItem,
+  EquipmentRental,
+  EventItem,
+  DigitalTicket,
 } from './types';
 import {
   INITIAL_LISTINGS,
   INITIAL_BOOKINGS,
   INITIAL_CUSTOMERS,
-  INITIAL_ACTIVITIES
+  INITIAL_ACTIVITIES,
+  INITIAL_PRODUCT_CATEGORIES,
+  INITIAL_PRODUCTS,
+  INITIAL_PRODUCT_ORDERS,
+  INITIAL_STUDIO_SERVICES,
+  INITIAL_STUDIO_BOOKINGS,
+  INITIAL_EQUIPMENT_ITEMS,
+  INITIAL_EQUIPMENT_RENTALS,
+  INITIAL_EVENTS,
+  INITIAL_DIGITAL_TICKETS,
 } from './mock-data';
+import {
+  calculateOrderAuthoritative,
+  validateStudioSlotConflict,
+  calculateEquipmentRentalAuthoritative,
+  purchaseEventTicketAuthoritative,
+  validateAndCheckInTicket,
+} from './commerce-engine';
 import { supabaseService } from './supabase/service';
 
 const DEFAULT_WEBSITE_CONTENT: WebsiteContentConfig = {
@@ -34,7 +60,7 @@ const DEFAULT_WEBSITE_CONTENT: WebsiteContentConfig = {
     '/photos/gallery-bz-6.jpg',
     '/photos/gallery-bz-7.jpg',
     '/photos/gallery-bz-8.jpg',
-    '/photos/gallery-bz-9.jpg'
+    '/photos/gallery-bz-9.jpg',
   ],
   featuredItems: [
     {
@@ -42,23 +68,23 @@ const DEFAULT_WEBSITE_CONTENT: WebsiteContentConfig = {
       title: 'Lincoln Navigator 2022',
       image: '/figma-images/1d1f3a8c0aa3ff156f7fb0fd0480a30117a69620.jpg',
       category: 'Car',
-      active: true
+      active: true,
     },
     {
       id: 'feat-2',
       title: 'Mercedes-Benz S-Class 2022',
       image: '/figma-images/8720e6043d38d2c02684412c2a02c36ccc111f62.jpg',
       category: 'Car',
-      active: true
+      active: true,
     },
     {
       id: 'feat-3',
       title: 'BMW 50i xDrive 2021',
       image: '/figma-images/9d7db0a7aeef9858ca0e073a93bf39c628f3bb9c.jpg',
       category: 'Car',
-      active: true
-    }
-  ]
+      active: true,
+    },
+  ],
 };
 
 interface StoreContextType {
@@ -70,7 +96,19 @@ interface StoreContextType {
   isLoading: boolean;
   refreshData: () => Promise<void>;
 
-  // Mutations
+  // Multi-Service Commerce State
+  productCategories: ProductCategory[];
+  products: Product[];
+  productOrders: ProductOrder[];
+  cart: CartItem[];
+  studioServices: StudioService[];
+  studioBookings: StudioBooking[];
+  equipmentItems: EquipmentItem[];
+  equipmentRentals: EquipmentRental[];
+  events: EventItem[];
+  digitalTickets: DigitalTicket[];
+
+  // Existing Mutations
   addListing: (listing: Omit<Listing, 'id' | 'createdAt'>) => Promise<Listing>;
   updateListing: (id: string, updates: Partial<Listing>) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
@@ -82,6 +120,86 @@ interface StoreContextType {
   addActivity: (activity: Omit<StaffActivity, 'id' | 'timestamp'>) => Promise<void>;
   clearActivities: () => Promise<void>;
   updateWebsiteContent: (config: Partial<WebsiteContentConfig>) => Promise<void>;
+
+  // Marketplace Categories & Products
+  addProductCategory: (cat: Omit<ProductCategory, 'id'>) => Promise<ProductCategory>;
+  updateProductCategory: (id: string, updates: Partial<ProductCategory>) => Promise<void>;
+  deleteProductCategory: (id: string) => Promise<void>;
+
+  addProduct: (product: Omit<Product, 'id' | 'createdAt'>) => Promise<Product>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+
+  // Cart & Product Orders
+  addToCart: (item: { productId: string; variantId?: string; quantity?: number }) => { ok: boolean; error?: string };
+  updateCartItemQuantity: (cartItemId: string, quantity: number) => void;
+  removeFromCart: (cartItemId: string) => void;
+  clearCart: () => void;
+  createProductOrder: (payload: {
+    items: Array<{ productId: string; variantId?: string; quantity: number }>;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    deliveryAddress: string;
+    deliveryState: string;
+    receiptUrl?: string;
+    notes?: string;
+  }) => Promise<{ ok: boolean; error?: string; order?: ProductOrder }>;
+  updateProductOrder: (id: string, updates: Partial<ProductOrder>) => Promise<void>;
+
+  // Studio Services & Bookings
+  addStudioService: (srv: Omit<StudioService, 'id'>) => Promise<StudioService>;
+  updateStudioService: (id: string, updates: Partial<StudioService>) => Promise<void>;
+  deleteStudioService: (id: string) => Promise<void>;
+  createStudioBooking: (payload: {
+    serviceId: string;
+    date: string;
+    timeSlot: string;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    receiptUrl?: string;
+    notes?: string;
+  }) => Promise<{ ok: boolean; error?: string; booking?: StudioBooking }>;
+  updateStudioBooking: (id: string, updates: Partial<StudioBooking>) => Promise<void>;
+
+  // Equipment & Rentals
+  addEquipmentItem: (eq: Omit<EquipmentItem, 'id'>) => Promise<EquipmentItem>;
+  updateEquipmentItem: (id: string, updates: Partial<EquipmentItem>) => Promise<void>;
+  deleteEquipmentItem: (id: string) => Promise<void>;
+  createEquipmentRental: (payload: {
+    equipmentId: string;
+    startDate: string;
+    endDate: string;
+    quantity: number;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    pickupLocation?: string;
+    receiptUrl?: string;
+    notes?: string;
+  }) => Promise<{ ok: boolean; error?: string; rental?: EquipmentRental }>;
+  updateEquipmentRental: (id: string, updates: Partial<EquipmentRental>) => Promise<void>;
+
+  // Events & Digital Tickets
+  addEvent: (evt: Omit<EventItem, 'id' | 'createdAt'>) => Promise<EventItem>;
+  updateEvent: (id: string, updates: Partial<EventItem>) => Promise<void>;
+  deleteEvent: (id: string) => Promise<void>;
+  purchaseEventTicket: (payload: {
+    eventId: string;
+    tierId: string;
+    quantity: number;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    receiptUrl?: string;
+    notes?: string;
+  }) => Promise<{ ok: boolean; error?: string; ticket?: DigitalTicket }>;
+  updateDigitalTicket: (id: string, updates: Partial<DigitalTicket>) => Promise<void>;
+  checkInDigitalTicket: (
+    codeOrId: string,
+    checkedInBy?: string
+  ) => Promise<{ ok: boolean; reason?: string; message: string; ticket?: DigitalTicket }>;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
@@ -96,6 +214,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [websiteContent, setWebsiteContent] = useState<WebsiteContentConfig>(DEFAULT_WEBSITE_CONTENT);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Multi-Service Commerce State
+  const [productCategories, setProductCategories] = useState<ProductCategory[]>(INITIAL_PRODUCT_CATEGORIES);
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [productOrders, setProductOrders] = useState<ProductOrder[]>(INITIAL_PRODUCT_ORDERS);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [studioServices, setStudioServices] = useState<StudioService[]>(INITIAL_STUDIO_SERVICES);
+  const [studioBookings, setStudioBookings] = useState<StudioBooking[]>(INITIAL_STUDIO_BOOKINGS);
+  const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>(INITIAL_EQUIPMENT_ITEMS);
+  const [equipmentRentals, setEquipmentRentals] = useState<EquipmentRental[]>(INITIAL_EQUIPMENT_RENTALS);
+  const [events, setEvents] = useState<EventItem[]>(INITIAL_EVENTS);
+  const [digitalTickets, setDigitalTickets] = useState<DigitalTicket[]>(INITIAL_DIGITAL_TICKETS);
+
   // Hydrate from Supabase BaaS (Single Source of Truth)
   const refreshData = useCallback(async () => {
     try {
@@ -104,13 +234,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         remoteBookings,
         remoteCustomers,
         remoteActivities,
-        remoteContent
+        remoteContent,
       ] = await Promise.all([
         supabaseService.fetchListings(),
         supabaseService.fetchBookings(),
         supabaseService.fetchCustomers(),
         supabaseService.fetchActivities(),
-        supabaseService.fetchWebsiteContent()
+        supabaseService.fetchWebsiteContent(),
       ]);
 
       if (remoteListings !== null) setListings(remoteListings);
@@ -118,12 +248,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (remoteCustomers !== null) setCustomers(remoteCustomers);
       if (remoteActivities !== null) setActivities(remoteActivities);
       if (remoteContent) {
-        setWebsiteContent(prev => ({
+        setWebsiteContent((prev) => ({
           ...prev,
           ...remoteContent,
           heroImage: prev.heroImage || DEFAULT_WEBSITE_CONTENT.heroImage,
           founderImage: prev.founderImage || DEFAULT_WEBSITE_CONTENT.founderImage,
-          galleryPhotos: (prev.galleryPhotos && prev.galleryPhotos.length > 0) ? prev.galleryPhotos : DEFAULT_WEBSITE_CONTENT.galleryPhotos
+          galleryPhotos:
+            prev.galleryPhotos && prev.galleryPhotos.length > 0
+              ? prev.galleryPhotos
+              : DEFAULT_WEBSITE_CONTENT.galleryPhotos,
         }));
       }
     } catch (err) {
@@ -135,7 +268,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // Initial load
   useEffect(() => {
-    // 1. Try local cache for zero-flicker startup
     try {
       const cListings = localStorage.getItem(CACHE_KEY_PREFIX + 'listings');
       if (cListings) {
@@ -163,11 +295,70 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       const cContent = localStorage.getItem(CACHE_KEY_PREFIX + 'content');
       if (cContent) setWebsiteContent(JSON.parse(cContent));
-    } catch (e) {
+
+      const cProdCats = localStorage.getItem(CACHE_KEY_PREFIX + 'product_categories');
+      if (cProdCats) {
+        const p = JSON.parse(cProdCats);
+        if (Array.isArray(p) && p.length > 0) setProductCategories(p);
+      }
+
+      const cProds = localStorage.getItem(CACHE_KEY_PREFIX + 'products');
+      if (cProds) {
+        const p = JSON.parse(cProds);
+        if (Array.isArray(p) && p.length > 0) setProducts(p);
+      }
+
+      const cOrders = localStorage.getItem(CACHE_KEY_PREFIX + 'product_orders');
+      if (cOrders) {
+        const p = JSON.parse(cOrders);
+        if (Array.isArray(p)) setProductOrders(p);
+      }
+
+      const cCart = localStorage.getItem(CACHE_KEY_PREFIX + 'cart');
+      if (cCart) {
+        const p = JSON.parse(cCart);
+        if (Array.isArray(p)) setCart(p);
+      }
+
+      const cStuSrv = localStorage.getItem(CACHE_KEY_PREFIX + 'studio_services');
+      if (cStuSrv) {
+        const p = JSON.parse(cStuSrv);
+        if (Array.isArray(p) && p.length > 0) setStudioServices(p);
+      }
+
+      const cStuBook = localStorage.getItem(CACHE_KEY_PREFIX + 'studio_bookings');
+      if (cStuBook) {
+        const p = JSON.parse(cStuBook);
+        if (Array.isArray(p)) setStudioBookings(p);
+      }
+
+      const cEqItems = localStorage.getItem(CACHE_KEY_PREFIX + 'equipment_items');
+      if (cEqItems) {
+        const p = JSON.parse(cEqItems);
+        if (Array.isArray(p) && p.length > 0) setEquipmentItems(p);
+      }
+
+      const cEqRent = localStorage.getItem(CACHE_KEY_PREFIX + 'equipment_rentals');
+      if (cEqRent) {
+        const p = JSON.parse(cEqRent);
+        if (Array.isArray(p)) setEquipmentRentals(p);
+      }
+
+      const cEvents = localStorage.getItem(CACHE_KEY_PREFIX + 'events');
+      if (cEvents) {
+        const p = JSON.parse(cEvents);
+        if (Array.isArray(p) && p.length > 0) setEvents(p);
+      }
+
+      const cTickets = localStorage.getItem(CACHE_KEY_PREFIX + 'digital_tickets');
+      if (cTickets) {
+        const p = JSON.parse(cTickets);
+        if (Array.isArray(p)) setDigitalTickets(p);
+      }
+    } catch {
       // Ignore cache read failures
     }
 
-    // 2. Fetch live truth from Supabase
     refreshData();
   }, [refreshData]);
 
@@ -180,13 +371,75 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(CACHE_KEY_PREFIX + 'cust', JSON.stringify(customers));
       localStorage.setItem(CACHE_KEY_PREFIX + 'act', JSON.stringify(activities));
       localStorage.setItem(CACHE_KEY_PREFIX + 'content', JSON.stringify(websiteContent));
-    } catch (e) {
+      localStorage.setItem(CACHE_KEY_PREFIX + 'product_categories', JSON.stringify(productCategories));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'products', JSON.stringify(products));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'product_orders', JSON.stringify(productOrders));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'cart', JSON.stringify(cart));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'studio_services', JSON.stringify(studioServices));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'studio_bookings', JSON.stringify(studioBookings));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'equipment_items', JSON.stringify(equipmentItems));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'equipment_rentals', JSON.stringify(equipmentRentals));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'events', JSON.stringify(events));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'digital_tickets', JSON.stringify(digitalTickets));
+    } catch {
       // Ignore cache write errors
     }
-  }, [listings, bookings, customers, activities, websiteContent, isLoading]);
+  }, [
+    listings,
+    bookings,
+    customers,
+    activities,
+    websiteContent,
+    productCategories,
+    products,
+    productOrders,
+    cart,
+    studioServices,
+    studioBookings,
+    equipmentItems,
+    equipmentRentals,
+    events,
+    digitalTickets,
+    isLoading,
+  ]);
+
+  const upsertCustomerRecord = useCallback(
+    (name: string, email: string, phone: string, location: string, spendNgn: number) => {
+      setCustomers((prev) => {
+        const existingIdx = prev.findIndex(
+          (c) =>
+            (email && c.email.toLowerCase() === email.toLowerCase()) ||
+            (phone && c.phone.replace(/\D/g, '') === phone.replace(/\D/g, ''))
+        );
+        if (existingIdx !== -1) {
+          const existing = prev[existingIdx];
+          const updated: Customer = {
+            ...existing,
+            totalBookings: existing.totalBookings + 1,
+            lifetimeSpendNgn: existing.lifetimeSpendNgn + spendNgn,
+            status: existing.lifetimeSpendNgn + spendNgn >= 2000000 ? 'vip' : existing.status,
+          };
+          return prev.map((c, i) => (i === existingIdx ? updated : c));
+        }
+        const newCust: Customer = {
+          id: `CUST-${Math.floor(100 + Math.random() * 900)}`,
+          name,
+          email,
+          phone,
+          location: location || 'Abuja / Lagos',
+          totalBookings: 1,
+          lifetimeSpendNgn: spendNgn,
+          joinedAt: new Date().toISOString(),
+          status: spendNgn >= 2000000 ? 'vip' : 'active',
+        };
+        return [newCust, ...prev];
+      });
+    },
+    []
+  );
 
   // ==========================================================================
-  // MUTATIONS (Optimistic UI + Persistent Supabase write)
+  // EXISTING MUTATIONS
   // ==========================================================================
 
   const addListing = async (item: Omit<Listing, 'id' | 'createdAt'>) => {
@@ -194,20 +447,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const newListing: Listing = {
       ...item,
       id: newId,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    setListings(prev => [newListing, ...prev]);
+    setListings((prev) => [newListing, ...prev]);
     await supabaseService.insertListing(newListing);
     return newListing;
   };
 
   const updateListing = async (id: string, updates: Partial<Listing>) => {
-    setListings(prev => prev.map(l => (l.id === id ? { ...l, ...updates } : l)));
+    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, ...updates } : l)));
     await supabaseService.updateListing(id, updates);
   };
 
   const deleteListing = async (id: string) => {
-    setListings(prev => prev.filter(l => l.id !== id));
+    setListings((prev) => prev.filter((l) => l.id !== id));
     await supabaseService.deleteListing(id);
   };
 
@@ -219,20 +472,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ...item,
       id: newId,
       reference: newId,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    setBookings(prev => [newBooking, ...prev]);
+    setBookings((prev) => [newBooking, ...prev]);
     await supabaseService.insertBooking(newBooking);
     return newBooking;
   };
 
   const updateBooking = async (id: string, updates: Partial<Booking>) => {
-    setBookings(prev => prev.map(b => (b.id === id ? { ...b, ...updates } : b)));
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)));
     await supabaseService.updateBooking(id, updates);
   };
 
   const updateCustomerNotes = async (customerId: string, notes: string) => {
-    setCustomers(prev => prev.map(c => (c.id === customerId ? { ...c, notes } : c)));
+    setCustomers((prev) => prev.map((c) => (c.id === customerId ? { ...c, notes } : c)));
     await supabaseService.updateCustomerNotes(customerId, notes);
   };
 
@@ -242,9 +495,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const newAct: StaffActivity = {
       ...act,
       id: `act-${Date.now()}`,
-      timestamp: `Today, ${timeStr}`
+      timestamp: `Today, ${timeStr}`,
     };
-    setActivities(prev => [newAct, ...prev]);
+    setActivities((prev) => [newAct, ...prev]);
     await supabaseService.insertActivity(newAct);
   };
 
@@ -261,18 +514,512 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateWebsiteContent = async (config: Partial<WebsiteContentConfig>) => {
-    setWebsiteContent(prev => {
+    setWebsiteContent((prev) => {
       const updated = { ...prev, ...config };
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem(CACHE_KEY_PREFIX + 'content', JSON.stringify(updated));
-        } catch (e) {
+        } catch {
           // ignore
         }
       }
       return updated;
     });
     await supabaseService.updateWebsiteContent(config);
+  };
+
+  // ==========================================================================
+  // MARKETPLACE CATEGORIES & PRODUCTS
+  // ==========================================================================
+
+  const addProductCategory = async (cat: Omit<ProductCategory, 'id'>) => {
+    const newCat: ProductCategory = {
+      ...cat,
+      id: `cat-${Date.now()}`,
+    };
+    setProductCategories((prev) => [...prev, newCat]);
+    return newCat;
+  };
+
+  const updateProductCategory = async (id: string, updates: Partial<ProductCategory>) => {
+    setProductCategories((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
+  };
+
+  const deleteProductCategory = async (id: string) => {
+    setProductCategories((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const addProduct = async (product: Omit<Product, 'id' | 'createdAt'>) => {
+    const newProd: Product = {
+      ...product,
+      id: `prod-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setProducts((prev) => [newProd, ...prev]);
+    await addActivity({
+      actorName: 'Admin',
+      actorRole: 'Marketplace Desk',
+      action: `Added product: ${newProd.name} (${newProd.categorySlug})`,
+      targetId: newProd.id,
+      category: 'listings',
+    });
+    return newProd;
+  };
+
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+  };
+
+  const deleteProduct = async (id: string) => {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  // ==========================================================================
+  // CART & AUTHORITATIVE ORDERS
+  // ==========================================================================
+
+  const addToCart = ({
+    productId,
+    variantId,
+    quantity = 1,
+  }: {
+    productId: string;
+    variantId?: string;
+    quantity?: number;
+  }): { ok: boolean; error?: string } => {
+    const product = products.find((p) => p.id === productId && p.status === 'published');
+    if (!product) {
+      return { ok: false, error: 'Product is not available.' };
+    }
+
+    const variant =
+      variantId && product.variants
+        ? product.variants.find((v) => v.id === variantId)
+        : product.variants && product.variants.length > 0
+        ? product.variants[0]
+        : undefined;
+
+    const maxStock = variant ? variant.stock : product.stock;
+    const unitPrice = variant ? variant.price : product.price;
+    const cartItemId = `${product.id}:${variant ? variant.id : 'default'}`;
+
+    const existing = cart.find((c) => c.id === cartItemId);
+    const nextQty = (existing ? existing.quantity : 0) + quantity;
+
+    if (nextQty > maxStock) {
+      return {
+        ok: false,
+        error:
+          maxStock <= 0
+            ? `"${product.name}" is out of stock.`
+            : `Only ${maxStock} unit(s) of "${product.name}" available in stock.`,
+      };
+    }
+
+    setCart((prev) => {
+      const idx = prev.findIndex((c) => c.id === cartItemId);
+      if (idx !== -1) {
+        return prev.map((c, i) => (i === idx ? { ...c, quantity: nextQty, unitPrice, maxStock } : c));
+      }
+      const nextItem: CartItem = {
+        id: cartItemId,
+        productId: product.id,
+        productName: product.name,
+        productImage: product.images[0] || '/photos/gallery-bz-1.jpg',
+        categorySlug: product.categorySlug,
+        variantId: variant?.id,
+        variantLabel: variant?.label,
+        unitPrice,
+        quantity,
+        maxStock,
+      };
+      return [...prev, nextItem];
+    });
+
+    return { ok: true };
+  };
+
+  const updateCartItemQuantity = (cartItemId: string, quantity: number) => {
+    if (quantity <= 0) {
+      setCart((prev) => prev.filter((c) => c.id !== cartItemId));
+      return;
+    }
+    setCart((prev) =>
+      prev.map((c) =>
+        c.id === cartItemId
+          ? { ...c, quantity: Math.min(c.maxStock, Math.max(1, quantity)) }
+          : c
+      )
+    );
+  };
+
+  const removeFromCart = (cartItemId: string) => {
+    setCart((prev) => prev.filter((c) => c.id !== cartItemId));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+  };
+
+  const createProductOrder = async (payload: {
+    items: Array<{ productId: string; variantId?: string; quantity: number }>;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    deliveryAddress: string;
+    deliveryState: string;
+    receiptUrl?: string;
+    notes?: string;
+  }): Promise<{ ok: boolean; error?: string; order?: ProductOrder }> => {
+    const authResult = calculateOrderAuthoritative(payload.items, products, payload.deliveryState);
+    if (!authResult.ok) {
+      return { ok: false, error: authResult.error };
+    }
+
+    const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newOrder: ProductOrder = {
+      id: orderId,
+      reference: orderId,
+      items: authResult.orderItems,
+      subtotalAmount: authResult.subtotalAmount,
+      deliveryFee: authResult.deliveryFee,
+      totalAmount: authResult.totalAmount,
+      customerName: payload.customerName,
+      customerPhone: payload.customerPhone,
+      customerEmail: payload.customerEmail,
+      deliveryAddress: payload.deliveryAddress,
+      deliveryState: payload.deliveryState,
+      orderStatus: 'pending',
+      paymentStatus: payload.receiptUrl ? 'receipt_uploaded' : 'pending',
+      receiptUrl: payload.receiptUrl,
+      notes: payload.notes,
+      createdAt: new Date().toISOString(),
+    };
+
+    setProducts(authResult.updatedProducts);
+    setProductOrders((prev) => [newOrder, ...prev]);
+    setCart([]);
+
+    upsertCustomerRecord(
+      payload.customerName,
+      payload.customerEmail,
+      payload.customerPhone,
+      payload.deliveryState,
+      newOrder.totalAmount
+    );
+
+    await addActivity({
+      actorName: payload.customerName,
+      actorRole: 'Marketplace Order',
+      action: `Placed order ${newOrder.id} (${newOrder.items.length} item(s) · ₦${newOrder.totalAmount.toLocaleString()})`,
+      targetId: newOrder.id,
+      category: 'bookings',
+    });
+
+    return { ok: true, order: newOrder };
+  };
+
+  const updateProductOrder = async (id: string, updates: Partial<ProductOrder>) => {
+    setProductOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...updates } : o)));
+  };
+
+  // ==========================================================================
+  // STUDIO SERVICES & BOOKINGS (WITH DOUBLE-BOOKING PREVENTION)
+  // ==========================================================================
+
+  const addStudioService = async (srv: Omit<StudioService, 'id'>) => {
+    const newSrv: StudioService = {
+      ...srv,
+      id: `stu-srv-${Date.now()}`,
+    };
+    setStudioServices((prev) => [...prev, newSrv]);
+    return newSrv;
+  };
+
+  const updateStudioService = async (id: string, updates: Partial<StudioService>) => {
+    setStudioServices((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
+  };
+
+  const deleteStudioService = async (id: string) => {
+    setStudioServices((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const createStudioBooking = async (payload: {
+    serviceId: string;
+    date: string;
+    timeSlot: string;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    receiptUrl?: string;
+    notes?: string;
+  }): Promise<{ ok: boolean; error?: string; booking?: StudioBooking }> => {
+    const service = studioServices.find((s) => s.id === payload.serviceId && s.status === 'active');
+    if (!service) {
+      return { ok: false, error: 'Selected studio package is no longer available.' };
+    }
+
+    const { conflict } = validateStudioSlotConflict(
+      studioBookings,
+      payload.serviceId,
+      payload.date,
+      payload.timeSlot
+    );
+
+    if (conflict) {
+      return {
+        ok: false,
+        error: `The ${payload.timeSlot} slot on ${payload.date} is already booked at our Lagos Studio. Please choose another time slot or date.`,
+      };
+    }
+
+    const bookingId = `STU-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newBooking: StudioBooking = {
+      id: bookingId,
+      reference: bookingId,
+      serviceId: service.id,
+      serviceName: service.name,
+      serviceType: service.serviceType,
+      date: payload.date,
+      timeSlot: payload.timeSlot,
+      durationHours: service.durationHours,
+      location: service.location,
+      customerName: payload.customerName,
+      customerPhone: payload.customerPhone,
+      customerEmail: payload.customerEmail,
+      totalAmount: service.price,
+      bookingStatus: payload.receiptUrl ? 'payment_pending' : 'pending',
+      paymentStatus: payload.receiptUrl ? 'receipt_uploaded' : 'pending',
+      receiptUrl: payload.receiptUrl,
+      notes: payload.notes,
+      createdAt: new Date().toISOString(),
+    };
+
+    setStudioBookings((prev) => [newBooking, ...prev]);
+
+    upsertCustomerRecord(
+      payload.customerName,
+      payload.customerEmail,
+      payload.customerPhone,
+      'Lagos State',
+      newBooking.totalAmount
+    );
+
+    await addActivity({
+      actorName: payload.customerName,
+      actorRole: 'Lagos Studio Desk',
+      action: `Booked studio session ${newBooking.id}: ${service.name} (${payload.date} @ ${payload.timeSlot})`,
+      targetId: newBooking.id,
+      category: 'bookings',
+    });
+
+    return { ok: true, booking: newBooking };
+  };
+
+  const updateStudioBooking = async (id: string, updates: Partial<StudioBooking>) => {
+    setStudioBookings((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)));
+  };
+
+  // ==========================================================================
+  // CAMERA & MEDIA EQUIPMENT RENTALS (WITH DATE-RANGE CONFLICT PREVENTION)
+  // ==========================================================================
+
+  const addEquipmentItem = async (eq: Omit<EquipmentItem, 'id'>) => {
+    const newEq: EquipmentItem = {
+      ...eq,
+      id: `eq-${Date.now()}`,
+    };
+    setEquipmentItems((prev) => [newEq, ...prev]);
+    return newEq;
+  };
+
+  const updateEquipmentItem = async (id: string, updates: Partial<EquipmentItem>) => {
+    setEquipmentItems((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
+  };
+
+  const deleteEquipmentItem = async (id: string) => {
+    setEquipmentItems((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const createEquipmentRental = async (payload: {
+    equipmentId: string;
+    startDate: string;
+    endDate: string;
+    quantity: number;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    pickupLocation?: string;
+    receiptUrl?: string;
+    notes?: string;
+  }): Promise<{ ok: boolean; error?: string; rental?: EquipmentRental }> => {
+    const equipment = equipmentItems.find((e) => e.id === payload.equipmentId);
+    if (!equipment || equipment.status !== 'available') {
+      return { ok: false, error: 'Selected equipment is currently unavailable for rental.' };
+    }
+
+    const calc = calculateEquipmentRentalAuthoritative(
+      equipment,
+      equipmentRentals,
+      payload.startDate,
+      payload.endDate,
+      payload.quantity
+    );
+
+    if (!calc.ok) {
+      return { ok: false, error: calc.error };
+    }
+
+    const rentalId = `RNT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newRental: EquipmentRental = {
+      id: rentalId,
+      reference: rentalId,
+      equipmentId: equipment.id,
+      equipmentName: equipment.name,
+      equipmentCategory: equipment.category,
+      equipmentImage: equipment.images[0],
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      days: calc.days,
+      quantity: payload.quantity,
+      dailyRate: calc.dailyRate,
+      depositAmount: calc.depositAmount,
+      totalAmount: calc.totalAmount,
+      customerName: payload.customerName,
+      customerPhone: payload.customerPhone,
+      customerEmail: payload.customerEmail,
+      pickupLocation: payload.pickupLocation || 'BZ De Great Studio — Lekki-Ajah, Lagos State',
+      rentalStatus: payload.receiptUrl ? 'payment_pending' : 'pending',
+      paymentStatus: payload.receiptUrl ? 'receipt_uploaded' : 'pending',
+      receiptUrl: payload.receiptUrl,
+      notes: payload.notes,
+      createdAt: new Date().toISOString(),
+    };
+
+    setEquipmentRentals((prev) => [newRental, ...prev]);
+
+    upsertCustomerRecord(
+      payload.customerName,
+      payload.customerEmail,
+      payload.customerPhone,
+      'Lagos State',
+      newRental.totalAmount
+    );
+
+    await addActivity({
+      actorName: payload.customerName,
+      actorRole: 'Equipment Rental Desk',
+      action: `Booked gear rental ${newRental.id}: ${payload.quantity}x ${equipment.name} (${payload.startDate} to ${payload.endDate})`,
+      targetId: newRental.id,
+      category: 'bookings',
+    });
+
+    return { ok: true, rental: newRental };
+  };
+
+  const updateEquipmentRental = async (id: string, updates: Partial<EquipmentRental>) => {
+    setEquipmentRentals((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)));
+  };
+
+  // ==========================================================================
+  // EVENTS, DIGITAL TICKETS & QR CHECK-IN VALIDATION
+  // ==========================================================================
+
+  const addEvent = async (evt: Omit<EventItem, 'id' | 'createdAt'>) => {
+    const newEvt: EventItem = {
+      ...evt,
+      id: `evt-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setEvents((prev) => [newEvt, ...prev]);
+    return newEvt;
+  };
+
+  const updateEvent = async (id: string, updates: Partial<EventItem>) => {
+    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
+  };
+
+  const deleteEvent = async (id: string) => {
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const purchaseEventTicket = async (payload: {
+    eventId: string;
+    tierId: string;
+    quantity: number;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    receiptUrl?: string;
+    notes?: string;
+  }): Promise<{ ok: boolean; error?: string; ticket?: DigitalTicket }> => {
+    const targetEvent = events.find((e) => e.id === payload.eventId);
+    if (!targetEvent) {
+      return { ok: false, error: 'Event not found.' };
+    }
+
+    const result = purchaseEventTicketAuthoritative(targetEvent, payload.tierId, payload.quantity, {
+      customerName: payload.customerName,
+      customerPhone: payload.customerPhone,
+      customerEmail: payload.customerEmail,
+      receiptUrl: payload.receiptUrl,
+      notes: payload.notes,
+    });
+
+    if (!result.ok || !result.ticket || !result.updatedEvent) {
+      return { ok: false, error: result.error };
+    }
+
+    const newTicket = result.ticket;
+    const updatedEvent = result.updatedEvent;
+
+    setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)));
+    setDigitalTickets((prev) => [newTicket, ...prev]);
+
+    upsertCustomerRecord(
+      payload.customerName,
+      payload.customerEmail,
+      payload.customerPhone,
+      targetEvent.city,
+      newTicket.totalAmount
+    );
+
+    await addActivity({
+      actorName: payload.customerName,
+      actorRole: 'Events Box Office',
+      action: `Issued digital ticket ${newTicket.id} (${newTicket.ticketCode}) for ${targetEvent.name}`,
+      targetId: newTicket.id,
+      category: 'bookings',
+    });
+
+    return { ok: true, ticket: newTicket };
+  };
+
+  const updateDigitalTicket = async (id: string, updates: Partial<DigitalTicket>) => {
+    setDigitalTickets((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+  };
+
+  const checkInDigitalTicket = async (
+    codeOrId: string,
+    checkedInBy = 'Admin Gate Scanner'
+  ): Promise<{ ok: boolean; reason?: string; message: string; ticket?: DigitalTicket }> => {
+    const result = validateAndCheckInTicket(digitalTickets, codeOrId, checkedInBy);
+    if (result.ok && result.ticket) {
+      setDigitalTickets(result.updatedTickets);
+      await addActivity({
+        actorName: checkedInBy,
+        actorRole: 'Event Gate Check-In',
+        action: `Checked in ticket ${result.ticket.ticketCode} (${result.ticket.customerName} · ${result.ticket.tierName})`,
+        targetId: result.ticket.id,
+        category: 'bookings',
+      });
+    }
+    return {
+      ok: result.ok,
+      reason: result.reason,
+      message: result.message,
+      ticket: result.ticket,
+    };
   };
 
   return (
@@ -285,6 +1032,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         websiteContent,
         isLoading,
         refreshData,
+        productCategories,
+        products,
+        productOrders,
+        cart,
+        studioServices,
+        studioBookings,
+        equipmentItems,
+        equipmentRentals,
+        events,
+        digitalTickets,
         addListing,
         updateListing,
         deleteListing,
@@ -293,7 +1050,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         updateCustomerNotes,
         addActivity,
         clearActivities,
-        updateWebsiteContent
+        updateWebsiteContent,
+        addProductCategory,
+        updateProductCategory,
+        deleteProductCategory,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        addToCart,
+        updateCartItemQuantity,
+        removeFromCart,
+        clearCart,
+        createProductOrder,
+        updateProductOrder,
+        addStudioService,
+        updateStudioService,
+        deleteStudioService,
+        createStudioBooking,
+        updateStudioBooking,
+        addEquipmentItem,
+        updateEquipmentItem,
+        deleteEquipmentItem,
+        createEquipmentRental,
+        updateEquipmentRental,
+        addEvent,
+        updateEvent,
+        deleteEvent,
+        purchaseEventTicket,
+        updateDigitalTicket,
+        checkInDigitalTicket,
       }}
     >
       {children}

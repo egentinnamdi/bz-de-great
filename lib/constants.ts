@@ -36,6 +36,7 @@ export const NAV_LINKS = [
   { label: 'Buy a car', href: '/cars/buy' },
   { label: 'Rent a home', href: '/homes/rent' },
   { label: 'Buy property', href: '/properties/buy' },
+  { label: 'Marketplace & Studio', href: '/marketplace' },
   { label: 'About', href: '/about' },
 ];
 
@@ -45,6 +46,9 @@ export const FOOTER_LINKS = {
     { label: 'Car sales', href: '/cars/buy' },
     { label: 'Homes for rent', href: '/homes/rent' },
     { label: 'Property for sale', href: '/properties/buy' },
+    { label: 'Marketplace & Gadgets', href: '/marketplace' },
+    { label: 'Lagos Studio & Gear Rental', href: '/studio' },
+    { label: 'Events & Tickets', href: '/events' },
     { label: 'Chauffeured VIP escort', href: '/cars/rent?driver=Chauffeured' },
   ],
   company: [
@@ -62,6 +66,7 @@ export const FOOTER_LINKS = {
   admin: [
     { label: 'Staff Dashboard', href: '/admin' },
     { label: 'Manage Listings', href: '/admin/listings' },
+    { label: 'Marketplace & Studio', href: '/admin/marketplace' },
     { label: 'Bookings Calendar', href: '/admin/bookings' },
     { label: 'Payments Review', href: '/admin/payments' },
   ]
