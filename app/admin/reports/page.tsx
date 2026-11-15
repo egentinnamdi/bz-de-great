@@ -20,33 +20,102 @@ import { cn } from '@/lib/utils';
 
 export default function AdminReportsPage() {
   const { toast } = useToast();
-  const { bookings, listings, customers } = useStore();
+  const {
+    bookings,
+    listings,
+    customers,
+    productOrders,
+    products,
+    studioBookings,
+    studioServices,
+    equipmentRentals,
+    equipmentItems,
+    events,
+    digitalTickets,
+  } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [range, setRange] = useState<'Last 6 months' | 'This year' | 'Last year' | 'Custom range'>('Last 6 months');
 
   // ============================================================================
-  // 1. DYNAMIC TOP METRICS AGGREGATION
+  // 1. DYNAMIC TOP METRICS AGGREGATION ACROSS ALL DIVISIONS
   // ============================================================================
   const metrics = useMemo(() => {
-    // 1. Total Revenue from verified bookings
-    const totalRevenueNgn = bookings.reduce((sum, b) => {
+    const verifiedBookingsRev = bookings.reduce((sum, b) => {
       if (b.paymentStatus === 'verified' || b.bookingStatus === 'confirmed') {
         return sum + (Number(b.totalAmount) || 0);
       }
       return sum;
     }, 0);
 
-    // 2. Total Bookings
-    const totalBookingsCount = bookings.length;
-    const activeBookingsCount = bookings.filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'active').length;
+    const verifiedOrdersRev = productOrders.reduce((sum, o) => {
+      if (
+        o.paymentStatus === 'verified' ||
+        ['confirmed', 'processing', 'dispatched', 'delivered'].includes(o.orderStatus)
+      ) {
+        return sum + (Number(o.totalAmount) || 0);
+      }
+      return sum;
+    }, 0);
 
-    // 3. Published listings count
-    const publishedListingsCount = listings.filter(l => l.status === 'published').length;
-    const totalListingsCount = listings.length;
+    const verifiedStudioRev = studioBookings.reduce((sum, s) => {
+      if (s.paymentStatus === 'verified' || ['confirmed', 'completed'].includes(s.bookingStatus)) {
+        return sum + (Number(s.totalAmount) || 0);
+      }
+      return sum;
+    }, 0);
 
-    // 4. New / Total customers
+    const verifiedRentalRev = equipmentRentals.reduce((sum, r) => {
+      if (
+        r.paymentStatus === 'verified' ||
+        ['confirmed', 'active', 'returned'].includes(r.rentalStatus)
+      ) {
+        return sum + (Number(r.totalAmount) || 0);
+      }
+      return sum;
+    }, 0);
+
+    const verifiedTicketRev = digitalTickets.reduce((sum, t) => {
+      if (t.paymentStatus === 'verified' || t.ticketStatus === 'valid' || t.ticketStatus === 'checked_in') {
+        return sum + (Number(t.totalAmount) || 0);
+      }
+      return sum;
+    }, 0);
+
+    const totalRevenueNgn =
+      verifiedBookingsRev + verifiedOrdersRev + verifiedStudioRev + verifiedRentalRev + verifiedTicketRev;
+
+    const totalBookingsCount =
+      bookings.length +
+      productOrders.length +
+      studioBookings.length +
+      equipmentRentals.length +
+      digitalTickets.length;
+
+    const activeBookingsCount =
+      bookings.filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'active').length +
+      productOrders.filter(o =>
+        ['confirmed', 'processing', 'dispatched', 'delivered'].includes(o.orderStatus)
+      ).length +
+      studioBookings.filter(s => s.bookingStatus === 'confirmed' || s.bookingStatus === 'completed').length +
+      equipmentRentals.filter(r => ['confirmed', 'active'].includes(r.rentalStatus)).length +
+      digitalTickets.filter(t => t.ticketStatus === 'valid' || t.ticketStatus === 'checked_in').length;
+
+    const publishedListingsCount =
+      listings.filter(l => l.status === 'published').length +
+      products.filter(p => p.status === 'published').length +
+      studioServices.filter(s => s.status === 'active').length +
+      equipmentItems.filter(e => e.status === 'available').length +
+      events.filter(ev => ev.status === 'published').length;
+
+    const totalListingsCount =
+      listings.length +
+      products.length +
+      studioServices.length +
+      equipmentItems.length +
+      events.length;
+
     const totalCustomersCount = customers.length;
-    const vipCustomersCount = customers.filter(c => c.isVip).length;
+    const vipCustomersCount = customers.filter(c => c.isVip || c.status === 'vip').length;
 
     return {
       totalRevenueNgn,
@@ -57,7 +126,19 @@ export default function AdminReportsPage() {
       totalCustomersCount,
       vipCustomersCount
     };
-  }, [bookings, listings, customers]);
+  }, [
+    bookings,
+    listings,
+    customers,
+    productOrders,
+    products,
+    studioBookings,
+    studioServices,
+    equipmentRentals,
+    equipmentItems,
+    events,
+    digitalTickets,
+  ]);
 
   // Format currency helpers
   const formatNgnDisplay = (amount: number) => {
@@ -70,122 +151,111 @@ export default function AdminReportsPage() {
   };
 
   // ============================================================================
-  // 2. DYNAMIC MONTHLY REVENUE (LAST 6 MONTHS)
+  // 2. DYNAMIC MONTHLY REVENUE (ROLLING LAST 6 MONTHS)
   // ============================================================================
   const monthlyRevenueData = useMemo(() => {
-    // Generate 6 months window up to current month (May – Oct 2026)
-    const monthNames = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
-    const currentMonthIndex = 5; // Oct is current
+    const now = new Date();
+    const monthNames: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthNames.push(d.toLocaleString('en-US', { month: 'short' }));
+    }
+    const currentMonth = monthNames[monthNames.length - 1];
 
-    // Build monthly buckets initialized with baseline or actual date matching
-    const buckets: { [key: string]: number } = {
-      May: 0,
-      Jun: 0,
-      Jul: 0,
-      Aug: 0,
-      Sep: 0,
-      Oct: 0
-    };
+    const buckets: Record<string, number> = {};
+    monthNames.forEach(m => {
+      buckets[m] = 0;
+    });
 
-    // Aggregate bookings by month
-    bookings.forEach(b => {
-      const date = b.createdAt ? new Date(b.createdAt) : new Date();
-      const month = date.toLocaleString('en-US', { month: 'short' });
-      const amt = Number(b.totalAmount) || 0;
+    const accumulate = (createdAt?: string, amount?: number) => {
+      const date = createdAt ? new Date(createdAt) : now;
+      const month = !isNaN(date.getTime())
+        ? date.toLocaleString('en-US', { month: 'short' })
+        : currentMonth;
+      const amt = Number(amount) || 0;
       if (buckets[month] !== undefined) {
         buckets[month] += amt;
       } else {
-        // Fallback to Oct (current active month)
-        buckets['Oct'] += amt;
+        buckets[currentMonth] += amt;
       }
-    });
+    };
 
-    // Map into display items (converted to millions, minimum floor so chart is legible)
-    const items = monthNames.map((m, idx) => {
-      const rawValNgn = buckets[m];
-      const valMillions = Number((rawValNgn / 1_000_000).toFixed(1));
+    bookings.forEach(b => accumulate(b.createdAt, b.totalAmount));
+    productOrders.forEach(o => accumulate(o.createdAt, o.totalAmount));
+    studioBookings.forEach(s => accumulate(s.createdAt, s.totalAmount));
+    equipmentRentals.forEach(r => accumulate(r.createdAt, r.totalAmount));
+    digitalTickets.forEach(t => accumulate(t.createdAt, t.totalAmount));
+
+    const items = monthNames.map((m) => {
+      const rawValNgn = buckets[m] || 0;
+      const valMillions = Number((rawValNgn / 1_000_000).toFixed(2));
       return {
         month: m,
-        value: valMillions > 0 ? valMillions : Number(((idx + 1) * 4.2).toFixed(1)), // Clean display floor
+        value: valMillions,
         rawAmount: rawValNgn,
-        current: idx === currentMonthIndex
+        current: m === currentMonth
       };
     });
 
-    const maxValue = Math.max(...items.map(i => i.value), 35);
+    const maxValue = Math.max(...items.map(i => i.value), 1);
 
-    return { items, maxValue };
-  }, [bookings]);
+    return {
+      items,
+      maxValue,
+      rangeLabel: `₦ millions · ${monthNames[0]} – ${currentMonth} ${now.getFullYear()}`,
+    };
+  }, [bookings, productOrders, studioBookings, equipmentRentals, digitalTickets]);
 
   // ============================================================================
   // 3. DYNAMIC REVENUE BY DIVISION
   // ============================================================================
   const divisionsData = useMemo(() => {
-    let propertySalesRevenue = 0;
-    let carRentalsRevenue = 0;
-    let carSalesRevenue = 0;
-    let apartmentsRevenue = 0;
+    const autosAndPropertyRev = bookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
+    const marketplaceRev = productOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+    const studioAndRentalRev =
+      studioBookings.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0) +
+      equipmentRentals.reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0);
+    const eventsRev = digitalTickets.reduce((sum, t) => sum + (Number(t.totalAmount) || 0), 0);
 
-    // Distribute bookings revenue
-    bookings.forEach(b => {
-      const amt = Number(b.totalAmount) || 0;
-      const title = (b.listingTitle || '').toLowerCase();
+    const totalDiv = autosAndPropertyRev + marketplaceRev + studioAndRentalRev + eventsRev || 1;
 
-      if (title.includes('apartment')) {
-        apartmentsRevenue += amt;
-      } else if (b.type === 'car_rental') {
-        carRentalsRevenue += amt;
-      } else if (b.type === 'car_test_drive') {
-        carSalesRevenue += amt;
-      } else if (b.type === 'property_inspection') {
-        propertySalesRevenue += amt;
-      } else {
-        carRentalsRevenue += amt;
-      }
-    });
-
-    const totalDiv = propertySalesRevenue + carRentalsRevenue + carSalesRevenue + apartmentsRevenue || 1;
-
-    const divisions = [
+    return [
       {
-        label: 'Property sales',
-        amountNum: propertySalesRevenue,
-        amount: formatNgnDisplay(propertySalesRevenue > 0 ? propertySalesRevenue : 77_000_000),
-        pct: Math.round(((propertySalesRevenue > 0 ? propertySalesRevenue : 77_000_000) / totalDiv) * 100) || 45,
+        label: 'Autos & Real Estate',
+        amountNum: autosAndPropertyRev,
+        amount: formatNgnDisplay(autosAndPropertyRev),
+        pct: Math.round((autosAndPropertyRev / totalDiv) * 100),
         color: '#7A0C1A'
       },
       {
-        label: 'Car rentals',
-        amountNum: carRentalsRevenue,
-        amount: formatNgnDisplay(carRentalsRevenue > 0 ? carRentalsRevenue : 29_900_000),
-        pct: Math.round(((carRentalsRevenue > 0 ? carRentalsRevenue : 29_900_000) / totalDiv) * 100) || 28,
+        label: 'Marketplace Storefront',
+        amountNum: marketplaceRev,
+        amount: formatNgnDisplay(marketplaceRev),
+        pct: Math.round((marketplaceRev / totalDiv) * 100),
         color: '#2B2B2B'
       },
       {
-        label: 'Car sales',
-        amountNum: carSalesRevenue,
-        amount: formatNgnDisplay(carSalesRevenue > 0 ? carSalesRevenue : 21_400_000),
-        pct: Math.round(((carSalesRevenue > 0 ? carSalesRevenue : 21_400_000) / totalDiv) * 100) || 19,
+        label: 'Lagos Studio & Gear Rentals',
+        amountNum: studioAndRentalRev,
+        amount: formatNgnDisplay(studioAndRentalRev),
+        pct: Math.round((studioAndRentalRev / totalDiv) * 100),
         color: '#C26772'
       },
       {
-        label: 'Apartments',
-        amountNum: apartmentsRevenue,
-        amount: formatNgnDisplay(apartmentsRevenue > 0 ? apartmentsRevenue : 4_300_000),
-        pct: Math.round(((apartmentsRevenue > 0 ? apartmentsRevenue : 4_300_000) / totalDiv) * 100) || 8,
+        label: 'Events & QR Tickets',
+        amountNum: eventsRev,
+        amount: formatNgnDisplay(eventsRev),
+        pct: Math.round((eventsRev / totalDiv) * 100),
         color: '#E8B8BE'
       }
     ];
-
-    return divisions;
-  }, [bookings]);
+  }, [bookings, productOrders, studioBookings, equipmentRentals, digitalTickets]);
 
   // ============================================================================
-  // 4. DYNAMIC TOP LISTINGS RANKING
+  // 4. DYNAMIC TOP LISTINGS & COMMERCE RANKING
   // ============================================================================
   const topListingsData = useMemo(() => {
-    // Rank actual listings from Supabase by their booking activity and price
-    const mapped = listings.map(l => {
+    const listingRows = listings.map(l => {
       const matchBookings = bookings.filter(b => b.listingId === l.id || b.listingTitle === l.title);
       const bookingCount = matchBookings.length;
       const revenue = matchBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
@@ -202,15 +272,56 @@ export default function AdminReportsPage() {
         listing: l.title,
         category,
         inquiries: bookingCount > 0 ? `${bookingCount} booking${bookingCount > 1 ? 's' : ''}` : 'Available on site',
-        revenueFormatted: revenue > 0 ? `₦${(revenue / 1_000_000).toFixed(1)}M` : `₦${Number(l.price).toLocaleString('en-NG')}`,
+        revenueFormatted: revenue > 0 ? formatNgnDisplay(revenue) : formatNgnDisplay(Number(l.price) || 0),
         revenueRaw: revenue > 0 ? revenue : Number(l.price) || 0,
-        trend: bookingCount > 0 ? '+24%' : 'Active',
+        activityScore: bookingCount,
+        trend: bookingCount > 0 ? `${bookingCount} active` : 'Catalog',
         trendType: bookingCount > 0 ? 'positive' : 'neutral'
       };
     });
 
-    // Sort by booking activity / price
-    mapped.sort((a, b) => b.revenueRaw - a.revenueRaw);
+    const productRows = products.map(p => {
+      const matchOrders = productOrders.filter(o => o.items.some(i => i.productId === p.id));
+      const unitsSold = matchOrders.reduce(
+        (sum, o) => sum + o.items.filter(i => i.productId === p.id).reduce((q, i) => q + i.quantity, 0),
+        0
+      );
+      const revenue = matchOrders.reduce(
+        (sum, o) => sum + o.items.filter(i => i.productId === p.id).reduce((q, i) => q + i.lineTotal, 0),
+        0
+      );
+      return {
+        id: p.id,
+        listing: p.name,
+        category: `Marketplace · ${p.categorySlug}`,
+        inquiries: unitsSold > 0 ? `${unitsSold} unit${unitsSold > 1 ? 's' : ''} ordered` : `${p.stock} in stock`,
+        revenueFormatted: revenue > 0 ? formatNgnDisplay(revenue) : formatNgnDisplay(p.price),
+        revenueRaw: revenue > 0 ? revenue : p.price,
+        activityScore: unitsSold,
+        trend: unitsSold > 0 ? '+Orders' : 'Active',
+        trendType: unitsSold > 0 ? 'positive' : 'neutral'
+      };
+    });
+
+    const eventRows = events.map(ev => {
+      const matchTickets = digitalTickets.filter(t => t.eventId === ev.id);
+      const qtySold = matchTickets.reduce((sum, t) => sum + t.quantity, 0);
+      const revenue = matchTickets.reduce((sum, t) => sum + t.totalAmount, 0);
+      return {
+        id: ev.id,
+        listing: ev.name,
+        category: 'Events & QR Gate',
+        inquiries: qtySold > 0 ? `${qtySold} pass${qtySold > 1 ? 'es' : ''} issued` : 'Published event',
+        revenueFormatted: revenue > 0 ? formatNgnDisplay(revenue) : formatNgnDisplay(ev.ticketTiers[0]?.price || 0),
+        revenueRaw: revenue,
+        activityScore: qtySold,
+        trend: qtySold > 0 ? `${qtySold} sold` : 'Open',
+        trendType: qtySold > 0 ? 'positive' : 'neutral'
+      };
+    });
+
+    const mapped = [...listingRows, ...productRows, ...eventRows];
+    mapped.sort((a, b) => (b.activityScore !== a.activityScore ? b.activityScore - a.activityScore : b.revenueRaw - a.revenueRaw));
 
     if (globalSearch.trim()) {
       const q = globalSearch.toLowerCase();
@@ -221,8 +332,8 @@ export default function AdminReportsPage() {
       );
     }
 
-    return mapped.slice(0, 6);
-  }, [listings, bookings, globalSearch]);
+    return mapped.slice(0, 8);
+  }, [listings, bookings, products, productOrders, events, digitalTickets, globalSearch]);
 
   const handleDownloadPdf = () => {
     toast({
@@ -348,7 +459,7 @@ export default function AdminReportsPage() {
         <div className="lg:col-span-7 bg-white rounded-xl border border-[#eae3e4] p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-[#1b1416]">Revenue by month</h2>
-            <span className="text-[11px] text-[#716769]">₦ millions · May – Oct 2026</span>
+            <span className="text-[11px] text-[#716769]">{monthlyRevenueData.rangeLabel}</span>
           </div>
 
           <div className="pt-6">

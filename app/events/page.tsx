@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Ticket,
   MapPin,
@@ -24,6 +25,28 @@ import { useStore } from '@/lib/store';
 import { DigitalTicket } from '@/lib/types';
 import { SITE_CONFIG, getWhatsAppBookingLink } from '@/lib/constants';
 import { supabaseService } from '@/lib/supabase/service';
+
+function EventsUrlSync({
+  publishedEvents,
+  onSelectEvent,
+}: {
+  publishedEvents: { id: string; ticketTiers: { id: string }[] }[];
+  onSelectEvent: (eventId: string, defaultTierId: string) => void;
+}) {
+  const searchParams = useSearchParams();
+  const eventParam = searchParams.get('event');
+
+  useEffect(() => {
+    if (eventParam) {
+      const matched = publishedEvents.find((ev) => ev.id === eventParam);
+      if (matched) {
+        onSelectEvent(matched.id, matched.ticketTiers[0]?.id || '');
+      }
+    }
+  }, [eventParam, publishedEvents, onSelectEvent]);
+
+  return null;
+}
 
 export default function EventsTicketingPage() {
   const { events, purchaseEventTicket } = useStore();
@@ -56,6 +79,11 @@ export default function EventsTicketingPage() {
   const activeTier =
     activeEvent?.ticketTiers.find((t) => t.id === selectedTierId) ||
     activeEvent?.ticketTiers[0];
+
+  const handleSelectEventFromParam = useCallback((eventId: string, defaultTierId: string) => {
+    setSelectedEventId(eventId);
+    if (defaultTierId) setSelectedTierId(defaultTierId);
+  }, []);
 
   const remainingCapacity = activeTier ? activeTier.capacity - activeTier.sold : 0;
   const totalAmount = activeTier ? activeTier.price * quantity : 0;
@@ -111,6 +139,12 @@ export default function EventsTicketingPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#1b1416]">
+      <Suspense fallback={null}>
+        <EventsUrlSync
+          publishedEvents={publishedEvents}
+          onSelectEvent={handleSelectEventFromParam}
+        />
+      </Suspense>
       <SiteHeader />
 
       {/* Hero Header */}

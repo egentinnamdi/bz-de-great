@@ -24,6 +24,7 @@ import { cn, formatPhoneForWhatsApp } from '@/lib/utils';
 
 interface PaymentRow {
   id: string;
+  domain: 'booking' | 'order' | 'studio' | 'rental' | 'ticket';
   reference: string;
   customerName: string;
   customerPhone?: string;
@@ -67,6 +68,7 @@ export default function AdminPaymentsPage() {
   const payments: PaymentRow[] = React.useMemo(() => {
     const bRows: PaymentRow[] = storeBookings.map(b => ({
       id: b.id,
+      domain: 'booking',
       reference: b.reference || b.id,
       customerName: b.customerName,
       customerPhone: b.customerPhone,
@@ -81,6 +83,7 @@ export default function AdminPaymentsPage() {
 
     const oRows: PaymentRow[] = productOrders.map(o => ({
       id: o.id,
+      domain: 'order',
       reference: o.reference || o.id,
       customerName: o.customerName,
       customerPhone: o.customerPhone,
@@ -95,6 +98,7 @@ export default function AdminPaymentsPage() {
 
     const sRows: PaymentRow[] = studioBookings.map(s => ({
       id: s.id,
+      domain: 'studio',
       reference: s.reference || s.id,
       customerName: s.customerName,
       customerPhone: s.customerPhone,
@@ -109,6 +113,7 @@ export default function AdminPaymentsPage() {
 
     const rRows: PaymentRow[] = equipmentRentals.map(r => ({
       id: r.id,
+      domain: 'rental',
       reference: r.reference || r.id,
       customerName: r.customerName,
       customerPhone: r.customerPhone,
@@ -123,6 +128,7 @@ export default function AdminPaymentsPage() {
 
     const tRows: PaymentRow[] = digitalTickets.map(t => ({
       id: t.id,
+      domain: 'ticket',
       reference: t.ticketCode || t.id,
       customerName: t.customerName,
       customerPhone: t.customerPhone,
@@ -165,16 +171,17 @@ export default function AdminPaymentsPage() {
 
   // Modal inspection state
   const [selectedReceipt, setSelectedReceipt] = useState<PaymentRow | null>(null);
+  const autoOpenedOrderRef = React.useRef<string | null>(null);
 
   // Actions for payments table
   const handleApprove = async (payment: PaymentRow) => {
-    if (payment.id.startsWith('ORD-')) {
+    if (payment.domain === 'order') {
       await updateProductOrder(payment.id, { paymentStatus: 'verified', orderStatus: 'confirmed' });
-    } else if (payment.id.startsWith('STU-')) {
+    } else if (payment.domain === 'studio') {
       await updateStudioBooking(payment.id, { paymentStatus: 'verified', bookingStatus: 'confirmed' });
-    } else if (payment.id.startsWith('RNT-')) {
+    } else if (payment.domain === 'rental') {
       await updateEquipmentRental(payment.id, { paymentStatus: 'verified', rentalStatus: 'confirmed' });
-    } else if (payment.id.startsWith('TKT-')) {
+    } else if (payment.domain === 'ticket') {
       await updateDigitalTicket(payment.id, { paymentStatus: 'verified', ticketStatus: 'valid' });
     } else {
       await updateBooking(payment.id, { paymentStatus: 'verified', bookingStatus: 'confirmed' });
@@ -195,14 +202,15 @@ export default function AdminPaymentsPage() {
     if (selectedReceipt?.id === payment.id) setSelectedReceipt(null);
   };
 
-  // Auto-open modal if order param is provided in URL
+  // Auto-open modal once if order param is provided in URL
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const targetOrderId = params.get('order');
-      if (targetOrderId) {
+      if (targetOrderId && autoOpenedOrderRef.current !== targetOrderId) {
         const row = payments.find(p => p.id === targetOrderId || p.reference === targetOrderId);
         if (row) {
+          autoOpenedOrderRef.current = targetOrderId;
           setSelectedReceipt(row);
         }
       }
@@ -211,13 +219,13 @@ export default function AdminPaymentsPage() {
 
   const handleReject = async (payment: PaymentRow) => {
     const rejectionNote = 'Transfer receipt verification failed. Please verify with your bank or send updated proof.';
-    if (payment.id.startsWith('ORD-')) {
+    if (payment.domain === 'order') {
       await updateProductOrder(payment.id, { paymentStatus: 'refunded', notes: rejectionNote });
-    } else if (payment.id.startsWith('STU-')) {
+    } else if (payment.domain === 'studio') {
       await updateStudioBooking(payment.id, { paymentStatus: 'refunded', notes: rejectionNote });
-    } else if (payment.id.startsWith('RNT-')) {
+    } else if (payment.domain === 'rental') {
       await updateEquipmentRental(payment.id, { paymentStatus: 'refunded', notes: rejectionNote });
-    } else if (payment.id.startsWith('TKT-')) {
+    } else if (payment.domain === 'ticket') {
       await updateDigitalTicket(payment.id, { paymentStatus: 'refunded', ticketStatus: 'cancelled', notes: rejectionNote });
     } else {
       await updateBooking(payment.id, { paymentStatus: 'refunded', notes: rejectionNote });
@@ -238,12 +246,34 @@ export default function AdminPaymentsPage() {
     if (selectedReceipt?.id === payment.id) setSelectedReceipt(null);
   };
 
+  const handleOpenReceiptFullSize = (url: string) => {
+    if (url.startsWith('data:')) {
+      const [meta, base64] = url.split(',');
+      const mimeMatch = meta.match(/data:([^;]+);base64/);
+      const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+      const binary = atob(base64 || '');
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   // Filtered rows for payments table
   const filteredPayments = payments.filter(p => {
     if (statusFilter !== 'all' && p.status !== statusFilter) return false;
-    if (tableSearch) {
-      const q = tableSearch.toLowerCase();
-      return p.reference.toLowerCase().includes(q) || p.customerName.toLowerCase().includes(q) || p.type.toLowerCase().includes(q);
+    const combinedSearch = (tableSearch || globalSearch).trim().toLowerCase();
+    if (combinedSearch) {
+      return (
+        p.reference.toLowerCase().includes(combinedSearch) ||
+        p.customerName.toLowerCase().includes(combinedSearch) ||
+        p.type.toLowerCase().includes(combinedSearch)
+      );
     }
     return true;
   });
@@ -373,7 +403,7 @@ export default function AdminPaymentsPage() {
                   : 'text-[#716769] hover:bg-[#faf7f7]'
               )}
             >
-              Pending · 4
+              Pending · {paymentMetrics.awaitingReviewCount}
             </button>
             <button
               type="button"
@@ -531,22 +561,12 @@ export default function AdminPaymentsPage() {
 
         {/* Pagination footer */}
         <div className="p-4 border-t border-[#eae3e4] flex items-center justify-between text-xs text-[#716769]">
-          <span>Showing 1–9 of 64</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled
-              className="px-3 py-1 rounded-md border border-[#eae3e4] bg-white text-[#716769] opacity-50 cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1 rounded-md border border-[#eae3e4] bg-white text-[#1b1416] hover:bg-[#faf7f7] transition-colors"
-            >
-              Next
-            </button>
-          </div>
+          <span>
+            Showing {filteredPayments.length} of {payments.length} transaction{payments.length === 1 ? '' : 's'}
+          </span>
+          <span className="text-[11px] font-mono text-[#716769]">
+            Synced across Bookings, Marketplace, Studio, Rentals &amp; Events
+          </span>
         </div>
       </div>
 
@@ -590,15 +610,14 @@ export default function AdminPaymentsPage() {
                 <div className="flex items-center justify-between text-xs text-[#716769]">
                   <span className="font-semibold text-[#1b1416]">Payment Transfer Slip / Receipt</span>
                   {selectedReceipt.receiptUrl && (
-                    <a
-                      href={selectedReceipt.receiptUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#7A0C1A] hover:underline"
+                    <button
+                      type="button"
+                      onClick={() => handleOpenReceiptFullSize(selectedReceipt.receiptUrl!)}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#7A0C1A] hover:underline cursor-pointer"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       Open Full Size
-                    </a>
+                    </button>
                   )}
                 </div>
 

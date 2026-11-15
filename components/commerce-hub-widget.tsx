@@ -160,7 +160,16 @@ export function CommerceHubWidget() {
           )}
 
           <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
-            <Link href={`/${selectedCategory}`} className="flex-1">
+            <Link
+              href={
+                ['phones', 'laptops', 'gadgets', 'electronics', 'solar-inverters', 'clothing', 'jewelry'].includes(
+                  selectedCategory
+                )
+                  ? `/${selectedCategory}`
+                  : `/marketplace?category=${encodeURIComponent(selectedCategory)}`
+              }
+              className="flex-1"
+            >
               <Button className="w-full h-11 bg-[#81141f] hover:bg-[#6b121c] text-white font-semibold text-sm rounded-xl justify-center gap-2 cursor-pointer">
                 <span>Browse {selectedCategory.replace('-', ' & ')}</span>
                 <ArrowRight className="w-4 h-4" />

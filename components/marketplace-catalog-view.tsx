@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   ShoppingBag,
   Search,
@@ -35,6 +36,36 @@ interface MarketplaceCatalogViewProps {
   initialCategorySlug?: string;
   pageTitle?: string;
   pageSubtitle?: string;
+}
+
+function MarketplaceUrlSync({
+  categories,
+  onCategoryParam,
+  onOpenCartParam,
+}: {
+  categories: { slug: string; active: boolean }[];
+  onCategoryParam: (slug: string) => void;
+  onOpenCartParam: () => void;
+}) {
+  const searchParams = useSearchParams();
+  const catParam = searchParams.get('category');
+  const cartParam = searchParams.get('cart');
+
+  useEffect(() => {
+    if (catParam) {
+      if (catParam === 'all' || categories.some((c) => c.active && c.slug === catParam)) {
+        onCategoryParam(catParam);
+      }
+    }
+  }, [catParam, categories, onCategoryParam]);
+
+  useEffect(() => {
+    if (cartParam === 'open') {
+      onOpenCartParam();
+    }
+  }, [cartParam, onOpenCartParam]);
+
+  return null;
 }
 
 export function MarketplaceCatalogView({
@@ -81,6 +112,11 @@ export function MarketplaceCatalogView({
       setToastMessage((prev) => (prev === msg ? null : prev));
     }, 3200);
   };
+
+  const handleOpenCartParam = useCallback(() => {
+    setCheckoutStep('cart');
+    setCartOpen(true);
+  }, []);
 
   const activeCategoryObj = productCategories.find((c) => c.slug === activeCategory);
 
@@ -221,6 +257,13 @@ export function MarketplaceCatalogView({
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#1b1416]">
+      <Suspense fallback={null}>
+        <MarketplaceUrlSync
+          categories={productCategories}
+          onCategoryParam={setActiveCategory}
+          onOpenCartParam={handleOpenCartParam}
+        />
+      </Suspense>
       <SiteHeader />
 
       {/* Toast Notification */}

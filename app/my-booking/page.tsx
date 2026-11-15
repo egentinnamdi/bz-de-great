@@ -119,8 +119,13 @@ function MyBookingContent() {
   );
 
   useEffect(() => {
-    const targetCode = initialParamTicket || searchTicket;
-    const found = findAcrossAllDomains(targetCode);
+    if (initialParamTicket) {
+      setSearchTicket(initialParamTicket);
+    }
+  }, [initialParamTicket]);
+
+  useEffect(() => {
+    const found = findAcrossAllDomains(searchTicket);
     if (found) {
       setTrackedItem(found);
       return;

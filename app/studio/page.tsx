@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Camera,
   MapPin,
@@ -25,6 +26,25 @@ import { StudioBooking } from '@/lib/types';
 import { validateStudioSlotConflict } from '@/lib/commerce-engine';
 import { SITE_CONFIG, getWhatsAppBookingLink } from '@/lib/constants';
 import { supabaseService } from '@/lib/supabase/service';
+
+function StudioUrlSync({
+  activeServices,
+  onSelectService,
+}: {
+  activeServices: { id: string }[];
+  onSelectService: (id: string) => void;
+}) {
+  const searchParams = useSearchParams();
+  const serviceParam = searchParams.get('service');
+
+  useEffect(() => {
+    if (serviceParam && activeServices.some((s) => s.id === serviceParam)) {
+      onSelectService(serviceParam);
+    }
+  }, [serviceParam, activeServices, onSelectService]);
+
+  return null;
+}
 
 export default function StudioBookingPage() {
   const { studioServices, studioBookings, createStudioBooking } = useStore();
@@ -107,6 +127,12 @@ export default function StudioBookingPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#1b1416]">
+      <Suspense fallback={null}>
+        <StudioUrlSync
+          activeServices={activeServices}
+          onSelectService={setSelectedServiceId}
+        />
+      </Suspense>
       <SiteHeader />
 
       {/* Hero Header */}

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Video,
   Camera,
@@ -39,6 +40,25 @@ const EQUIPMENT_CATEGORIES = [
   'Video Equipment',
   'Other Media Equipment',
 ];
+
+function EquipmentUrlSync({
+  availableEquipment,
+  onSelectItem,
+}: {
+  availableEquipment: { id: string }[];
+  onSelectItem: (id: string) => void;
+}) {
+  const searchParams = useSearchParams();
+  const itemParam = searchParams.get('item');
+
+  useEffect(() => {
+    if (itemParam && availableEquipment.some((e) => e.id === itemParam)) {
+      onSelectItem(itemParam);
+    }
+  }, [itemParam, availableEquipment, onSelectItem]);
+
+  return null;
+}
 
 export default function EquipmentRentalPage() {
   const { equipmentItems, equipmentRentals, createEquipmentRental } = useStore();
@@ -142,6 +162,12 @@ export default function EquipmentRentalPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#1b1416]">
+      <Suspense fallback={null}>
+        <EquipmentUrlSync
+          availableEquipment={availableEquipment}
+          onSelectItem={setSelectedItemId}
+        />
+      </Suspense>
       <SiteHeader />
 
       {/* Hero Header */}

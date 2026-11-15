@@ -25,7 +25,18 @@ import { useAdminAuth } from '@/lib/admin-auth';
 import { formatPhoneForWhatsApp } from '@/lib/utils';
 
 export default function AdminDashboardPage() {
-  const { listings, bookings, updateBooking, activities, addActivity, clearActivities } = useStore();
+  const {
+    listings,
+    bookings,
+    productOrders,
+    studioBookings,
+    equipmentRentals,
+    digitalTickets,
+    updateBooking,
+    activities,
+    addActivity,
+    clearActivities,
+  } = useStore();
   const { toast } = useToast();
   const { user } = useAdminAuth();
 
@@ -55,8 +66,16 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const isPendingReceipt = (status: string) =>
+    status === 'receipt_uploaded' || status === 'pending';
+
   const activeRentals = bookings.filter(b => b.type === 'car_rental' && b.bookingStatus === 'confirmed');
-  const pendingReceipts = bookings.filter(b => b.paymentStatus === 'receipt_uploaded' || b.paymentStatus === 'pending');
+  const pendingReceiptsCount =
+    bookings.filter(b => isPendingReceipt(b.paymentStatus)).length +
+    productOrders.filter(o => isPendingReceipt(o.paymentStatus)).length +
+    studioBookings.filter(s => isPendingReceipt(s.paymentStatus)).length +
+    equipmentRentals.filter(r => isPendingReceipt(r.paymentStatus)).length +
+    digitalTickets.filter(t => isPendingReceipt(t.paymentStatus)).length;
   const publishedListings = listings.filter(l => l.status === 'published');
   const scheduledInspections = bookings.filter(b => b.type === 'property_inspection' || b.type === 'car_test_drive');
 
@@ -146,7 +165,7 @@ export default function AdminDashboardPage() {
             <CreditCard className="w-4 h-4 text-amber-600 transition-transform duration-300 group-hover:scale-110" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-amber-900 tracking-tight">
-            {pendingReceipts.length}
+            {pendingReceiptsCount}
           </div>
           <div className="text-[11px] text-amber-700 font-medium">Require review & verification</div>
         </div>

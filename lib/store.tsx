@@ -406,6 +406,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const upsertCustomerRecord = useCallback(
     (name: string, email: string, phone: string, location: string, spendNgn: number) => {
       setCustomers((prev) => {
+        const cleanName = name.trim() || 'BZ Client';
+        const initials = cleanName
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0]?.toUpperCase() || '')
+          .join('') || 'BZ';
+
         const existingIdx = prev.findIndex(
           (c) =>
             (email && c.email.toLowerCase() === email.toLowerCase()) ||
@@ -413,24 +421,36 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         );
         if (existingIdx !== -1) {
           const existing = prev[existingIdx];
+          const nextSpend = existing.lifetimeSpendNgn + spendNgn;
+          const isNowVip = Boolean(existing.isVip) || nextSpend >= 2000000;
           const updated: Customer = {
             ...existing,
+            initials: existing.initials || initials,
             totalBookings: existing.totalBookings + 1,
-            lifetimeSpendNgn: existing.lifetimeSpendNgn + spendNgn,
-            status: existing.lifetimeSpendNgn + spendNgn >= 2000000 ? 'vip' : existing.status,
+            bookingsCount: (existing.bookingsCount ?? existing.totalBookings) + 1,
+            lifetimeSpendNgn: nextSpend,
+            isVip: isNowVip,
+            status: isNowVip ? 'vip' : existing.status,
+            lastActive: 'Just now',
           };
           return prev.map((c, i) => (i === existingIdx ? updated : c));
         }
+        const isInitialVip = spendNgn >= 2000000;
         const newCust: Customer = {
           id: `CUST-${Math.floor(100 + Math.random() * 900)}`,
-          name,
+          name: cleanName,
+          initials,
           email,
           phone,
+          phoneFull: phone,
           location: location || 'Abuja / Lagos',
           totalBookings: 1,
+          bookingsCount: 1,
           lifetimeSpendNgn: spendNgn,
           joinedAt: new Date().toISOString(),
-          status: spendNgn >= 2000000 ? 'vip' : 'active',
+          lastActive: 'Just now',
+          isVip: isInitialVip,
+          status: isInitialVip ? 'vip' : 'active',
         };
         return [newCust, ...prev];
       });

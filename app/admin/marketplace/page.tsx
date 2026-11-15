@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   ShoppingBag,
   Plus,
@@ -347,15 +348,13 @@ export default function AdminMarketplacePage() {
                   <td className="py-3.5 px-4 font-extrabold text-[#1b1416]">
                     ₦{ord.totalAmount.toLocaleString()}
                     {ord.receiptUrl && (
-                      <a
-                        href={ord.receiptUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link
+                        href={`/admin/payments?order=${encodeURIComponent(ord.id)}`}
                         className="block text-[10px] text-[#81141f] hover:underline mt-0.5 inline-flex items-center gap-1"
                       >
                         <span>View Receipt</span>
                         <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
+                      </Link>
                     )}
                   </td>
                   <td className="py-3.5 px-4">
