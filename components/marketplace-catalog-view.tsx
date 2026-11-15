@@ -261,7 +261,7 @@ export function MarketplaceCatalogView({
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <Link
                 href="/marketplace"
-                className="inline-flex items-center gap-2 rounded-xl bg-white text-[#1b1416] px-4 py-2.5 text-xs font-bold shadow-xs"
+                className="inline-flex items-center gap-2 rounded-xl bg-white text-[#4e0b13] px-4 py-2.5 text-xs font-bold shadow-xs"
               >
                 <ShoppingBag className="w-4 h-4 text-[#81141f]" />
                 <span>Marketplace ({publishedProducts.length})</span>
@@ -490,7 +490,7 @@ export function MarketplaceCatalogView({
 
                     {/* Top Minimal Badges */}
                     <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between gap-2">
-                      <span className="rounded-full bg-black/80 backdrop-blur-sm text-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider truncate">
+                      <span className="rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider truncate">
                         {product.brand} · {product.condition}
                       </span>
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-[#1b1416] shadow-xs shrink-0">
@@ -718,7 +718,7 @@ export function MarketplaceCatalogView({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end">
           <div className="bg-white w-full max-w-xl h-full flex flex-col shadow-2xl border-l border-[#eae3e4]">
             {/* Drawer Header */}
-            <div className="px-6 py-5 border-b border-[#eae3e4] bg-black text-white flex items-center justify-between">
+            <div className="px-6 py-5 border-b border-[#eae3e4] bg-[#4e0b13] text-white flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[#ebc7cb]">
                   BZ MARKETPLACE CHECKOUT

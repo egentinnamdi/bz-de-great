@@ -503,7 +503,7 @@ function MyBookingContent() {
                         {trackedItem.data.eventName}
                       </h3>
 
-                      <div className="rounded-2xl bg-black text-white p-6 flex flex-col sm:flex-row items-center gap-6 border border-[#81141f]">
+                      <div className="rounded-2xl bg-[#4e0b13] text-white p-6 flex flex-col sm:flex-row items-center gap-6 border border-[#81141f]">
                         <QrCodeBadge value={trackedItem.data.qrPayload} size={140} />
                         <div className="space-y-2 text-xs">
                           <span className="inline-block rounded-full bg-white/15 px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest">

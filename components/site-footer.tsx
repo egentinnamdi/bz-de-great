@@ -6,7 +6,7 @@ import { SITE_CONFIG } from '@/lib/constants';
 
 export function SiteFooter() {
   return (
-    <footer className="bg-black text-white pt-20 pb-9 border-t border-white/10">
+    <footer className="bg-[#4e0b13] text-white pt-20 pb-9 border-t border-[#630f1a]">
       <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px]">
         {/* Top Section (Figma: [1200x244] layout=HORIZONTAL gap=72) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-14 pb-14">

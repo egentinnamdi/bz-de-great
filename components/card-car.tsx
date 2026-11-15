@@ -53,7 +53,7 @@ export function CardCar({ car, className }: CardCarProps) {
 
       {/* Top Overlay Badges & Save Button */}
       <div className="absolute top-3.5 left-3.5 z-10">
-        <span className="h-7 px-3 rounded-full bg-black/80 backdrop-blur-sm text-white text-[11px] font-bold uppercase tracking-wider flex items-center shadow-xs">
+        <span className="h-7 px-3 rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white text-[11px] font-bold uppercase tracking-wider flex items-center shadow-xs">
           {isRent ? 'For rent' : 'For sale'}
         </span>
       </div>

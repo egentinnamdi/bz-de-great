@@ -126,7 +126,7 @@ export default function HomePage() {
 
       <main className="flex-1">
         {/* 2. Hero Section matching Screenshot 1 */}
-        <section className="relative overflow-hidden bg-black">
+        <section className="relative overflow-hidden bg-[#4e0b13]">
           {/* Right Hero Image */}
           <div className="pointer-events-none absolute -top-56 right-0 h-full w-full opacity-40 lg:w-[840px] lg:opacity-100">
             <Image
@@ -136,9 +136,9 @@ export default function HomePage() {
               priority
               className="object-cover object-right-top"
             />
-            {/* Smooth linear gradient blend into black */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+            {/* Smooth linear gradient blend into #4e0b13 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#4e0b13] via-[#4e0b13]/70 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#4e0b13] via-transparent to-transparent" />
           </div>
 
           <div className="relative z-10 mx-auto max-w-[1440px] px-4 pt-16 pb-36 lg:px-[120px] lg:pt-24 lg:pb-44">
@@ -547,7 +547,7 @@ export default function HomePage() {
                       sizes="200px"
                       className="object-cover"
                     />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 p-2 text-center text-white transition-colors duration-300 group-hover:bg-black/90">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#540911]/80 p-2 text-center text-white transition-colors duration-300 group-hover:bg-[#540911]/90">
                       <Camera className="mb-1 h-5 w-5" />
                       <span className="text-xs font-bold">+3 more</span>
                     </div>
@@ -600,7 +600,7 @@ export default function HomePage() {
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15" />
 
                     {/* Top Overlay Badges */}
-                    <span className="absolute top-3.5 left-3.5 z-10 rounded-full bg-black/80 px-3 py-1 text-[11px] font-bold tracking-wider text-white uppercase backdrop-blur-sm">
+                    <span className="absolute top-3.5 left-3.5 z-10 rounded-full bg-[#4e0b13]/85 px-3 py-1 text-[11px] font-bold tracking-wider text-white uppercase backdrop-blur-sm">
                       {car.badge}
                     </span>
                     <button
@@ -714,7 +714,7 @@ export default function HomePage() {
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15" />
 
                     {/* Top Overlay Badges */}
-                    <span className="absolute top-3.5 left-3.5 z-10 rounded-full bg-black/80 px-3 py-1 text-[11px] font-bold tracking-wider text-white uppercase backdrop-blur-sm">
+                    <span className="absolute top-3.5 left-3.5 z-10 rounded-full bg-[#4e0b13]/85 px-3 py-1 text-[11px] font-bold tracking-wider text-white uppercase backdrop-blur-sm">
                       {prop.badge}
                     </span>
                     <button
@@ -787,7 +787,7 @@ export default function HomePage() {
         </section>
 
         {/* 9. "MARKETPLACE, LAGOS STUDIO & EVENTS" replacing removed RMB Exchange section */}
-        <section id="marketplace" className="bg-black py-20 text-white lg:py-24">
+        <section id="marketplace" className="bg-[#540911] py-20 text-white lg:py-24">
           <div className="mx-auto max-w-[1440px] px-4 lg:px-[120px]">
             <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
               {/* Left 7 Cols: Overview & 4 Pillars */}
@@ -837,7 +837,7 @@ export default function HomePage() {
                       href={step.href}
                       className="flex items-center gap-3.5 text-xs text-white/95 sm:text-sm hover:text-white group"
                     >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white group-hover:bg-white group-hover:text-[#1b1416] transition-colors">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white group-hover:bg-white group-hover:text-[#540911] transition-colors">
                         {step.num}
                       </span>
                       <span className="underline-offset-4 group-hover:underline">{step.text}</span>
@@ -848,7 +848,7 @@ export default function HomePage() {
                 <div className="flex flex-wrap items-center gap-3 pt-2">
                   <Link
                     href="/marketplace"
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-6 py-3 text-xs font-semibold text-[#1b1416] shadow-md transition-all hover:bg-[#faf7f7]"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-6 py-3 text-xs font-semibold text-[#540911] shadow-md transition-all hover:bg-[#faf7f7]"
                   >
                     <span>Explore Marketplace</span>
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -979,7 +979,7 @@ export default function HomePage() {
               fill
               className="object-cover object-center"
             />
-            <div className="absolute inset-0 bg-black/75 backdrop-blur-[1px]" />
+            <div className="absolute inset-0 bg-[#540911]/85 backdrop-blur-[1px]" />
           </div>
 
           <ScrollReveal

@@ -161,9 +161,9 @@ export default function HelpAndLegalPage() {
       <SiteHeader />
 
       {/* ========================================================
-          1. PAGE HEADER
+          1. PAGE HEADER (Figma fill=#4e0b13)
          ======================================================== */}
-      <section className="w-full bg-black text-white pt-12 pb-16">
+      <section className="w-full bg-[#4e0b13] text-white pt-12 pb-16">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
           <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[13px] text-[#f6e3e5] mb-5">
             <Link href="/" className="hover:text-white transition-colors">
@@ -920,7 +920,7 @@ export default function HelpAndLegalPage() {
                ================================================== */}
             <ScrollReveal animation="fade-in-up">
               <section id="contact" className="pt-4 scroll-mt-28">
-                <div className="rounded-[18px] bg-black text-white p-7 sm:p-9 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-md transition-all duration-300 hover:shadow-black/30">
+                <div className="rounded-[18px] bg-[#4e0b13] text-white p-7 sm:p-9 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-md transition-all duration-300 hover:shadow-wine-900/30">
                   <div className="space-y-1.5">
                     <h3 className="font-serif text-[28px] sm:text-[32px] font-semibold text-white leading-tight">
                       Still have a question?
