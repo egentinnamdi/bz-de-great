@@ -15,8 +15,10 @@ import {
   ArrowLeft,
   LogOut,
   Lock,
-  Search,
-  Bell
+  ShoppingBag,
+  Camera,
+  Video,
+  Ticket
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { cn } from '@/lib/utils';
@@ -35,11 +37,16 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, isLoading, user, logout } = useAdminAuth();
-  const { bookings } = useStore();
+  const { bookings, productOrders, studioBookings, equipmentRentals, digitalTickets } = useStore();
 
   const pendingPaymentsCount = React.useMemo(() => {
-    return bookings.filter(b => b.paymentStatus === 'receipt_uploaded' || b.paymentStatus === 'pending').length;
-  }, [bookings]);
+    const bCount = bookings.filter(b => b.paymentStatus === 'receipt_uploaded' || b.paymentStatus === 'pending').length;
+    const oCount = productOrders.filter(o => o.paymentStatus === 'receipt_uploaded' || o.paymentStatus === 'pending').length;
+    const sCount = studioBookings.filter(s => s.paymentStatus === 'receipt_uploaded' || s.paymentStatus === 'pending').length;
+    const rCount = equipmentRentals.filter(r => r.paymentStatus === 'receipt_uploaded' || r.paymentStatus === 'pending').length;
+    const tCount = digitalTickets.filter(t => t.paymentStatus === 'receipt_uploaded' || t.paymentStatus === 'pending').length;
+    return bCount + oCount + sCount + rCount + tCount;
+  }, [bookings, productOrders, studioBookings, equipmentRentals, digitalTickets]);
 
   const navGroups = React.useMemo<Array<{ group: string; items: NavItem[] }>>(() => [
     {
@@ -48,6 +55,15 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         { label: 'Overview', href: '/admin', icon: LayoutGrid },
         { label: 'Listings', href: '/admin/listings', icon: CarFront },
         { label: 'Bookings', href: '/admin/bookings', icon: CalendarDays },
+      ]
+    },
+    {
+      group: 'COMMERCE & STUDIO',
+      items: [
+        { label: 'Marketplace', href: '/admin/marketplace', icon: ShoppingBag, badge: productOrders.length || undefined },
+        { label: 'Lagos Studio', href: '/admin/studio', icon: Camera, badge: studioBookings.length || undefined },
+        { label: 'Gear Rentals', href: '/admin/equipment', icon: Video, badge: equipmentRentals.length || undefined },
+        { label: 'Events & QR Gate', href: '/admin/events', icon: Ticket, badge: digitalTickets.length || undefined },
       ]
     },
     {
@@ -70,7 +86,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         { label: 'Activity log', href: '/admin/activity-log', icon: History }
       ]
     }
-  ], [pendingPaymentsCount]);
+  ], [pendingPaymentsCount, productOrders.length, studioBookings.length, equipmentRentals.length, digitalTickets.length]);
 
   const isLoginPage = pathname === '/admin/login';
 
