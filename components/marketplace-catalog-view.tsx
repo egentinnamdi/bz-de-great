@@ -15,7 +15,6 @@ import {
   Camera,
   Video,
   Ticket,
-  Sparkles,
   SlidersHorizontal,
   ArrowRight,
   Package,
@@ -90,6 +89,12 @@ export function MarketplaceCatalogView({
     [products]
   );
 
+  const heroMosaicImages = useMemo(() => {
+    const imgs = publishedProducts.map((p) => p.images[0]).filter(Boolean);
+    const pool = imgs.length > 0 ? imgs : ['/photos/gallery-bz-1.jpg'];
+    return Array.from({ length: 18 }, (_, i) => pool[i % pool.length]);
+  }, [publishedProducts]);
+
   const availableBrands = useMemo(() => {
     const scoped =
       activeCategory === 'all'
@@ -107,11 +112,12 @@ export function MarketplaceCatalogView({
           const q = searchQuery.toLowerCase();
           const inName = p.name.toLowerCase().includes(q);
           const inBrand = p.brand.toLowerCase().includes(q);
+          const inCategory = p.categorySlug.toLowerCase().includes(q);
           const inDesc = p.description.toLowerCase().includes(q);
           const inSpecs = Object.values(p.specifications).some((val) =>
             String(val).toLowerCase().includes(q)
           );
-          if (!inName && !inBrand && !inDesc && !inSpecs) return false;
+          if (!inName && !inBrand && !inCategory && !inDesc && !inSpecs) return false;
         }
         return true;
       })
@@ -231,171 +237,118 @@ export function MarketplaceCatalogView({
         </div>
       )}
 
-      {/* Hero Banner */}
-      <section className="bg-[#4e0b13] text-white py-14 lg:py-16 border-b border-[#630f1a]">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px]">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-            <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#81141f] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#f6e3e5]">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>BZ DE GREAT MULTI-SERVICE COMMERCE</span>
+      {/* Netflix-Style Angled Mosaic Hero Banner */}
+      <section className="relative overflow-hidden bg-[#120306] text-white border-b border-[#2e080e]">
+        {/* Background Tilted Product & Studio Mosaic */}
+        <div
+          className="absolute inset-0 overflow-hidden pointer-events-none select-none"
+          aria-hidden="true"
+        >
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4 -rotate-12 scale-125 opacity-45 -inset-16 absolute">
+            {heroMosaicImages.map((img, idx) => (
+              <div
+                key={`hero-mosaic-${idx}`}
+                className="rounded-xl overflow-hidden border border-white/10 bg-[#1f060b] shadow-2xl h-32 sm:h-40"
+              >
+                <img
+                  src={img}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight leading-[1.12]">
-                {resolvedTitle}
-              </h1>
-              <p className="text-sm sm:text-base text-[#ebc7cb] leading-relaxed">
-                {resolvedSubtitle}
-              </p>
-            </div>
-
-            {/* Service Pillar Switcher Pills */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Link
-                href="/marketplace"
-                className="inline-flex items-center gap-2 rounded-xl bg-white text-[#4e0b13] px-4 py-2.5 text-xs font-bold shadow-xs"
-              >
-                <ShoppingBag className="w-4 h-4 text-[#81141f]" />
-                <span>Marketplace ({publishedProducts.length})</span>
-              </Link>
-              <Link
-                href="/studio"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
-              >
-                <Camera className="w-4 h-4 text-[#ebc7cb]" />
-                <span>Lagos Studio Booking</span>
-              </Link>
-              <Link
-                href="/equipment-rental"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
-              >
-                <Video className="w-4 h-4 text-[#ebc7cb]" />
-                <span>Camera &amp; Gear Rental</span>
-              </Link>
-              <Link
-                href="/events"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#63101a] hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/15 transition-colors"
-              >
-                <Ticket className="w-4 h-4 text-[#ebc7cb]" />
-                <span>Events &amp; Tickets</span>
-              </Link>
-            </div>
+            ))}
           </div>
-
-          {/* Category Chips Bar */}
-          <div className="mt-8 pt-6 border-t border-white/10 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveCategory('all');
-                setSelectedBrand('all');
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
-                activeCategory === 'all'
-                  ? 'bg-white text-[#4e0b13] shadow-xs'
-                  : 'bg-[#63101a]/70 text-[#f6e3e5] hover:bg-[#81141f]'
-              }`}
-            >
-              All Categories ({publishedProducts.length})
-            </button>
-            {productCategories
-              .filter((c) => c.active)
-              .map((cat) => {
-                const count = publishedProducts.filter(
-                  (p) => p.categorySlug === cat.slug
-                ).length;
-                const isSelected = activeCategory === cat.slug;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveCategory(cat.slug);
-                      setSelectedBrand('all');
-                    }}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-white text-[#4e0b13] shadow-xs'
-                        : 'bg-[#63101a]/70 text-[#f6e3e5] hover:bg-[#81141f]'
-                    }`}
-                  >
-                    {cat.name} ({count})
-                  </button>
-                );
-              })}
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#120306]/90 via-[#1a0408]/70 to-[#120306]/95" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(26,4,8,0.35)_0%,rgba(14,2,5,0.92)_85%)]" />
         </div>
-      </section>
 
-      {/* Filter & Search Toolbar */}
-      <section className="border-b border-[#eae3e4] bg-[#f8f5f5] py-4 sticky top-[88px] lg:top-[101px] z-30">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-[#716769] absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search phones, MacBooks, Deye solar, gold jewelry, Senator suits..."
-              className="pl-10 h-10 bg-white border-[#eae3e4] rounded-xl text-sm"
-            />
-          </div>
+        {/* Centered Hero Content */}
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-20 lg:py-24 text-center space-y-6">
+          <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight text-white leading-[1.08] drop-shadow-sm">
+            {resolvedTitle}
+          </h1>
+          <p className="text-sm sm:text-base lg:text-lg text-white/85 max-w-2xl mx-auto font-medium leading-relaxed">
+            {resolvedSubtitle}
+          </p>
 
-          {/* Brand Filter, Sort & Cart Button */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center gap-1.5 text-xs text-[#716769]">
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span className="font-semibold">Brand:</span>
-            </div>
-            <select
-              value={selectedBrand}
-              onChange={(e) => setSelectedBrand(e.target.value)}
-              className="h-10 rounded-xl border border-[#eae3e4] bg-white px-3 text-xs font-semibold text-[#1b1416]"
-            >
-              <option value="all">All Brands</option>
-              {availableBrands.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={sortBy}
-              onChange={(e) =>
-                setSortBy(e.target.value as 'featured' | 'price_asc' | 'price_desc')
-              }
-              className="h-10 rounded-xl border border-[#eae3e4] bg-white px-3 text-xs font-semibold text-[#1b1416]"
-            >
-              <option value="featured">Sort: Featured First</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-            </select>
-
-            <Button
-              type="button"
-              onClick={() => {
-                setCheckoutStep('cart');
-                setCartOpen(true);
-              }}
-              className="h-10 px-4 rounded-xl bg-[#81141f] hover:bg-[#6b121c] text-white text-xs font-bold gap-2 cursor-pointer"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>Order Bag ({cartCount})</span>
-              {cartSubtotal > 0 && (
-                <span className="hidden sm:inline text-[#f6e3e5]">
-                  · ₦{cartSubtotal.toLocaleString()}
-                </span>
+          {/* Standard Unified Search Bar */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              document
+                .getElementById('marketplace-catalog-grid')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className="max-w-2xl mx-auto pt-1"
+          >
+            <div className="flex items-center w-full bg-white rounded-xl p-1.5 shadow-2xl border border-white/20 focus-within:ring-2 focus-within:ring-[#81141f]">
+              <Search className="w-5 h-5 text-[#716769] ml-3 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products, brands, or keywords..."
+                className="w-full h-11 sm:h-12 px-3 text-sm sm:text-base text-[#1b1416] placeholder:text-[#716769] bg-transparent focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="p-2 text-[#716769] hover:text-[#1b1416] cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               )}
-            </Button>
+              <button
+                type="submit"
+                className="h-11 sm:h-12 px-6 sm:px-7 rounded-lg bg-[#81141f] hover:bg-[#6b121c] text-white text-xs sm:text-sm font-bold tracking-wide shrink-0 transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Search</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </form>
+
+          {/* Centered Service Pillar Switcher Pills */}
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+            <Link
+              href="/marketplace"
+              className="inline-flex items-center gap-2 rounded-xl bg-white text-[#4e0b13] px-4 py-2.5 text-xs font-bold shadow-xs"
+            >
+              <ShoppingBag className="w-4 h-4 text-[#81141f]" />
+              <span>Marketplace ({publishedProducts.length})</span>
+            </Link>
+            <Link
+              href="/studio"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/20 backdrop-blur-sm transition-colors"
+            >
+              <Camera className="w-4 h-4 text-[#f6e3e5]" />
+              <span>Lagos Studio Booking</span>
+            </Link>
+            <Link
+              href="/equipment-rental"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/20 backdrop-blur-sm transition-colors"
+            >
+              <Video className="w-4 h-4 text-[#f6e3e5]" />
+              <span>Camera &amp; Gear Rental</span>
+            </Link>
+            <Link
+              href="/events"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-[#81141f] text-white px-4 py-2.5 text-xs font-semibold border border-white/20 backdrop-blur-sm transition-colors"
+            >
+              <Ticket className="w-4 h-4 text-[#f6e3e5]" />
+              <span>Events &amp; Tickets</span>
+            </Link>
           </div>
         </div>
       </section>
 
       {/* Main Catalog Grid */}
-      <main className="flex-1 py-12 lg:py-16">
+      <main id="marketplace-catalog-grid" className="flex-1 py-12 lg:py-16 scroll-mt-[100px]">
         <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px]">
-          {/* Dedicated SEO Category Route Quick Links */}
-          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          {/* Unified Catalog Header & Controls Row */}
+          <div className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-[#eae3e4]">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-[#1b1416]">
                 {activeCategoryObj ? activeCategoryObj.name : 'All Verified Products'}
@@ -404,25 +357,54 @@ export function MarketplaceCatalogView({
                 Showing {filteredProducts.length} item{filteredProducts.length === 1 ? '' : 's'} · Direct bank transfer verification &amp; nationwide insured delivery
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-[#716769] font-medium">Direct Category Pages:</span>
-              {[
-                { label: 'Phones', href: '/phones' },
-                { label: 'Laptops', href: '/laptops' },
-                { label: 'Gadgets', href: '/gadgets' },
-                { label: 'Electronics', href: '/electronics' },
-                { label: 'Solar & Inverters', href: '/solar-inverters' },
-                { label: 'Clothing', href: '/clothing' },
-                { label: 'Jewelry', href: '/jewelry' },
-              ].map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="px-2.5 py-1 rounded-lg border border-[#eae3e4] bg-[#f8f5f5] hover:border-[#81141f] hover:text-[#81141f] font-semibold transition-colors"
-                >
-                  {link.label}
-                </Link>
-              ))}
+
+            {/* Brand Filter, Sort & Cart Button */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex items-center gap-1.5 text-xs text-[#716769]">
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span className="font-semibold">Brand:</span>
+              </div>
+              <select
+                value={selectedBrand}
+                onChange={(e) => setSelectedBrand(e.target.value)}
+                className="h-10 rounded-xl border border-[#eae3e4] bg-white px-3 text-xs font-semibold text-[#1b1416]"
+              >
+                <option value="all">All Brands</option>
+                {availableBrands.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) =>
+                  setSortBy(e.target.value as 'featured' | 'price_asc' | 'price_desc')
+                }
+                className="h-10 rounded-xl border border-[#eae3e4] bg-white px-3 text-xs font-semibold text-[#1b1416]"
+              >
+                <option value="featured">Sort: Featured First</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+              </select>
+
+              <Button
+                type="button"
+                onClick={() => {
+                  setCheckoutStep('cart');
+                  setCartOpen(true);
+                }}
+                className="h-10 px-4 rounded-xl bg-[#81141f] hover:bg-[#6b121c] text-white text-xs font-bold gap-2 cursor-pointer"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>Order Bag ({cartCount})</span>
+                {cartSubtotal > 0 && (
+                  <span className="hidden sm:inline text-[#f6e3e5]">
+                    · ₦{cartSubtotal.toLocaleString()}
+                  </span>
+                )}
+              </Button>
             </div>
           </div>
 
