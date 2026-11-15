@@ -89,12 +89,6 @@ export function MarketplaceCatalogView({
     [products]
   );
 
-  const heroMosaicImages = useMemo(() => {
-    const imgs = publishedProducts.map((p) => p.images[0]).filter(Boolean);
-    const pool = imgs.length > 0 ? imgs : ['/photos/gallery-bz-1.jpg'];
-    return Array.from({ length: 18 }, (_, i) => pool[i % pool.length]);
-  }, [publishedProducts]);
-
   const availableBrands = useMemo(() => {
     const scoped =
       activeCategory === 'all'
@@ -237,29 +231,20 @@ export function MarketplaceCatalogView({
         </div>
       )}
 
-      {/* Netflix-Style Angled Mosaic Hero Banner */}
-      <section className="relative overflow-hidden bg-[#120306] text-white border-b border-[#2e080e]">
-        {/* Background Tilted Product & Studio Mosaic */}
+      {/* Marketplace Hero Banner */}
+      <section className="relative overflow-hidden bg-[#4e0b13] text-white border-b border-[#630f1a]">
+        {/* Background Commerce Image (35-45% visibility over #4e0b13) */}
         <div
           className="absolute inset-0 overflow-hidden pointer-events-none select-none"
           aria-hidden="true"
         >
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4 -rotate-12 scale-125 opacity-45 -inset-16 absolute">
-            {heroMosaicImages.map((img, idx) => (
-              <div
-                key={`hero-mosaic-${idx}`}
-                className="rounded-xl overflow-hidden border border-white/10 bg-[#1f060b] shadow-2xl h-32 sm:h-40"
-              >
-                <img
-                  src={img}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-b from-[#120306]/90 via-[#1a0408]/70 to-[#120306]/95" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(26,4,8,0.35)_0%,rgba(14,2,5,0.92)_85%)]" />
+          <img
+            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=2000&q=85"
+            alt=""
+            className="w-full h-full object-cover object-center opacity-40 scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#4e0b13]/50 via-[#4e0b13]/25 to-[#4e0b13]/65" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(78,11,19,0.20)_0%,rgba(78,11,19,0.60)_100%)]" />
         </div>
 
         {/* Centered Hero Content */}
