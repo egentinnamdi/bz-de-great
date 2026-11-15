@@ -40,7 +40,7 @@ export function SiteHeader() {
 
       {/* 1. Top Utility Bar (Figma: 1440x40, fill=#4e0b13, p=10px 120px) */}
       <div className="bg-[#4e0b13] text-white text-xs border-b border-[#630f1a]">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px] h-10 flex items-center justify-between gap-4">
+        <div className="max-w-[1440px] mx-auto px-4 lg:px-8 xl:px-16 2xl:px-[120px] h-10 flex items-center justify-between gap-4">
           {/* Quick service info */}
           <div className="flex items-center gap-3 overflow-x-auto py-1 no-scrollbar text-[12px] sm:text-[13px]">
             <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
@@ -76,12 +76,14 @@ export function SiteHeader() {
 
       {/* 2. Main Navigation Bar (Figma: 1440x101, fill=#ffffff, stroke=#eae3e4, p=14px 120px) */}
       <div className="border-b border-[#eae3e4] bg-white">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-[120px] h-[88px] lg:h-[101px] flex items-center justify-between gap-6">
+        <div className="max-w-[1440px] mx-auto px-4 lg:px-8 xl:px-16 2xl:px-[120px] h-[88px] lg:h-[101px] flex items-center justify-between gap-4 xl:gap-6">
           {/* Brand Logo */}
-          <BrandLogo tone="dark" size="md" href="/" />
+          <div className="shrink-0">
+            <BrandLogo tone="dark" size="md" href="/" />
+          </div>
 
           {/* Desktop Nav Links (Figma: gap 36px, font=Plus Jakarta Sans 600 15px, #1b1416) */}
-          <nav className="hidden lg:flex items-center gap-9">
+          <nav className="hidden lg:flex items-center gap-4 xl:gap-7 2xl:gap-8">
             {NAV_LINKS.map(link => {
               const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
               return (
@@ -89,7 +91,7 @@ export function SiteHeader() {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    'text-[15px] font-semibold tracking-tight transition-colors duration-150 py-1 relative',
+                    'whitespace-nowrap shrink-0 text-[13.5px] xl:text-[14.5px] font-semibold tracking-tight transition-colors duration-150 py-1 relative',
                     isActive
                       ? 'text-[#81141f] font-bold'
                       : 'text-[#1b1416] hover:text-[#81141f]'
@@ -105,7 +107,7 @@ export function SiteHeader() {
           </nav>
 
           {/* Action CTA (Figma: Button [139x44] r=8 fill=#81141f text=#ffffff 14px font 600) */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-3 shrink-0 whitespace-nowrap">
             <Link
               href="/marketplace?cart=open"
               className="relative inline-flex items-center gap-1.5 h-11 px-3.5 rounded-lg border border-[#eae3e4] bg-[#fbf3f4]/50 hover:bg-[#fbf3f4] text-[#1b1416] text-xs font-semibold transition-colors"

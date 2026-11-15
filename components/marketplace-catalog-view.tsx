@@ -446,7 +446,7 @@ export function MarketplaceCatalogView({
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProducts.map((product) => {
                 const chosenVariantId =
                   selectedVariants[product.id] ||
@@ -458,145 +458,90 @@ export function MarketplaceCatalogView({
                 );
                 const displayPrice = activeVariant ? activeVariant.price : product.price;
                 const displayStock = activeVariant ? activeVariant.stock : product.stock;
+                const specSummary = Object.values(product.specifications)
+                  .slice(0, 2)
+                  .join(' · ');
 
                 return (
                   <div
                     key={product.id}
-                    className="group rounded-2xl border border-[#eae3e4] bg-white overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col"
+                    onClick={() => setDetailProduct(product)}
+                    className="h-[400px] sm:h-[420px] rounded-2xl relative overflow-hidden border border-[#eae3e4] bg-[#f8f5f5] shadow-xs hover:shadow-xl transition-all duration-300 group cursor-pointer"
                   >
-                    {/* Product Image */}
-                    <div className="relative h-56 bg-[#f8f5f5] overflow-hidden">
-                      <img
-                        src={product.images[0] || '/photos/gallery-bz-1.jpg'}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                        <span className="rounded-md bg-[#4e0b13]/90 backdrop-blur-xs text-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider">
-                          {product.brand}
-                        </span>
-                        <span className="rounded-md bg-white/95 text-[#1b1416] px-2.5 py-1 text-[11px] font-semibold shadow-xs">
-                          {product.condition}
-                        </span>
-                      </div>
-                      <div className="absolute bottom-3 right-3">
+                    {/* Full-bleed Product Image */}
+                    <img
+                      src={product.images[0] || '/photos/gallery-bz-1.jpg'}
+                      alt={product.name}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                    />
+
+                    {/* Subtle Gradient Framing */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15 pointer-events-none" />
+
+                    {/* Top Minimal Badges */}
+                    <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-[#4e0b13]/85 backdrop-blur-sm text-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider truncate">
+                        {product.brand} · {product.condition}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-[#1b1416] shadow-xs shrink-0">
                         <span
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                            displayStock > 0
-                              ? 'bg-emerald-950/90 text-emerald-300'
-                              : 'bg-red-950/90 text-red-200'
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            displayStock > 0 ? 'bg-emerald-600' : 'bg-red-600'
                           }`}
-                        >
-                          {displayStock > 0 ? `${displayStock} in stock` : 'Sold out'}
-                        </span>
-                      </div>
+                        />
+                        <span>{displayStock > 0 ? `${displayStock} left` : 'Sold out'}</span>
+                      </span>
                     </div>
 
-                    {/* Product Body */}
-                    <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
-                      <div className="space-y-2.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-lg font-bold text-[#1b1416] leading-snug">
-                            {product.name}
-                          </h3>
-                        </div>
-                        <p className="text-xs text-[#716769] line-clamp-2 leading-relaxed">
-                          {product.description}
-                        </p>
+                    {/* Bottom Translucent Glass Details Card */}
+                    <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/88 backdrop-blur-md border border-white/80 p-4 shadow-lg transition-all duration-300 group-hover:bg-white/95">
+                      <h3 className="text-[15px] sm:text-base font-bold text-[#1b1416] line-clamp-1 leading-snug">
+                        {product.name}
+                      </h3>
+                      <p className="text-[11px] font-medium text-[#5a5052] line-clamp-1 mt-0.5">
+                        {specSummary || product.description}
+                      </p>
 
-                        {/* Top Specifications Grid */}
-                        <div className="grid grid-cols-2 gap-1.5 pt-2">
-                          {Object.entries(product.specifications)
-                            .slice(0, 4)
-                            .map(([key, val]) => (
-                              <div
-                                key={key}
-                                className="rounded-lg bg-[#f8f5f5] px-2.5 py-1.5 border border-[#eae3e4]/70 truncate"
-                              >
-                                <span className="block text-[10px] font-bold uppercase tracking-wider text-[#716769]">
-                                  {key}
-                                </span>
-                                <span className="block text-xs font-semibold text-[#1b1416] truncate">
-                                  {val}
-                                </span>
-                              </div>
-                            ))}
+                      {/* Price & Quick Actions */}
+                      <div className="mt-3 pt-2.5 border-t border-[#eae3e4]/80 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="text-base sm:text-lg font-extrabold text-[#1b1416]">
+                            ₦{displayPrice.toLocaleString()}
+                          </span>
+                          {product.compareAtPrice && product.compareAtPrice > displayPrice && (
+                            <span className="ml-1.5 text-[11px] text-[#716769] line-through">
+                              ₦{product.compareAtPrice.toLocaleString()}
+                            </span>
+                          )}
                         </div>
 
-                        {/* Variants Selector */}
-                        {product.variants && product.variants.length > 0 && (
-                          <div className="pt-2">
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-[#716769] mb-1.5">
-                              Select Option / Variant
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {product.variants.map((v) => {
-                                const isSel = v.id === chosenVariantId;
-                                return (
-                                  <button
-                                    key={v.id}
-                                    type="button"
-                                    onClick={() =>
-                                      setSelectedVariants((prev) => ({
-                                        ...prev,
-                                        [product.id]: v.id,
-                                      }))
-                                    }
-                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
-                                      isSel
-                                        ? 'bg-[#fbf3f4] border-[#81141f] text-[#81141f]'
-                                        : 'bg-white border-[#eae3e4] text-[#4d4547] hover:bg-[#f8f5f5]'
-                                    }`}
-                                  >
-                                    {v.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Price & Actions */}
-                      <div className="pt-4 border-t border-[#eae3e4] space-y-3">
-                        <div className="flex items-baseline justify-between">
-                          <div>
-                            <span className="text-xl font-extrabold text-[#1b1416]">
-                              ₦{displayPrice.toLocaleString()}
-                            </span>
-                            {product.compareAtPrice && product.compareAtPrice > displayPrice && (
-                              <span className="ml-2 text-xs text-[#716769] line-through">
-                                ₦{product.compareAtPrice.toLocaleString()}
-                              </span>
-                            )}
-                          </div>
+                        <div
+                          className="flex items-center gap-1.5 shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
                             type="button"
                             onClick={() => setDetailProduct(product)}
-                            className="text-xs font-bold text-[#81141f] hover:underline cursor-pointer"
+                            className="h-8 px-2.5 rounded-lg border border-[#eae3e4] bg-white/80 hover:bg-white text-[11px] font-semibold text-[#4d4547] hover:text-[#1b1416] transition-colors cursor-pointer"
                           >
-                            Full Specs →
+                            Specs
                           </button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button
+                          <button
                             type="button"
-                            variant="outline"
                             disabled={displayStock <= 0}
                             onClick={() => handleAddToCart(product, false)}
-                            className="h-10 rounded-xl border-[#eae3e4] hover:border-[#81141f] text-[#1b1416] text-xs font-bold cursor-pointer"
+                            className="h-8 px-2.5 rounded-lg border border-[#eae3e4] bg-white hover:border-[#81141f] text-[11px] font-bold text-[#1b1416] disabled:opacity-45 disabled:cursor-not-allowed transition-colors cursor-pointer"
                           >
-                            Add to Bag
-                          </Button>
-                          <Button
+                            + Bag
+                          </button>
+                          <button
                             type="button"
                             disabled={displayStock <= 0}
                             onClick={() => handleAddToCart(product, true)}
-                            className="h-10 rounded-xl bg-[#81141f] hover:bg-[#6b121c] text-white text-xs font-bold cursor-pointer"
+                            className="h-8 px-3 rounded-lg bg-[#81141f] hover:bg-[#6b121c] text-white text-[11px] font-bold disabled:opacity-45 disabled:cursor-not-allowed transition-colors cursor-pointer"
                           >
-                            Buy Now
-                          </Button>
+                            Buy
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -669,93 +614,154 @@ export function MarketplaceCatalogView({
       </main>
 
       {/* Product Specification Detail Modal */}
-      {detailProduct && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-[#eae3e4] shadow-2xl overflow-hidden my-8">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#eae3e4] bg-[#f8f5f5]">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#81141f]">
-                  {detailProduct.brand} · {detailProduct.condition}
-                </span>
-                <h3 className="text-lg font-bold text-[#1b1416]">{detailProduct.name}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDetailProduct(null)}
-                className="p-2 rounded-lg text-[#716769] hover:text-[#1b1416] hover:bg-white cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {detailProduct && (() => {
+        const chosenVariantId =
+          selectedVariants[detailProduct.id] ||
+          (detailProduct.variants && detailProduct.variants.length > 0
+            ? detailProduct.variants[0].id
+            : undefined);
+        const activeVariant = detailProduct.variants?.find(
+          (v) => v.id === chosenVariantId
+        );
+        const detailPrice = activeVariant ? activeVariant.price : detailProduct.price;
+        const detailStock = activeVariant ? activeVariant.stock : detailProduct.stock;
 
-            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                <img
-                  src={detailProduct.images[0] || '/photos/gallery-bz-1.jpg'}
-                  alt={detailProduct.name}
-                  className="w-full h-52 object-cover rounded-xl border border-[#eae3e4]"
-                />
-                <div className="space-y-3">
-                  <div className="text-2xl font-extrabold text-[#1b1416]">
-                    ₦{detailProduct.price.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-[#4d4547] leading-relaxed">
-                    {detailProduct.description}
-                  </p>
-                  {detailProduct.warranty && (
-                    <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-900">
-                      <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                      <span>{detailProduct.warranty}</span>
-                    </div>
-                  )}
+        return (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-2xl w-full border border-[#eae3e4] shadow-2xl overflow-hidden my-8">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[#eae3e4] bg-[#f8f5f5]">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#81141f]">
+                    {detailProduct.brand} · {detailProduct.condition}
+                  </span>
+                  <h3 className="text-lg font-bold text-[#1b1416]">{detailProduct.name}</h3>
                 </div>
-              </div>
-
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#716769] mb-2.5">
-                  Technical Specifications &amp; Details
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {Object.entries(detailProduct.specifications).map(([k, v]) => (
-                    <div
-                      key={k}
-                      className="rounded-xl bg-[#f8f5f5] border border-[#eae3e4] px-3.5 py-2.5"
-                    >
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-[#716769]">
-                        {k}
-                      </span>
-                      <span className="block text-xs font-semibold text-[#1b1416] mt-0.5">
-                        {v}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#eae3e4]">
-                <Button
+                <button
                   type="button"
-                  variant="outline"
                   onClick={() => setDetailProduct(null)}
-                  className="h-10 px-4 rounded-xl border-[#eae3e4]"
+                  className="p-2 rounded-lg text-[#716769] hover:text-[#1b1416] hover:bg-white cursor-pointer"
                 >
-                  Close
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    handleAddToCart(detailProduct, true);
-                    setDetailProduct(null);
-                  }}
-                  className="h-10 px-5 rounded-xl bg-[#81141f] hover:bg-[#6b121c] text-white font-bold text-xs cursor-pointer"
-                >
-                  Add to Bag &amp; Checkout
-                </Button>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                  <img
+                    src={detailProduct.images[0] || '/photos/gallery-bz-1.jpg'}
+                    alt={detailProduct.name}
+                    className="w-full h-52 object-cover rounded-xl border border-[#eae3e4]"
+                  />
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <span className="text-2xl font-extrabold text-[#1b1416]">
+                        ₦{detailPrice.toLocaleString()}
+                      </span>
+                      {detailProduct.compareAtPrice && detailProduct.compareAtPrice > detailPrice && (
+                        <span className="text-xs text-[#716769] line-through">
+                          ₦{detailProduct.compareAtPrice.toLocaleString()}
+                        </span>
+                      )}
+                      <span
+                        className={`ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                          detailStock > 0
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}
+                      >
+                        {detailStock > 0 ? `${detailStock} in stock` : 'Sold out'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#4d4547] leading-relaxed">
+                      {detailProduct.description}
+                    </p>
+                    {detailProduct.variants && detailProduct.variants.length > 0 && (
+                      <div className="pt-1">
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-[#716769] mb-1.5">
+                          Select Option / Variant
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {detailProduct.variants.map((v) => {
+                            const isSel = v.id === chosenVariantId;
+                            return (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onClick={() =>
+                                  setSelectedVariants((prev) => ({
+                                    ...prev,
+                                    [detailProduct.id]: v.id,
+                                  }))
+                                }
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
+                                  isSel
+                                    ? 'bg-[#fbf3f4] border-[#81141f] text-[#81141f]'
+                                    : 'bg-white border-[#eae3e4] text-[#4d4547] hover:bg-[#f8f5f5]'
+                                }`}
+                              >
+                                {v.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {detailProduct.warranty && (
+                      <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-900">
+                        <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                        <span>{detailProduct.warranty}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#716769] mb-2.5">
+                    Technical Specifications &amp; Details
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {Object.entries(detailProduct.specifications).map(([k, v]) => (
+                      <div
+                        key={k}
+                        className="rounded-xl bg-[#f8f5f5] border border-[#eae3e4] px-3.5 py-2.5"
+                      >
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-[#716769]">
+                          {k}
+                        </span>
+                        <span className="block text-xs font-semibold text-[#1b1416] mt-0.5">
+                          {v}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#eae3e4]">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDetailProduct(null)}
+                    className="h-10 px-4 rounded-xl border-[#eae3e4]"
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={detailStock <= 0}
+                    onClick={() => {
+                      handleAddToCart(detailProduct, true);
+                      setDetailProduct(null);
+                    }}
+                    className="h-10 px-5 rounded-xl bg-[#81141f] hover:bg-[#6b121c] text-white font-bold text-xs cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                  >
+                    Add to Bag &amp; Checkout
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Cart & Checkout Modal Drawer */}
       {cartOpen && (
