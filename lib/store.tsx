@@ -43,10 +43,21 @@ import {
 } from './commerce-engine';
 import { supabaseService } from './supabase/service';
 
+const CLEAN_HERO_SUPPORTING_TEXT =
+  'Rent or buy premium cars and homes, shop Marketplace & book Studio — all through one trusted team.';
+
+function sanitizeSupportingText(text?: string | null): string {
+  const trimmed = (text || '').trim();
+  if (!trimmed || /\brmb\b/i.test(trimmed)) {
+    return CLEAN_HERO_SUPPORTING_TEXT;
+  }
+  return trimmed;
+}
+
 const DEFAULT_WEBSITE_CONTENT: WebsiteContentConfig = {
   heroHeadline: 'Drive it. Live in it. Own it.',
   heroEyebrow: 'Invest in value · Live the future',
-  heroSupportingText: 'Rent or buy premium cars and homes across Nigeria — all through one trusted team.',
+  heroSupportingText: CLEAN_HERO_SUPPORTING_TEXT,
   heroImage: '/photos/founder-bz-3.jpg',
   founderBio: 'BZ De Great is a realtor, investment broker and entrepreneur working across four industries — real estate, automobiles, fashion and technology.',
   founderImage: '/photos/founder-bz-3.jpg',
@@ -386,7 +397,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       } else if (typeof window !== 'undefined') {
         try {
           const cContent = localStorage.getItem(CACHE_KEY_PREFIX + 'content');
-          if (cContent) setWebsiteContent(JSON.parse(cContent));
+          if (cContent) {
+            const parsed = JSON.parse(cContent);
+            setWebsiteContent({
+              ...parsed,
+              heroSupportingText: sanitizeSupportingText(parsed?.heroSupportingText),
+            });
+          }
         } catch {
           // ignore
         }

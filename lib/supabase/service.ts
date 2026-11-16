@@ -475,10 +475,16 @@ export const supabaseService = {
 
       if (error || !data) return null;
 
+      const rawSupportingText = typeof data.hero_supporting_text === 'string' ? data.hero_supporting_text.trim() : '';
+      const cleanSupportingText =
+        !rawSupportingText || /\brmb\b/i.test(rawSupportingText)
+          ? 'Rent or buy premium cars and homes, shop Marketplace & book Studio — all through one trusted team.'
+          : rawSupportingText;
+
       return {
         heroHeadline: data.hero_headline || 'Drive it. Live in it. Own it.',
         heroEyebrow: data.hero_eyebrow || 'Invest in value · Live the future',
-        heroSupportingText: data.hero_supporting_text || 'Rent or buy premium cars and homes across Nigeria — all through one trusted team.',
+        heroSupportingText: cleanSupportingText,
         founderBio: data.founder_bio || 'BZ De Great is a realtor, investment broker and entrepreneur working across four industries — real estate, automobiles, fashion and technology.',
         announcementEnabled: Boolean(data.announcement_enabled),
         announcementText: data.announcement_text !== undefined && data.announcement_text !== null ? data.announcement_text : '',
