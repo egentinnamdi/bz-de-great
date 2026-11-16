@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
@@ -30,16 +30,23 @@ import { BookingModal } from '@/components/booking-modal';
 import { useStore } from '@/lib/store';
 import { isListingLive } from '@/lib/staff';
 import { ListingUnavailableState } from '@/components/listing-unavailable-state';
+import { ListingDetailSkeleton } from '@/components/ui/loading-skeleton';
 import { useToast } from '@/components/toast-provider';
 import { getWhatsAppBookingLink } from '@/lib/constants';
 
 export default function CarSaleDetailPage() {
   const params = useParams();
-  const { listings } = useStore();
+  const { listings, isLoading, ensureListingImages } = useStore();
   const { toast } = useToast();
 
   const carId = params.id as string;
   const car = listings.find(l => l.id === carId || l.slug === carId);
+
+  useEffect(() => {
+    if (car && car.images.length === 0) {
+      void ensureListingImages(car.id);
+    }
+  }, [car, ensureListingImages]);
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -50,6 +57,10 @@ export default function CarSaleDetailPage() {
   const [inspectionType, setInspectionType] = useState<'test_drive' | 'mechanic'>('test_drive');
   const [preferredDate, setPreferredDate] = useState<string>('2026-10-27');
   const [preferredTime, setPreferredTime] = useState<string>('11:00 AM');
+
+  if (isLoading && !car) {
+    return <ListingDetailSkeleton />;
+  }
 
   if (car && !isListingLive(car)) {
     return (

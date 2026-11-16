@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
 import { useStore } from '@/lib/store';
+import { AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
 import { cn } from '@/lib/utils';
 
 const DEFAULT_GALLERY = [
@@ -35,7 +36,7 @@ const DEFAULT_GALLERY = [
 
 export default function AdminWebsiteContentPage() {
   const { toast } = useToast();
-  const { websiteContent, updateWebsiteContent, addActivity } = useStore();
+  const { websiteContent, isLoading, updateWebsiteContent, addActivity } = useStore();
 
   const [globalSearch, setGlobalSearch] = useState('');
   const [headline, setHeadline] = useState(websiteContent.heroHeadline);
@@ -243,6 +244,9 @@ export default function AdminWebsiteContentPage() {
       </div>
 
       {/* Main 2-Column Grid */}
+      {isLoading ? (
+        <AdminRowsSkeleton rows={6} />
+      ) : (
       <form onSubmit={handlePublish} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Homepage hero, Meet founder, Gallery [7 cols] */}
         <div className="lg:col-span-7 space-y-6">
@@ -555,6 +559,7 @@ export default function AdminWebsiteContentPage() {
           </div>
         </div>
       </form>
+      )}
     </div>
   );
 }

@@ -13,6 +13,11 @@ import {
   isMasterAdmin,
 } from '../lib/staff';
 import { inferStateFromLocation } from '../lib/locations';
+import {
+  formatActivityTimestamp,
+  getActivityDayGroup,
+  resolveActivityDate,
+} from '../lib/activity-time';
 import { Booking, Listing } from '../lib/types';
 import {
   INITIAL_PRODUCT_CATEGORIES,
@@ -359,6 +364,69 @@ console.log('=== Running Multi-Service Commerce Platform Test Suite ===\n');
   assert.equal(isListingLive({ status: 'archived' }), false);
 
   console.log('✓ [Multi-Branch Partner Admin] Regional scoping, financial isolation, branch routing, and sold-removal guards verified');
+}
+
+// 8. Activity Log Accurate Timestamp Resolution & Day Grouping
+{
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+
+  assert.ok(resolveActivityDate(now.toISOString()) !== null);
+  assert.equal(getActivityDayGroup(now.toISOString(), 'Today'), 'TODAY');
+  assert.equal(getActivityDayGroup(yesterday.toISOString(), 'Today, 09:00 AM'), 'YESTERDAY');
+  assert.equal(
+    getActivityDayGroup(fiveDaysAgo.toISOString(), 'Today, 09:00 AM'),
+    'EARLIER',
+    'Authoritative createdAt must override stale "Today" fallback string'
+  );
+  assert.equal(
+    getActivityDayGroup(undefined, 'Today'),
+    'EARLIER',
+    'Unparseable legacy strings without createdAt must not falsely group under TODAY'
+  );
+
+  const formattedToday = formatActivityTimestamp(now.toISOString(), 'Today');
+  const formattedOld = formatActivityTimestamp(fiveDaysAgo.toISOString(), 'Today, 09:00 AM');
+  assert.ok(formattedToday.startsWith('Today, '), `Expected Today prefix, got: ${formattedToday}`);
+  assert.ok(!formattedOld.startsWith('Today'), `Old activity must display actual date, got: ${formattedOld}`);
+
+  console.log('✓ [Activity Time] Accurate ISO timestamp formatting and TODAY/YESTERDAY/EARLIER day grouping verified');
+}
+
+// 9. Dynamic Branch Offices List Routing (CRUD Compatibility)
+{
+  const customBranches = [
+    ...BRANCH_OFFICES,
+    {
+      id: 'br-ph-test',
+      name: 'Port Harcourt VIP Hub',
+      state: 'Rivers State',
+      city: 'Port Harcourt',
+      address: 'GRA Phase 2, Port Harcourt, Rivers State',
+      phone: '+234 809 000 1122',
+      managerName: 'Ngozi Wike',
+      handles: 'Car Sales · Rentals',
+      isActive: true,
+    },
+    {
+      id: 'br-paused-test',
+      name: 'Paused Kano Desk',
+      state: 'Kano State',
+      city: 'Kano',
+      address: 'Nassarawa GRA, Kano',
+      phone: '+234 809 000 3344',
+      managerName: 'Musa Bello',
+      handles: 'Car Sales',
+      isActive: false,
+    },
+  ];
+  const phMatch = findBranchForState('GRA Phase 2, Port Harcourt, Rivers State', customBranches);
+  assert.equal(phMatch?.id, 'br-ph-test', 'Newly created active branch must resolve for its city/state');
+  const kanoMatch = findBranchForState('Kano State', customBranches);
+  assert.notEqual(kanoMatch?.id, 'br-paused-test', 'Paused branch should not take precedence over active pool');
+
+  console.log('✓ [Branch CRUD] Dynamic branch routing and active/paused branch filtering verified');
 }
 
 console.log('\nALL MULTI-SERVICE COMMERCE TESTS PASSED SUCCESSFULLY!');

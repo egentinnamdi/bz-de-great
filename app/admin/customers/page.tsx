@@ -37,10 +37,11 @@ interface CustomerRecord {
 }
 
 import { useStore } from '@/lib/store';
+import { AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
 
 export default function AdminCustomersPage() {
   const { toast } = useToast();
-  const { customers: storeCustomers, bookings: storeBookings, updateCustomerNotes, addActivity } = useStore();
+  const { customers: storeCustomers, bookings: storeBookings, isLoading, updateCustomerNotes, addActivity } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'cars' | 'property' | 'vip'>('all');
@@ -278,7 +279,14 @@ export default function AdminCustomersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eae3e4]">
-              {filteredCustomers.map(row => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="p-5">
+                    <AdminRowsSkeleton rows={5} />
+                  </td>
+                </tr>
+              ) : (
+                filteredCustomers.map(row => (
                 <tr key={row.id} className="hover:bg-[#fcf8f8]/50 transition-colors">
                   {/* Customer Avatar & Name & Email */}
                   <td className="py-3.5 px-5">
@@ -343,7 +351,8 @@ export default function AdminCustomersPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>

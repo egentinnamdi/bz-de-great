@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
@@ -29,16 +29,23 @@ import { BookingModal } from '@/components/booking-modal';
 import { useStore } from '@/lib/store';
 import { isListingLive } from '@/lib/staff';
 import { ListingUnavailableState } from '@/components/listing-unavailable-state';
+import { ListingDetailSkeleton } from '@/components/ui/loading-skeleton';
 import { useToast } from '@/components/toast-provider';
 import { getWhatsAppBookingLink } from '@/lib/constants';
 
 export default function HomeRentDetailPage() {
   const params = useParams();
-  const { listings } = useStore();
+  const { listings, isLoading, ensureListingImages } = useStore();
   const { toast } = useToast();
 
   const id = params.id as string;
   const property = listings.find(l => l.id === id || l.slug === id);
+
+  useEffect(() => {
+    if (property && property.images.length === 0) {
+      void ensureListingImages(property.id);
+    }
+  }, [property, ensureListingImages]);
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -49,6 +56,10 @@ export default function HomeRentDetailPage() {
   const [inspectionMode, setInspectionMode] = useState<'physical' | 'video'>('physical');
   const [preferredDate, setPreferredDate] = useState<string>('2026-10-26');
   const [preferredTime, setPreferredTime] = useState<string>('11:00 AM');
+
+  if (isLoading && !property) {
+    return <ListingDetailSkeleton />;
+  }
 
   if (property && !isListingLive(property)) {
     return (

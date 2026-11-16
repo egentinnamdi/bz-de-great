@@ -18,6 +18,14 @@ import {
 import { useToast } from '@/components/toast-provider';
 import { cn } from '@/lib/utils';
 
+import { useStore } from '@/lib/store';
+import {
+  formatActivityTimestamp,
+  formatFullActivityDateTime,
+  getActivityDayGroup,
+} from '@/lib/activity-time';
+import { AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
+
 interface ActivityItem {
   id: string;
   category: 'payments' | 'listings' | 'content' | 'bookings' | 'team';
@@ -25,15 +33,14 @@ interface ActivityItem {
   actionText: string;
   targetDetails: string;
   timestamp: string;
+  fullDateTime: string;
   dayGroup: 'TODAY' | 'YESTERDAY' | 'EARLIER';
   iconType: 'payment' | 'listing' | 'payout' | 'booking' | 'content' | 'team';
 }
 
-import { useStore } from '@/lib/store';
-
 export default function AdminActivityLogPage() {
   const { toast } = useToast();
-  const { activities: storeActivities, clearActivities } = useStore();
+  const { activities: storeActivities, isLoading, clearActivities } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'payments' | 'listings' | 'bookings'>('all');
 
@@ -45,13 +52,11 @@ export default function AdminActivityLogPage() {
       else if (a.category === 'content') iconType = 'content';
       else if (a.category === 'team') iconType = 'team';
 
-      const tsLower = (a.timestamp || '').toLowerCase();
-      let dayGroup: 'TODAY' | 'YESTERDAY' | 'EARLIER' = 'EARLIER';
-      if (tsLower.includes('today')) {
-        dayGroup = 'TODAY';
-      } else if (tsLower.includes('yesterday')) {
-        dayGroup = 'YESTERDAY';
-      }
+      const dayGroup = getActivityDayGroup(a.createdAt, a.timestamp);
+      const compactTime = formatActivityTimestamp(a.createdAt, a.timestamp, {
+        compactInGroup: dayGroup === 'TODAY' || dayGroup === 'YESTERDAY',
+      });
+      const fullDateTime = formatFullActivityDateTime(a.createdAt, a.timestamp);
 
       return {
         id: a.id,
@@ -59,7 +64,8 @@ export default function AdminActivityLogPage() {
         actorName: a.actorName,
         actionText: a.action,
         targetDetails: a.target || a.details || 'Record',
-        timestamp: a.timestamp ? a.timestamp.replace(/^(today|yesterday),\s*/i, '') : 'Recent',
+        timestamp: compactTime,
+        fullDateTime,
         dayGroup,
         iconType
       };
@@ -68,9 +74,9 @@ export default function AdminActivityLogPage() {
 
   const handleExport = () => {
     const csvContent =
-      'Actor,Action,Target,Time,Day\n' +
+      'Actor,Action,Target,Time,Full DateTime,Day\n' +
       activities
-        .map(a => `"${a.actorName}","${a.actionText}","${a.targetDetails}","${a.timestamp}","${a.dayGroup}"`)
+        .map(a => `"${a.actorName}","${a.actionText}","${a.targetDetails}","${a.timestamp}","${a.fullDateTime}","${a.dayGroup}"`)
         .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -145,20 +151,20 @@ export default function AdminActivityLogPage() {
           <p className="text-xs text-[#716769] mt-0.5">Every change made in the dashboard, and who made it</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="w-3.5 h-3.5 text-[#716769] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={globalSearch}
               onChange={e => setGlobalSearch(e.target.value)}
               placeholder="Search orders, listings, customers"
-              className="pl-8 pr-3 py-1.5 bg-white border border-[#eae3e4] rounded-lg text-xs text-[#1b1416] w-64 focus:outline-none focus:border-[#7A0C1A]"
+              className="pl-8 pr-3 py-1.5 bg-white border border-[#eae3e4] rounded-lg text-xs text-[#1b1416] w-full sm:w-56 md:w-64 focus:outline-none focus:border-[#7A0C1A]"
             />
           </div>
           <button
             type="button"
-            className="w-8 h-8 rounded-lg bg-white border border-[#eae3e4] flex items-center justify-center text-[#716769] hover:text-[#1b1416] transition-colors"
+            className="w-8 h-8 rounded-lg bg-white border border-[#eae3e4] flex items-center justify-center text-[#716769] hover:text-[#1b1416] transition-colors shrink-0"
             title="Notifications"
           >
             <Bell className="w-4 h-4" />
@@ -166,7 +172,7 @@ export default function AdminActivityLogPage() {
           <button
             type="button"
             onClick={handleExport}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#7A0C1A] hover:bg-[#600814] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#7A0C1A] hover:bg-[#600814] text-white text-xs font-semibold shadow-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export</span>
@@ -175,7 +181,7 @@ export default function AdminActivityLogPage() {
             <button
               type="button"
               onClick={handleClear}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#eae3e4] bg-white hover:bg-[#fcf3f4] text-[#81141f] text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#eae3e4] bg-white hover:bg-[#fcf3f4] text-[#81141f] text-xs font-semibold shadow-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               title="Clear all activity history"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -239,6 +245,10 @@ export default function AdminActivityLogPage() {
 
       {/* Main Activity Feed Container */}
       <div className="bg-white rounded-xl border border-[#eae3e4] p-6 shadow-xs space-y-6">
+        {isLoading ? (
+          <AdminRowsSkeleton rows={6} />
+        ) : (
+        <>
         {/* TODAY Section */}
         {todayItems.length > 0 && (
           <div className="space-y-4">
@@ -262,7 +272,7 @@ export default function AdminActivityLogPage() {
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs text-[#716769] shrink-0 font-medium">
+                  <span title={item.fullDateTime} className="text-xs text-[#716769] shrink-0 font-medium">
                     {item.timestamp}
                   </span>
                 </div>
@@ -294,7 +304,7 @@ export default function AdminActivityLogPage() {
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs text-[#716769] shrink-0 font-medium">
+                  <span title={item.fullDateTime} className="text-xs text-[#716769] shrink-0 font-medium">
                     {item.timestamp}
                   </span>
                 </div>
@@ -326,7 +336,7 @@ export default function AdminActivityLogPage() {
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs text-[#716769] shrink-0 font-medium">
+                  <span title={item.fullDateTime} className="text-xs text-[#716769] shrink-0 font-medium">
                     {item.timestamp}
                   </span>
                 </div>
@@ -339,6 +349,8 @@ export default function AdminActivityLogPage() {
           <div className="py-12 text-center text-xs text-[#716769]">
             No activity records found matching this filter.
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

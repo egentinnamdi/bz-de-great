@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/ui/badge';
 import { CopyButton } from '@/components/ui/copy-button';
 import { QrCodeBadge } from '@/components/qr-code-badge';
+import { AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
 import { useStore } from '@/lib/store';
 import { SITE_CONFIG } from '@/lib/constants';
 import type {
@@ -52,6 +53,7 @@ function MyBookingContent() {
     studioBookings,
     equipmentRentals,
     digitalTickets,
+    isLoading,
     refreshData,
   } = useStore();
   const searchParams = useSearchParams();
@@ -62,7 +64,7 @@ function MyBookingContent() {
     searchParams.get('ticket') ||
     '';
 
-  const [searchTicket, setSearchTicket] = useState(initialParamTicket || 'BK-2292');
+  const [searchTicket, setSearchTicket] = useState(initialParamTicket);
   const [trackedItem, setTrackedItem] = useState<UnifiedTrackingItem | null>(null);
 
   useEffect(() => {
@@ -125,15 +127,23 @@ function MyBookingContent() {
   }, [initialParamTicket]);
 
   useEffect(() => {
-    const found = findAcrossAllDomains(searchTicket);
-    if (found) {
-      setTrackedItem(found);
-      return;
+    if (searchTicket.trim()) {
+      const found = findAcrossAllDomains(searchTicket);
+      if (found) {
+        setTrackedItem(found);
+        return;
+      }
     }
-    if (!initialParamTicket && bookings.length > 0 && !trackedItem) {
-      setTrackedItem({ kind: 'booking', data: bookings[0] });
+    if (!initialParamTicket && !searchTicket.trim() && !trackedItem) {
+      if (bookings.length > 0) {
+        setTrackedItem({ kind: 'booking', data: bookings[0] });
+        setSearchTicket(bookings[0].reference || bookings[0].id);
+      } else if (productOrders.length > 0) {
+        setTrackedItem({ kind: 'order', data: productOrders[0] });
+        setSearchTicket(productOrders[0].reference || productOrders[0].id);
+      }
     }
-  }, [initialParamTicket, searchTicket, findAcrossAllDomains, bookings, trackedItem]);
+  }, [initialParamTicket, searchTicket, findAcrossAllDomains, bookings, productOrders, trackedItem]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,12 +152,12 @@ function MyBookingContent() {
   };
 
   const quickSamples = [
-    { id: 'BK-2292', label: 'BK-2292 (Car)' },
-    { id: productOrders[0]?.id || 'ORD-4101', label: `${productOrders[0]?.id || 'ORD-4101'} (Order)` },
-    { id: studioBookings[0]?.id || 'STU-1041', label: `${studioBookings[0]?.id || 'STU-1041'} (Studio)` },
-    { id: equipmentRentals[0]?.id || 'RNT-3081', label: `${equipmentRentals[0]?.id || 'RNT-3081'} (Gear)` },
-    { id: digitalTickets[0]?.id || 'TKT-8821', label: `${digitalTickets[0]?.id || 'TKT-8821'} (Event QR)` },
-  ];
+    bookings[0] ? { id: bookings[0].reference || bookings[0].id, label: `${bookings[0].reference || bookings[0].id} (Booking)` } : null,
+    productOrders[0] ? { id: productOrders[0].id, label: `${productOrders[0].id} (Order)` } : null,
+    studioBookings[0] ? { id: studioBookings[0].id, label: `${studioBookings[0].id} (Studio)` } : null,
+    equipmentRentals[0] ? { id: equipmentRentals[0].id, label: `${equipmentRentals[0].id} (Gear)` } : null,
+    digitalTickets[0] ? { id: digitalTickets[0].id, label: `${digitalTickets[0].id} (Event QR)` } : null,
+  ].filter((item): item is { id: string; label: string } => Boolean(item));
 
   const steps = [
     { label: 'Requested', desc: 'Reference logged' },
@@ -233,39 +243,40 @@ function MyBookingContent() {
                 Track Booking, Order or Ticket
               </h1>
               <p className="text-sm text-text-secondary mt-1">
-                Enter your reference code (e.g. <code>ORD-4101</code>, <code>STU-1041</code>,{' '}
-                <code>RNT-3081</code>, <code>TKT-8821</code>, or <code>BK-2292</code>) to view live status, receipts, or your QR event pass.
+                Enter your booking, order, studio, gear rental, or ticket reference code to view live status, receipts, or your QR event pass.
               </p>
             </div>
 
-            {/* Quick Sample Selectors */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {quickSamples.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => {
-                    setSearchTicket(s.id);
-                    const f = findAcrossAllDomains(s.id);
-                    if (f) setTrackedItem(f);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-                    activeRefId === s.id
-                      ? 'bg-[#81141f] text-white'
-                      : 'bg-white border border-[#eae3e4] text-text-secondary hover:bg-wine-50'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+            {/* Quick Live Selectors */}
+            {quickSamples.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {quickSamples.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      setSearchTicket(s.id);
+                      const f = findAcrossAllDomains(s.id);
+                      if (f) setTrackedItem(f);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                      activeRefId === s.id
+                        ? 'bg-[#81141f] text-white'
+                        : 'bg-white border border-[#eae3e4] text-text-secondary hover:bg-wine-50'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Search Form */}
           <form onSubmit={handleSearch} className="flex gap-3">
             <div className="flex-1">
               <Input
-                placeholder="Enter reference (e.g. ORD-4101, STU-1041, RNT-3081, TKT-8821, BK-2292)..."
+                placeholder="Enter your reference code (e.g. BK-..., ORD-..., STU-..., TKT-...)"
                 value={searchTicket}
                 onChange={(e) => setSearchTicket(e.target.value)}
                 icon={<Search className="w-4 h-4" />}
@@ -281,7 +292,12 @@ function MyBookingContent() {
           </form>
 
           {/* Tracked Item Details Card */}
-          {trackedItem ? (
+          {isLoading && !trackedItem ? (
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-text-subtle">Checking live records...</p>
+              <AdminRowsSkeleton rows={3} />
+            </div>
+          ) : trackedItem ? (
             <div className="rounded-3xl bg-white border border-border-subtle shadow-xl overflow-hidden">
               {/* Stepper Header */}
               <div className="p-6 sm:p-8 bg-surface-bg/60 border-b border-border-subtle">
@@ -642,9 +658,13 @@ function MyBookingContent() {
           ) : (
             <div className="text-center py-16 rounded-3xl bg-white border border-border-subtle space-y-3">
               <AlertCircle className="w-10 h-10 text-amber-600 mx-auto" />
-              <h3 className="text-lg font-bold">Reference Not Found</h3>
-              <p className="text-xs text-text-secondary">
-                Please verify your reference code (e.g. ORD-4101, STU-1041, RNT-3081, TKT-8821, or BK-2292) or click one of the sample pills above.
+              <h3 className="text-lg font-bold">
+                {searchTicket.trim() ? 'Reference Not Found' : 'Enter a Reference Code'}
+              </h3>
+              <p className="text-xs text-text-secondary max-w-md mx-auto">
+                {searchTicket.trim()
+                  ? 'Please double-check your booking, order, or ticket reference code and try again.'
+                  : 'Once you place a booking, order, studio session, rental, or event ticket, enter your reference code above to track live status.'}
               </p>
             </div>
           )}

@@ -58,7 +58,7 @@ function toAdminUser(acc: StaffAccount): AdminUser {
 }
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
-  const { staffAccounts, addActivity } = useStore();
+  const { staffAccounts, addActivity, isLoading: isStoreLoading } = useStore();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -146,7 +146,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   // Live permission sync whenever Owner modifies or suspends a partner account
   useEffect(() => {
-    if (!user) return;
+    if (!user || isStoreLoading) return;
     const latest = combinedStaff.find(
       s => s.id === user.id || s.email.toLowerCase() === user.email.toLowerCase()
     );

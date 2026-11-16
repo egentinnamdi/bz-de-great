@@ -42,13 +42,20 @@ export function CardProperty({ property, className }: CardPropertyProps) {
       )}
     >
       {/* Full-bleed Photo */}
-      <Image
-        src={property.images[0] || '/figma-images/6f0a97198d0b6047e8cae25b8e2f59dce1844516.jpg'}
-        alt={property.title}
-        fill
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 384px"
-        className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-      />
+      {property.images && property.images[0] ? (
+        <Image
+          src={property.images[0]}
+          alt={property.title}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 384px"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 animate-pulse bg-gradient-to-br from-[#efe9ea] via-[#f6f1f2] to-[#e7dfe0]"
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15 pointer-events-none" />
 
       {/* Top Overlay Badges & Save Button */}

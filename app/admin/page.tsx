@@ -25,8 +25,9 @@ import { useStore } from '@/lib/store';
 import { useToast } from '@/components/toast-provider';
 import { useAdminAuth } from '@/lib/admin-auth';
 import { formatPhoneForWhatsApp } from '@/lib/utils';
+import { formatActivityTimestamp, formatFullActivityDateTime } from '@/lib/activity-time';
+import { AdminKpiSkeleton, AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
 import {
-  BRANCH_OFFICES,
   canAccessAdminModule,
   canManageBooking,
   canManageListing,
@@ -41,6 +42,7 @@ export default function AdminDashboardPage() {
     listings,
     bookings,
     staffAccounts,
+    branchOffices,
     productOrders,
     studioBookings,
     equipmentRentals,
@@ -49,6 +51,7 @@ export default function AdminDashboardPage() {
     activities,
     addActivity,
     clearActivities,
+    isLoading,
   } = useStore();
   const { toast } = useToast();
   const { user } = useAdminAuth();
@@ -136,7 +139,7 @@ export default function AdminDashboardPage() {
 
   const branchCoverage = React.useMemo(() => {
     if (!master) return [];
-    return BRANCH_OFFICES.map(branch => {
+    return branchOffices.map(branch => {
       const branchListings = listings.filter(l => matchesAssignedStates(getListingState(l), [branch.state]));
       const liveCount = branchListings.filter(l => isListingLive(l)).length;
       const soldCount = branchListings.filter(l => l.status === 'sold' || l.status === 'rented').length;
@@ -150,7 +153,7 @@ export default function AdminDashboardPage() {
         repsCount,
       };
     });
-  }, [master, listings, staffAccounts]);
+  }, [master, branchOffices, listings, staffAccounts]);
 
   const pendingOrRecentBookings = React.useMemo(() => {
     return [...scopedBookings].sort((a, b) => {
@@ -240,6 +243,9 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* KPI Summary Cards */}
+      {isLoading ? (
+        <AdminKpiSkeleton count={4} />
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {showPayments ? (
           <>
@@ -339,11 +345,16 @@ export default function AdminDashboardPage() {
           </>
         )}
       </div>
+      )}
 
       {/* Main Grid: Pending Approvals & Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column */}
         <div className="lg:col-span-8 space-y-6">
+          {isLoading ? (
+            <AdminRowsSkeleton rows={5} />
+          ) : (
+          <>
           {master && recentSoldAlerts.length > 0 && (
             <div className="rounded-3xl bg-gradient-to-br from-[#fcf3f4] to-white border border-[#f0cfd4] shadow-xs overflow-hidden">
               <div className="p-5 border-b border-[#f0cfd4] flex items-center justify-between gap-3">
@@ -400,9 +411,14 @@ export default function AdminDashboardPage() {
                     Inventory coverage and assigned stand reps across active Nigerian states
                   </p>
                 </div>
-                <Link href="/admin/team" className="text-xs font-semibold text-wine-800 hover:underline">
-                  Manage Access →
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link href="/admin/team?tab=branches" className="text-xs font-semibold text-wine-800 hover:underline">
+                    Manage Branches →
+                  </Link>
+                  <Link href="/admin/team" className="text-xs font-semibold text-text-subtle hover:text-text-main hover:underline">
+                    Partners →
+                  </Link>
+                </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-5">
                 {branchCoverage.map(branch => (
@@ -533,6 +549,8 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           )}
+          </>
+          )}
         </div>
 
         {/* Right Column: Recent Activity Feed */}
@@ -556,7 +574,9 @@ export default function AdminDashboardPage() {
               )}
             </div>
 
-            {scopedActivities.length === 0 ? (
+            {isLoading ? (
+              <AdminRowsSkeleton rows={4} />
+            ) : scopedActivities.length === 0 ? (
               <div className="py-8 text-center text-xs text-text-subtle space-y-1">
                 <p className="font-semibold text-text-main">No activity recorded</p>
                 <p>New staff and system actions will appear here in real-time.</p>
@@ -568,7 +588,9 @@ export default function AdminDashboardPage() {
                     <div key={act.id} className="pt-3 first:pt-0 space-y-1">
                       <div className="flex items-center justify-between text-text-subtle text-[11px]">
                         <span className="font-semibold text-wine-900">{act.actorName}</span>
-                        <span>{act.timestamp}</span>
+                        <span title={formatFullActivityDateTime(act.createdAt, act.timestamp)}>
+                          {formatActivityTimestamp(act.createdAt, act.timestamp)}
+                        </span>
                       </div>
                       <p className="text-text-main font-medium leading-relaxed">
                         {act.action}

@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { websiteContent, cart } = useStore();
+  const { websiteContent, cart, isCartOpen, toggleCart } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -108,9 +108,17 @@ export function SiteHeader() {
 
           {/* Action CTA (Figma: Button [139x44] r=8 fill=#81141f text=#ffffff 14px font 600) */}
           <div className="hidden sm:flex items-center gap-3 shrink-0 whitespace-nowrap">
-            <Link
-              href="/marketplace?cart=open"
-              className="relative inline-flex items-center gap-1.5 h-11 px-3.5 rounded-lg border border-[#eae3e4] bg-[#fbf3f4]/50 hover:bg-[#fbf3f4] text-[#1b1416] text-xs font-semibold transition-colors"
+            <button
+              type="button"
+              onClick={toggleCart}
+              aria-expanded={isCartOpen}
+              aria-label="Toggle Shopping Cart"
+              className={cn(
+                'relative inline-flex items-center gap-1.5 h-11 px-3.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer',
+                isCartOpen
+                  ? 'border-[#81141f] bg-[#fbf3f4] text-[#81141f]'
+                  : 'border-[#eae3e4] bg-[#fbf3f4]/50 hover:bg-[#fbf3f4] text-[#1b1416]'
+              )}
               title="Marketplace Cart"
             >
               <ShoppingBag className="w-4 h-4 text-[#81141f]" />
@@ -120,7 +128,7 @@ export function SiteHeader() {
                   {cartCount}
                 </span>
               )}
-            </Link>
+            </button>
             <Link href="/cars/rent">
               <Button
                 className="h-11 px-5 rounded-lg bg-[#81141f] hover:bg-[#6b121c] text-white font-semibold text-sm shadow-xs transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer"
@@ -130,8 +138,27 @@ export function SiteHeader() {
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Action & Menu Buttons */}
           <div className="lg:hidden flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleCart}
+              aria-expanded={isCartOpen}
+              aria-label="Toggle Shopping Cart"
+              className={cn(
+                'sm:hidden relative p-2 rounded-lg border transition-colors active:scale-95 cursor-pointer',
+                isCartOpen
+                  ? 'border-[#81141f] bg-[#fbf3f4] text-[#81141f]'
+                  : 'text-[#1b1416] hover:bg-[#f8f5f5] border-[#eae3e4]'
+              )}
+            >
+              <ShoppingBag className="w-5 h-5 text-[#81141f]" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#81141f] text-white text-[10px] font-bold flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </button>
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

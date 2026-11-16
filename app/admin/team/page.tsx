@@ -19,11 +19,11 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { useAdminAuth } from '@/lib/admin-auth';
+import { AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
 import { useToast } from '@/components/toast-provider';
 import { NIGERIA_STATES } from '@/lib/locations';
 import {
   ALL_LISTING_CATEGORIES,
-  BRANCH_OFFICES,
   ROLE_DEFAULT_MODULES,
   findBranchForState,
   formatCategoryLabel,
@@ -41,6 +41,16 @@ import {
 import { cn, formatPhoneForWhatsApp } from '@/lib/utils';
 
 type FilterTab = 'All' | 'Stand Uploader' | 'Regional Admin' | 'Suspended';
+type BranchFilterTab = 'All' | 'Active' | 'Inactive';
+type DirectoryViewTab = 'partners' | 'branches';
+
+const BRANCH_SERVICE_CHIPS = [
+  'Car Sales',
+  'Car Rentals',
+  'House Rentals',
+  'Property & Land',
+  'Stand Inspections',
+];
 
 const HUB_STATE_VALUES = [
   'Anambra State',
@@ -111,27 +121,47 @@ function PermissionToggleRow({
 export default function AdminTeamPage() {
   const {
     staffAccounts,
+    branchOffices,
     listings,
+    isLoading,
     addStaffAccount,
     updateStaffAccount,
     deleteStaffAccount,
+    addBranchOffice,
+    updateBranchOffice,
+    deleteBranchOffice,
     addActivity,
   } = useStore();
   const { user } = useAdminAuth();
   const { toast } = useToast();
 
+  const [activeView, setActiveView] = useState<DirectoryViewTab>('partners');
   const [filterTab, setFilterTab] = useState<FilterTab>('All');
+  const [branchFilterTab, setBranchFilterTab] = useState<BranchFilterTab>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [branchSearchQuery, setBranchSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Slide-over drawers
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [branchesOpen, setBranchesOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Drawer form state
+  // Branch CRUD slide-over drawer
+  const [branchDrawerOpen, setBranchDrawerOpen] = useState(false);
+  const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
+  const [confirmDeleteBranchId, setConfirmDeleteBranchId] = useState<string | null>(null);
+  const [brName, setBrName] = useState('');
+  const [brState, setBrState] = useState('Anambra State');
+  const [brCity, setBrCity] = useState('');
+  const [brAddress, setBrAddress] = useState('');
+  const [brPhone, setBrPhone] = useState('');
+  const [brManagerName, setBrManagerName] = useState('');
+  const [brHandles, setBrHandles] = useState('');
+  const [brIsActive, setBrIsActive] = useState(true);
+
+  // Partner drawer form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -146,10 +176,19 @@ export default function AdminTeamPage() {
   const [canDeleteListings, setCanDeleteListings] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'branches') {
+        setActiveView('branches');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setDrawerOpen(false);
-        setBranchesOpen(false);
+        setBranchDrawerOpen(false);
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -189,8 +228,38 @@ export default function AdminTeamPage() {
     setAllowBookings(false);
     setRequireApproval(false);
     setCanDeleteListings(false);
-    setBranchesOpen(false);
+    setBranchDrawerOpen(false);
     setDrawerOpen(true);
+  };
+
+  const openNewBranchDrawer = () => {
+    setEditingBranchId(null);
+    setConfirmDeleteBranchId(null);
+    setBrName('');
+    setBrState('Anambra State');
+    setBrCity('');
+    setBrAddress('');
+    setBrPhone('+234 704 753 1433');
+    setBrManagerName('');
+    setBrHandles('Car Sales · Stand Inspections');
+    setBrIsActive(true);
+    setDrawerOpen(false);
+    setBranchDrawerOpen(true);
+  };
+
+  const openEditBranchDrawer = (branch: BranchOffice) => {
+    setEditingBranchId(branch.id);
+    setConfirmDeleteBranchId(null);
+    setBrName(branch.name);
+    setBrState(branch.state);
+    setBrCity(branch.city);
+    setBrAddress(branch.address);
+    setBrPhone(branch.phone);
+    setBrManagerName(branch.managerName);
+    setBrHandles(branch.handles);
+    setBrIsActive(branch.isActive !== false);
+    setDrawerOpen(false);
+    setBranchDrawerOpen(true);
   };
 
   const openEditDrawer = (acc: StaffAccount) => {
@@ -239,11 +308,23 @@ export default function AdminTeamPage() {
   const fillBranchFromState = () => {
     const primaryState = assignedStates[0];
     if (!primaryState) return;
-    const match = findBranchForState(primaryState);
+    const match = findBranchForState(primaryState, branchOffices);
     if (match) {
       setBranchOffice(match.name);
       setBranchAddress(match.address);
     }
+  };
+
+  const applyRegisteredBranchPreset = (branchId: string) => {
+    const selected = branchOffices.find(b => b.id === branchId);
+    if (!selected) return;
+    if (!assignedStates.includes(selected.state)) {
+      setAssignedStates(prev =>
+        prev.includes('ALL') ? [selected.state] : [...prev.filter(Boolean), selected.state]
+      );
+    }
+    setBranchOffice(selected.name);
+    setBranchAddress(selected.address);
   };
 
   const handleSavePartner = async (e: React.FormEvent) => {
@@ -394,6 +475,131 @@ export default function AdminTeamPage() {
     });
   };
 
+  const toggleBranchServiceChip = (label: string) => {
+    const tokens = brHandles
+      .split('·')
+      .map(t => t.trim())
+      .filter(Boolean);
+    const exists = tokens.some(t => t.toLowerCase() === label.toLowerCase());
+    const next = exists
+      ? tokens.filter(t => t.toLowerCase() !== label.toLowerCase())
+      : [...tokens, label];
+    setBrHandles(next.join(' · '));
+  };
+
+  const handleSaveBranch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!brName.trim() || !brState.trim() || !brCity.trim() || !brAddress.trim()) {
+      toast({
+        title: 'Missing branch details',
+        description: 'Branch name, state, city, and address are required.',
+        variant: 'error',
+      });
+      return;
+    }
+
+    const duplicate = branchOffices.find(
+      b => b.name.toLowerCase() === brName.trim().toLowerCase() && b.id !== editingBranchId
+    );
+    if (duplicate) {
+      toast({
+        title: 'Branch name already exists',
+        description: `"${duplicate.name}" is already registered in ${duplicate.state}.`,
+        variant: 'error',
+      });
+      return;
+    }
+
+    if (editingBranchId) {
+      await updateBranchOffice(editingBranchId, {
+        name: brName.trim(),
+        state: brState.trim(),
+        city: brCity.trim(),
+        address: brAddress.trim(),
+        phone: brPhone.trim(),
+        managerName: brManagerName.trim() || 'Branch Operations Desk',
+        handles: brHandles.trim() || 'Car Sales · Property Inquiries',
+        isActive: brIsActive,
+      });
+
+      await addActivity({
+        actorName: user?.name || 'Master Admin',
+        actorRole: 'Master Admin',
+        action: `updated branch office "${brName.trim()}" (${brCity.trim()}, ${brState.replace(/ State$/i, '')})`,
+        target: brName.trim(),
+        category: 'team',
+      });
+
+      toast({
+        title: 'Branch updated',
+        description: `${brName.trim()} changes saved.`,
+        variant: 'success',
+      });
+      setBranchDrawerOpen(false);
+    } else {
+      const created = await addBranchOffice({
+        name: brName.trim(),
+        state: brState.trim(),
+        city: brCity.trim(),
+        address: brAddress.trim(),
+        phone: brPhone.trim() || '+234 704 753 1433',
+        managerName: brManagerName.trim() || 'Branch Operations Desk',
+        handles: brHandles.trim() || 'Car Sales · Property Inquiries',
+        isActive: brIsActive,
+      });
+
+      await addActivity({
+        actorName: user?.name || 'Master Admin',
+        actorRole: 'Master Admin',
+        action: `added new branch "${created.name}" in ${created.city}, ${created.state.replace(/ State$/i, '')}`,
+        target: created.name,
+        category: 'team',
+      });
+
+      toast({
+        title: 'Branch created',
+        description: `${created.name} is now available for listings and partner assignments.`,
+        variant: 'success',
+      });
+      setBranchDrawerOpen(false);
+    }
+  };
+
+  const handleToggleBranchActive = async (branch: BranchOffice) => {
+    const next = branch.isActive === false;
+    await updateBranchOffice(branch.id, { isActive: next });
+    await addActivity({
+      actorName: user?.name || 'Master Admin',
+      actorRole: 'Master Admin',
+      action: `${next ? 'activated' : 'deactivated'} branch "${branch.name}"`,
+      target: branch.name,
+      category: 'team',
+    });
+    toast({
+      title: next ? 'Branch activated' : 'Branch paused',
+      description: `${branch.name} (${branch.city})`,
+      variant: next ? 'success' : 'default',
+    });
+  };
+
+  const handleConfirmDeleteBranch = async (branch: BranchOffice) => {
+    await deleteBranchOffice(branch.id);
+    setConfirmDeleteBranchId(null);
+    setBranchDrawerOpen(false);
+    await addActivity({
+      actorName: user?.name || 'Master Admin',
+      actorRole: 'Master Admin',
+      action: `removed branch "${branch.name}" (${branch.city}, ${branch.state.replace(/ State$/i, '')})`,
+      target: branch.name,
+      category: 'team',
+    });
+    toast({
+      title: 'Branch removed',
+      description: `${branch.name} has been deleted from the directory.`,
+      variant: 'default',
+    });
+  };
+
   const counts = useMemo(() => {
     return {
       all: staffAccounts.length,
@@ -402,6 +608,62 @@ export default function AdminTeamPage() {
       suspended: staffAccounts.filter(s => !s.isActive).length,
     };
   }, [staffAccounts]);
+
+  const branchCounts = useMemo(() => {
+    return {
+      all: branchOffices.length,
+      active: branchOffices.filter(b => b.isActive !== false).length,
+      inactive: branchOffices.filter(b => b.isActive === false).length,
+    };
+  }, [branchOffices]);
+
+  const filteredBranches = useMemo(() => {
+    return branchOffices.filter(br => {
+      const isBrActive = br.isActive !== false;
+      if (branchFilterTab === 'Active' && !isBrActive) return false;
+      if (branchFilterTab === 'Inactive' && isBrActive) return false;
+      if (branchSearchQuery.trim()) {
+        const q = branchSearchQuery.toLowerCase();
+        return (
+          br.name.toLowerCase().includes(q) ||
+          br.city.toLowerCase().includes(q) ||
+          br.state.toLowerCase().includes(q) ||
+          br.address.toLowerCase().includes(q) ||
+          br.managerName.toLowerCase().includes(q) ||
+          br.handles.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [branchOffices, branchFilterTab, branchSearchQuery]);
+
+  const statsForBranch = (branch: BranchOffice) => {
+    const scoped = listings.filter(l =>
+      matchesAssignedStates(getListingState(l), [branch.state])
+    );
+    const reps = staffAccounts.filter(
+      s => s.isActive && s.role !== 'Master Admin' && matchesAssignedStates(branch.state, s.assignedStates)
+    );
+    return {
+      live: scoped.filter(l => isListingLive(l)).length,
+      sold: scoped.filter(l => l.status === 'sold' || l.status === 'rented').length,
+      repsCount: reps.length,
+    };
+  };
+
+  const editingBranch = useMemo(
+    () => (editingBranchId ? branchOffices.find(b => b.id === editingBranchId) || null : null),
+    [editingBranchId, branchOffices]
+  );
+
+  const hubStateOptions = useMemo(
+    () => NIGERIA_STATES.filter(s => HUB_STATE_VALUES.includes(s.value)),
+    []
+  );
+  const otherStateOptions = useMemo(
+    () => NIGERIA_STATES.filter(s => !HUB_STATE_VALUES.includes(s.value)),
+    []
+  );
 
   const filteredAccounts = useMemo(() => {
     return staffAccounts.filter(acc => {
@@ -483,77 +745,98 @@ export default function AdminTeamPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-auto">
-          <button
-            type="button"
-            onClick={() => setBranchesOpen(true)}
-            className="h-10 px-3.5 rounded-xl bg-white border border-[#eae3e4] hover:border-[#81141f] text-[13px] font-medium text-[#1b1416] inline-flex items-center gap-2 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-          >
-            <Building2 className="w-4 h-4 text-[#81141f] shrink-0" />
-            <span>Branches ({BRANCH_OFFICES.length})</span>
-          </button>
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start lg:self-auto">
+          <div className="inline-flex p-1 rounded-xl bg-[#f4eff0] border border-[#eae3e4]">
+            <button
+              type="button"
+              onClick={() => setActiveView('partners')}
+              className={cn(
+                'h-8 px-3 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap cursor-pointer',
+                activeView === 'partners'
+                  ? 'bg-white text-[#1b1416] shadow-2xs'
+                  : 'text-[#716769] hover:text-[#1b1416]'
+              )}
+            >
+              Partners ({staffAccounts.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView('branches')}
+              className={cn(
+                'h-8 px-3 rounded-lg text-[13px] font-medium transition-colors inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer',
+                activeView === 'branches'
+                  ? 'bg-white text-[#1b1416] shadow-2xs'
+                  : 'text-[#716769] hover:text-[#1b1416]'
+              )}
+            >
+              <Building2 className="w-3.5 h-3.5 text-[#81141f] shrink-0" />
+              <span>Branches ({branchOffices.length})</span>
+            </button>
+          </div>
 
           <button
             type="button"
-            onClick={() => openNewPartnerDrawer()}
+            onClick={() => (activeView === 'branches' ? openNewBranchDrawer() : openNewPartnerDrawer())}
             className="h-10 px-4 rounded-xl bg-[#81141f] hover:bg-[#680e18] text-white text-[13px] font-semibold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.2] shrink-0" />
-            <span>Add Partner</span>
+            <span>{activeView === 'branches' ? 'Add Branch' : 'Add Partner'}</span>
           </button>
         </div>
       </div>
 
-      {/* Minimal Filter Strip */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#eae3e4] pb-3.5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {[
-            { id: 'All' as const, label: 'All', count: counts.all },
-            { id: 'Stand Uploader' as const, label: 'Stand Uploaders', count: counts.uploaders },
-            { id: 'Regional Admin' as const, label: 'Regional Admins', count: counts.regional },
-            { id: 'Suspended' as const, label: 'Suspended', count: counts.suspended },
-          ].map(tab => {
-            const active = filterTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilterTab(tab.id)}
-                className={cn(
-                  'h-9 px-3 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap inline-flex items-center gap-1.5 cursor-pointer',
-                  active
-                    ? 'bg-[#1b1416] text-white'
-                    : 'text-[#716769] hover:text-[#1b1416] hover:bg-[#f6f3f4]'
-                )}
-              >
-                <span>{tab.label}</span>
-                <span
-                  className={cn(
-                    'text-[11px] px-1.5 py-0.2 rounded-full',
-                    active ? 'bg-white/15 text-white' : 'bg-[#f1ecec] text-[#716769]'
-                  )}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      {activeView === 'partners' ? (
+        <>
+          {/* Minimal Filter Strip — Partners */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#eae3e4] pb-3.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'All' as const, label: 'All', count: counts.all },
+                { id: 'Stand Uploader' as const, label: 'Stand Uploaders', count: counts.uploaders },
+                { id: 'Regional Admin' as const, label: 'Regional Admins', count: counts.regional },
+                { id: 'Suspended' as const, label: 'Suspended', count: counts.suspended },
+              ].map(tab => {
+                const active = filterTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setFilterTab(tab.id)}
+                    className={cn(
+                      'h-9 px-3 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap inline-flex items-center gap-1.5 cursor-pointer',
+                      active
+                        ? 'bg-[#1b1416] text-white'
+                        : 'text-[#716769] hover:text-[#1b1416] hover:bg-[#f6f3f4]'
+                    )}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={cn(
+                        'text-[11px] px-1.5 py-0.2 rounded-full',
+                        active ? 'bg-white/15 text-white' : 'bg-[#f1ecec] text-[#716769]'
+                      )}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-        <div className="relative w-full lg:w-64 shrink-0">
-          <Search className="w-3.5 h-3.5 text-[#8c8082] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search partner, state or stand..."
-            className="w-full h-9 pl-8 pr-3 bg-white border border-[#eae3e4] rounded-lg text-[13px] text-[#1b1416] placeholder:text-[#a09597] focus:outline-none focus:border-[#81141f]"
-          />
-        </div>
-      </div>
+            <div className="relative w-full lg:w-64 shrink-0">
+              <Search className="w-3.5 h-3.5 text-[#8c8082] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search partner, state or stand..."
+                className="w-full h-9 pl-8 pr-3 bg-white border border-[#eae3e4] rounded-lg text-[13px] text-[#1b1416] placeholder:text-[#a09597] focus:outline-none focus:border-[#81141f]"
+              />
+            </div>
+          </div>
 
-      {/* Sleek Single-Surface Roster */}
-      <div className="bg-white rounded-2xl border border-[#eae3e4] overflow-hidden shadow-2xs">
+          {/* Sleek Single-Surface Partner Roster */}
+          <div className="bg-white rounded-2xl border border-[#eae3e4] overflow-hidden shadow-2xs">
         {/* Widescreen Column Labels (xl: where full 4 columns have comfortable room) */}
         <div className="hidden xl:grid xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.3fr)_minmax(0,1fr)_225px] gap-5 px-5 py-2.5 bg-[#faf8f8] border-b border-[#eae3e4] text-[11px] font-semibold uppercase tracking-wider text-[#8c8082]">
           <div>Partner</div>
@@ -563,6 +846,10 @@ export default function AdminTeamPage() {
         </div>
 
         <div className="divide-y divide-[#f0eaeb]">
+          {isLoading ? (
+            <AdminRowsSkeleton rows={4} />
+          ) : (
+          <>
           {filteredAccounts.map(acc => {
             const stats = statsForAccount(acc);
             const isMaster = acc.role === 'Master Admin' || acc.id === 'ADM-001';
@@ -714,8 +1001,224 @@ export default function AdminTeamPage() {
               </p>
             </div>
           )}
+          </>
+          )}
         </div>
       </div>
+        </>
+      ) : (
+        <>
+          {/* Minimal Filter Strip — Branches */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#eae3e4] pb-3.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'All' as const, label: 'All Branches', count: branchCounts.all },
+                { id: 'Active' as const, label: 'Active', count: branchCounts.active },
+                { id: 'Inactive' as const, label: 'Paused', count: branchCounts.inactive },
+              ].map(tab => {
+                const active = branchFilterTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setBranchFilterTab(tab.id)}
+                    className={cn(
+                      'h-9 px-3 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap inline-flex items-center gap-1.5 cursor-pointer',
+                      active
+                        ? 'bg-[#1b1416] text-white'
+                        : 'text-[#716769] hover:text-[#1b1416] hover:bg-[#f6f3f4]'
+                    )}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={cn(
+                        'text-[11px] px-1.5 py-0.2 rounded-full',
+                        active ? 'bg-white/15 text-white' : 'bg-[#f1ecec] text-[#716769]'
+                      )}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="relative w-full lg:w-64 shrink-0">
+              <Search className="w-3.5 h-3.5 text-[#8c8082] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={branchSearchQuery}
+                onChange={e => setBranchSearchQuery(e.target.value)}
+                placeholder="Search branch, city, state or lead..."
+                className="w-full h-9 pl-8 pr-3 bg-white border border-[#eae3e4] rounded-lg text-[13px] text-[#1b1416] placeholder:text-[#a09597] focus:outline-none focus:border-[#81141f]"
+              />
+            </div>
+          </div>
+
+          {/* Sleek Single-Surface Branch Directory */}
+          <div className="bg-white rounded-2xl border border-[#eae3e4] overflow-hidden shadow-2xs">
+            <div className="hidden xl:grid xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,1.1fr)_225px] gap-5 px-5 py-2.5 bg-[#faf8f8] border-b border-[#eae3e4] text-[11px] font-semibold uppercase tracking-wider text-[#8c8082]">
+              <div>Branch &amp; Address</div>
+              <div>Territory &amp; Lead</div>
+              <div>Handles &amp; Stock</div>
+              <div className="text-right">Status</div>
+            </div>
+
+            <div className="divide-y divide-[#f0eaeb]">
+              {isLoading ? (
+                <AdminRowsSkeleton rows={4} />
+              ) : (
+                <>
+                  {filteredBranches.map(branch => {
+                    const bStats = statsForBranch(branch);
+                    const isBrActive = branch.isActive !== false;
+                    const shortState = branch.state.replace(/ State$/i, '');
+
+                    return (
+                      <div
+                        key={branch.id}
+                        onClick={() => openEditBranchDrawer(branch)}
+                        className="px-4 sm:px-5 py-3.5 hover:bg-[#fcf9fa] transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 xl:grid xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,1.1fr)_225px] xl:gap-5"
+                      >
+                        {/* Col 1: Branch Name & Address */}
+                        <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-[#f8eced] text-[#81141f] flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                            <Building2 className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                              <span className="text-[14px] font-semibold text-[#1b1416] truncate">
+                                {branch.name}
+                              </span>
+                              <span className="xl:hidden text-[11px] font-medium text-[#716769]">
+                                · {branch.city}, {shortState}
+                              </span>
+                            </div>
+                            <div className="text-[12px] text-[#716769] truncate">
+                              {branch.address}
+                            </div>
+
+                            {/* Compact summary below xl */}
+                            <div className="xl:hidden mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-[#716769]">
+                              <span>
+                                Lead: <strong className="font-medium text-[#1b1416]">{branch.managerName || 'Unassigned'}</strong>
+                              </span>
+                              {branch.phone && (
+                                <>
+                                  <span className="text-[#c9bfc1]">•</span>
+                                  <span>{branch.phone}</span>
+                                </>
+                              )}
+                              <span className="text-[#c9bfc1]">•</span>
+                              <span>
+                                <strong className="font-medium text-[#1b1416]">{bStats.live}</strong> live ·{' '}
+                                <strong className="font-medium text-[#1b1416]">{bStats.repsCount}</strong>{' '}
+                                {bStats.repsCount === 1 ? 'rep' : 'reps'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Col 2: Location & Desk Lead (xl+) */}
+                        <div className="hidden xl:block min-w-0">
+                          <div className="text-[13px] font-medium text-[#1b1416] flex items-center gap-1 truncate">
+                            <MapPin className="w-3 h-3 text-[#81141f] shrink-0" />
+                            <span className="truncate">
+                              {branch.city}, {shortState}
+                            </span>
+                          </div>
+                          <div className="text-[12px] text-[#716769] truncate mt-0.5">
+                            {branch.managerName || 'Operations Desk'}
+                            {branch.phone ? ` · ${branch.phone}` : ''}
+                          </div>
+                        </div>
+
+                        {/* Col 3: Handles & Inventory (xl+) */}
+                        <div className="hidden xl:block min-w-0">
+                          <div className="text-[13px] font-medium text-[#1b1416] truncate">
+                            {branch.handles || 'General branch operations'}
+                          </div>
+                          <div className="text-[12px] text-[#716769] mt-0.5">
+                            <span className="text-[#1b1416] font-medium">{bStats.live}</span> live ·{' '}
+                            <span>{bStats.sold}</span> sold ·{' '}
+                            <span>
+                              {bStats.repsCount} {bStats.repsCount === 1 ? 'rep' : 'reps'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Col 4: Status & Fast Actions */}
+                        <div
+                          className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 pl-[50px] sm:pl-0"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => openEditBranchDrawer(branch)}
+                            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4a4245] hover:text-[#1b1416] whitespace-nowrap cursor-pointer"
+                          >
+                            <span
+                              className={cn(
+                                'w-2 h-2 rounded-full shrink-0',
+                                isBrActive ? 'bg-emerald-500' : 'bg-stone-300'
+                              )}
+                            />
+                            <span>{isBrActive ? 'Active' : 'Paused'}</span>
+                          </button>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => openNewPartnerDrawer(branch)}
+                              title={`Create partner login for ${branch.name}`}
+                              className="h-8 px-2.5 rounded-lg border border-[#eae3e4] bg-white hover:border-[#81141f] text-[11px] font-medium text-[#4a4245] hover:text-[#1b1416] inline-flex items-center gap-1 whitespace-nowrap cursor-pointer transition-colors"
+                            >
+                              <Plus className="w-3 h-3 text-[#81141f]" />
+                              <span>Rep</span>
+                            </button>
+
+                            <ToggleSwitch
+                              checked={isBrActive}
+                              onChange={() => handleToggleBranchActive(branch)}
+                              label={`Toggle active status for ${branch.name}`}
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => openEditBranchDrawer(branch)}
+                              aria-label={`Edit ${branch.name}`}
+                              className="p-1 text-[#a09597] hover:text-[#1b1416] cursor-pointer"
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {filteredBranches.length === 0 && (
+                    <div className="px-6 py-12 text-center space-y-3">
+                      <p className="text-[14px] font-medium text-[#1b1416]">No matching branches</p>
+                      <p className="text-[12px] text-[#716769]">
+                        Clear your search filter or register a new car stand or regional desk.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={openNewBranchDrawer}
+                        className="h-9 px-4 rounded-xl bg-[#81141f] hover:bg-[#680e18] text-white text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Branch</span>
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ====================================================================
           SLIDE-OVER ACCOUNT INSPECTOR & EDITOR DRAWER
@@ -946,7 +1449,7 @@ export default function AdminTeamPage() {
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-[#716769]">
                       Territory &amp; Branch Stand
                     </span>
-                    {findBranchForState(assignedStates[0]) && (
+                    {findBranchForState(assignedStates[0], branchOffices) && (
                       <button
                         type="button"
                         onClick={fillBranchFromState}
@@ -956,6 +1459,28 @@ export default function AdminTeamPage() {
                       </button>
                     )}
                   </div>
+
+                  {branchOffices.length > 0 && (
+                    <div className="space-y-1">
+                      <label className="text-[12px] font-medium text-[#4a4245]">
+                        Quick-Fill from Registered Branch (Optional)
+                      </label>
+                      <select
+                        value=""
+                        onChange={e => applyRegisteredBranchPreset(e.target.value)}
+                        aria-label="Pick registered branch"
+                        className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] bg-white text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                      >
+                        <option value="">Select a registered branch to auto-fill...</option>
+                        {branchOffices.map(b => (
+                          <option key={b.id} value={b.id}>
+                            {b.name} — {b.city}, {b.state.replace(/ State$/i, '')}
+                            {b.isActive === false ? ' (Paused)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Assigned States (selected chips + clean Add State dropdown) */}
                   <div className="space-y-2">
@@ -1166,82 +1691,293 @@ export default function AdminTeamPage() {
       )}
 
       {/* ====================================================================
-          BRANCH OFFICES QUICK DIRECTORY DRAWER
+          SLIDE-OVER BRANCH INSPECTOR & EDITOR DRAWER (FULL CRUD)
          ==================================================================== */}
-      {branchesOpen && (
+      {branchDrawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-[1px]"
-            onClick={() => setBranchesOpen(false)}
+            className="fixed inset-0 bg-black/30 backdrop-blur-[1px] transition-opacity"
+            onClick={() => setBranchDrawerOpen(false)}
           />
-          <div className="relative z-10 w-full max-w-[480px] h-full bg-white shadow-2xl border-l border-[#eae3e4] flex flex-col animate-in slide-in-from-right duration-200">
-            <div className="px-6 py-4 border-b border-[#eae3e4] flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-[16px] font-bold text-[#1b1416]">
-                  Regional Branch Directory
-                </h2>
-                <p className="text-[12px] text-[#716769]">
-                  {BRANCH_OFFICES.length} registered car stands &amp; regional inspection desks
-                </p>
+
+          <form
+            onSubmit={handleSaveBranch}
+            className="relative z-10 w-full max-w-[520px] h-full bg-white shadow-2xl border-l border-[#eae3e4] flex flex-col animate-in slide-in-from-right duration-200"
+          >
+            {/* Sticky Drawer Header */}
+            <div className="px-6 py-4 border-b border-[#eae3e4] flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-[#f8eced] text-[#81141f] flex items-center justify-center shrink-0">
+                  {editingBranch ? <Building2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-[16px] font-bold text-[#1b1416] truncate">
+                    {editingBranch ? editingBranch.name : 'New Branch Office'}
+                  </h2>
+                  <p className="text-[12px] text-[#716769] truncate">
+                    {editingBranch
+                      ? `${editingBranch.city}, ${editingBranch.state.replace(/ State$/i, '')}`
+                      : 'Register a regional desk, car stand or inspection hub'}
+                  </p>
+                </div>
               </div>
+
               <button
                 type="button"
-                onClick={() => setBranchesOpen(false)}
-                aria-label="Close branches"
+                onClick={() => setBranchDrawerOpen(false)}
+                aria-label="Close branch drawer"
                 className="w-8 h-8 rounded-lg hover:bg-[#f6f3f4] text-[#716769] hover:text-[#1b1416] flex items-center justify-center cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-3">
-              {BRANCH_OFFICES.map(branch => {
-                const branchListings = listings.filter(l =>
-                  matchesAssignedStates(getListingState(l), [branch.state])
-                );
-                const liveCount = branchListings.filter(l => isListingLive(l)).length;
-                const branchReps = staffAccounts.filter(
-                  s => s.isActive && s.role !== 'Master Admin' && matchesAssignedStates(branch.state, s.assignedStates)
-                );
-
+            {/* Drawer Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+              {editingBranch && (() => {
+                const bStats = statsForBranch(editingBranch);
+                const cleanWa = formatPhoneForWhatsApp(editingBranch.phone);
                 return (
-                  <div
-                    key={branch.id}
-                    className="p-4 rounded-xl border border-[#eae3e4] bg-white hover:border-[#d6c8ca] transition-colors space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-[14px] font-semibold text-[#1b1416]">{branch.name}</div>
-                        <div className="text-[12px] text-[#716769]">
-                          {branch.city}, {branch.state.replace(/ State$/i, '')} · Desk Lead: {branch.managerName}
-                        </div>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="px-3.5 py-2.5 rounded-xl bg-[#faf8f8] border border-[#f0eaeb]">
+                      <div className="text-[11px] text-[#716769]">Live Units</div>
+                      <div className="text-[18px] font-bold text-[#1b1416] mt-0.5">
+                        {bStats.live}
                       </div>
-                      <span className="text-[11px] font-semibold text-[#81141f] shrink-0">
-                        {liveCount} live
-                      </span>
                     </div>
-
-                    <div className="text-[12px] text-[#716769] leading-relaxed">
-                      {branch.address}
+                    <div className="px-3.5 py-2.5 rounded-xl bg-[#faf8f8] border border-[#f0eaeb]">
+                      <div className="text-[11px] text-[#716769]">Active Reps</div>
+                      <div className="text-[18px] font-bold text-[#1b1416] mt-0.5">
+                        {bStats.repsCount}
+                      </div>
                     </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-[#f4eff0] text-[12px]">
-                      <span className="text-[#716769]">
-                        {branchReps.length} active {branchReps.length === 1 ? 'rep' : 'reps'} · {branch.phone}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => openNewPartnerDrawer(branch)}
-                        className="font-semibold text-[#81141f] hover:underline cursor-pointer"
-                      >
-                        + Add Rep
-                      </button>
+                    <div className="px-3.5 py-2.5 rounded-xl bg-[#faf8f8] border border-[#f0eaeb] flex flex-col justify-between">
+                      <div className="text-[11px] text-[#716769]">Contact</div>
+                      {cleanWa ? (
+                        <a
+                          href={`https://wa.me/${cleanWa}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[12px] font-semibold text-[#81141f] hover:underline inline-flex items-center gap-1 mt-1"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>WhatsApp</span>
+                        </a>
+                      ) : (
+                        <span className="text-[12px] text-[#716769] mt-1">No phone</span>
+                      )}
                     </div>
                   </div>
                 );
-              })}
+              })()}
+
+              {/* Branch Identity & Location */}
+              <div className="space-y-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#716769]">
+                  Branch Identity &amp; Location
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[12px] font-medium text-[#4a4245]">
+                    Branch / Car Stand Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={brName}
+                    onChange={e => setBrName(e.target.value)}
+                    placeholder="e.g. Awka Car Stand (Anambra)"
+                    className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-medium text-[#4a4245]">
+                      Nigerian State *
+                    </label>
+                    <select
+                      value={brState}
+                      onChange={e => setBrState(e.target.value)}
+                      required
+                      className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] bg-white text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                    >
+                      <optgroup label="Key Branch Hubs">
+                        {hubStateOptions.map(s => (
+                          <option key={s.value} value={s.value}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="All Nigerian States">
+                        {otherStateOptions.map(s => (
+                          <option key={s.value} value={s.value}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-medium text-[#4a4245]">
+                      City / Area *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={brCity}
+                      onChange={e => setBrCity(e.target.value)}
+                      placeholder="e.g. Awka, Asaba, Lekki"
+                      className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[12px] font-medium text-[#4a4245]">
+                    Street / Inspection Address *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={brAddress}
+                    onChange={e => setBrAddress(e.target.value)}
+                    placeholder="Full landmark address for walk-in inspections & pickups"
+                    className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                  />
+                </div>
+              </div>
+
+              {/* Operations & Desk Lead */}
+              <div className="space-y-3 pt-2 border-t border-[#f0eaeb]">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#716769] pt-2">
+                  Desk Lead &amp; Operations
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-medium text-[#4a4245]">
+                      Desk Lead / Manager
+                    </label>
+                    <input
+                      type="text"
+                      value={brManagerName}
+                      onChange={e => setBrManagerName(e.target.value)}
+                      placeholder="e.g. Chinedu Okafor"
+                      className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-medium text-[#4a4245]">
+                      Phone / WhatsApp
+                    </label>
+                    <input
+                      type="text"
+                      value={brPhone}
+                      onChange={e => setBrPhone(e.target.value)}
+                      placeholder="+234 803..."
+                      className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[12px] font-medium text-[#4a4245] block">
+                    Services Handled
+                  </label>
+                  <input
+                    type="text"
+                    value={brHandles}
+                    onChange={e => setBrHandles(e.target.value)}
+                    placeholder="e.g. Car Sales · Rentals · Property Inspections"
+                    className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {BRANCH_SERVICE_CHIPS.map(chip => {
+                      const active = brHandles.toLowerCase().includes(chip.toLowerCase());
+                      return (
+                        <button
+                          key={chip}
+                          type="button"
+                          onClick={() => toggleBranchServiceChip(chip)}
+                          className={cn(
+                            'h-7 px-2.5 rounded-full border text-[11px] font-medium transition-colors cursor-pointer',
+                            active
+                              ? 'border-[#81141f] bg-[#fcf3f4] text-[#81141f]'
+                              : 'border-[#eae3e4] bg-white text-[#716769] hover:border-[#cbbec0]'
+                          )}
+                        >
+                          {active ? `✓ ${chip}` : `+ ${chip}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-[#f0eaeb]">
+                  <PermissionToggleRow
+                    title="Active Branch"
+                    description="Include this branch in booking assignment & stand quick-pickers"
+                    checked={brIsActive}
+                    onChange={setBrIsActive}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+
+            {/* Sticky Drawer Footer */}
+            <div className="px-6 py-4 border-t border-[#eae3e4] bg-[#faf8f8] flex items-center justify-between gap-3 shrink-0">
+              <div>
+                {editingBranch && (
+                  confirmDeleteBranchId === editingBranch.id ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleConfirmDeleteBranch(editingBranch)}
+                        className="h-9 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-semibold cursor-pointer"
+                      >
+                        Confirm Remove
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteBranchId(null)}
+                        className="text-[12px] text-[#716769] hover:text-[#1b1416] cursor-pointer"
+                      >
+                        Keep
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteBranchId(editingBranch.id)}
+                      className="h-9 px-2.5 rounded-lg text-[12px] font-medium text-rose-700 hover:bg-rose-50 inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
+                  )
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setBranchDrawerOpen(false)}
+                  className="h-10 px-4 rounded-xl border border-[#eae3e4] bg-white hover:bg-[#f6f3f4] text-[13px] font-medium text-[#4a4245] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="h-10 px-5 rounded-xl bg-[#81141f] hover:bg-[#680e18] text-white text-[13px] font-semibold shadow-2xs transition-colors cursor-pointer"
+                >
+                  {editingBranch ? 'Save Changes' : 'Create Branch'}
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
       )}
     </div>

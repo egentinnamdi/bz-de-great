@@ -5,10 +5,12 @@ import type {
   Booking,
   Customer,
   StaffAccount,
+  BranchOffice,
   StaffActivity,
   WebsiteContentConfig
 } from '@/lib/types';
 import { inferStateFromLocation } from '@/lib/locations';
+import { formatActivityTimestamp } from '@/lib/activity-time';
 
 interface ListingMetaPayload {
   branchOffice?: string;
@@ -87,6 +89,49 @@ function buildSpecsWithMeta(listing: Partial<Listing>, fallbackSpecs?: any) {
   return hasMeta ? { ...baseSpecs, __bzMeta: meta } : baseSpecs;
 }
 
+function mapListingRow(row: any): Listing {
+  let categoryMapped = 'car_rent';
+  if (row.category === 'cars') {
+    categoryMapped = row.mode === 'rent' ? 'car_rent' : 'car_sale';
+  } else {
+    categoryMapped = row.mode === 'rent' ? 'property_rent' : 'property_sale';
+  }
+
+  const { cleanSpecs, meta } = extractListingSpecsAndMeta(row.specs);
+  const isVehicle = cleanSpecs && 'make' in cleanSpecs;
+  const isProp = cleanSpecs && ('bedrooms' in cleanSpecs || 'amenities' in cleanSpecs || 'type' in cleanSpecs);
+
+  return {
+    id: row.id,
+    category: categoryMapped as any,
+    title: row.title,
+    subtitle: row.subtitle || undefined,
+    slug: row.slug,
+    description: row.description,
+    price: Number(row.price),
+    currency: (row.currency as any) || 'NGN',
+    pricePeriod: row.price_unit === '/ day' ? '/day' : (row.price_unit === '/ year' ? '/year' : 'total'),
+    location: row.location,
+    state: (row.state && row.state.trim()) || inferStateFromLocation(row.location),
+    branchOffice: row.branch_office || meta.branchOffice,
+    createdById: row.created_by_id || meta.createdById,
+    createdByName: row.created_by_name || meta.createdByName,
+    partnerNetPrice: row.partner_net_price != null ? Number(row.partner_net_price) : meta.partnerNetPrice,
+    soldAt: row.sold_at || meta.soldAt,
+    soldByName: row.sold_by_name || meta.soldByName,
+    soldByRole: meta.soldByRole,
+    saleNote: row.sale_note || meta.saleNote,
+    requiresApproval: row.requires_approval ?? meta.requiresApproval,
+    images: Array.isArray(row.images) ? (row.images as string[]).filter(Boolean) : [],
+    status: dbStatusToListingStatus(row.status),
+    featured: Boolean(row.featured),
+    tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+    vehicleSpecs: isVehicle ? (cleanSpecs as any) : undefined,
+    propertySpecs: !isVehicle && isProp ? (cleanSpecs as any) : undefined,
+    createdAt: row.created_at || new Date().toISOString()
+  };
+}
+
 /**
  * Robust, production-grade service layer connecting BZ Group to Supabase BaaS.
  * Serves as the single source of truth for all public pages and admin operations.
@@ -95,12 +140,16 @@ export const supabaseService = {
   // ============================================================================
   // 1. LISTINGS (Cars & Properties)
   // ============================================================================
+  /**
+   * Fetches listing metadata quickly without bulky base64 `images` JSONB payloads
+   * so cold loads complete cleanly under ~500ms without Postgres statement timeouts.
+   */
   async fetchListings(): Promise<Listing[] | null> {
     if (!isSupabaseConfigured()) return null;
     try {
       const { data, error } = await supabase
         .from('listings')
-        .select('*')
+        .select('id,category,mode,title,subtitle,slug,price,price_unit,currency,location,state,status,featured,tags,description,specs,created_at')
         .order('created_at', { ascending: false });
 
       if (error || !data) {
@@ -108,52 +157,84 @@ export const supabaseService = {
         return null;
       }
 
-      return data.map(row => {
-        let categoryMapped = 'car_rent';
-        if (row.category === 'cars') {
-          categoryMapped = row.mode === 'rent' ? 'car_rent' : 'car_sale';
-        } else {
-          categoryMapped = row.mode === 'rent' ? 'property_rent' : 'property_sale';
-        }
-
-        const { cleanSpecs, meta } = extractListingSpecsAndMeta(row.specs);
-        const isVehicle = cleanSpecs && 'make' in cleanSpecs;
-        const isProp = cleanSpecs && ('bedrooms' in cleanSpecs || 'amenities' in cleanSpecs || 'type' in cleanSpecs);
-
-        return {
-          id: row.id,
-          category: categoryMapped as any,
-          title: row.title,
-          subtitle: row.subtitle || undefined,
-          slug: row.slug,
-          description: row.description,
-          price: Number(row.price),
-          currency: (row.currency as any) || 'NGN',
-          pricePeriod: row.price_unit === '/ day' ? '/day' : (row.price_unit === '/ year' ? '/year' : 'total'),
-          location: row.location,
-          state: (row.state && row.state.trim()) || inferStateFromLocation(row.location),
-          branchOffice: row.branch_office || meta.branchOffice,
-          createdById: row.created_by_id || meta.createdById,
-          createdByName: row.created_by_name || meta.createdByName,
-          partnerNetPrice: row.partner_net_price != null ? Number(row.partner_net_price) : meta.partnerNetPrice,
-          soldAt: row.sold_at || meta.soldAt,
-          soldByName: row.sold_by_name || meta.soldByName,
-          soldByRole: meta.soldByRole,
-          saleNote: row.sale_note || meta.saleNote,
-          requiresApproval: row.requires_approval ?? meta.requiresApproval,
-          images: Array.isArray(row.images) && row.images.length > 0
-            ? (row.images as string[])
-            : ['/photos/car-suv-white.jpg'],
-          status: dbStatusToListingStatus(row.status),
-          featured: Boolean(row.featured),
-          tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
-          vehicleSpecs: isVehicle ? (cleanSpecs as any) : undefined,
-          propertySpecs: !isVehicle && isProp ? (cleanSpecs as any) : undefined,
-          createdAt: row.created_at || new Date().toISOString()
-        };
-      });
+      return data.map(mapListingRow);
     } catch (err) {
       console.warn('Supabase fetchListings exception:', err);
+      return null;
+    }
+  },
+
+  /**
+   * Streams `images` JSONB in small chunks (1-2 rows per request) so multi-megabyte
+   * legacy uploads never cause Postgres HTTP 500 statement timeouts.
+   */
+  async fetchListingImagesForIds(
+    ids: string[],
+    onBatch?: (patch: Record<string, string[]>) => void
+  ): Promise<Record<string, string[]>> {
+    const collected: Record<string, string[]> = {};
+    if (!isSupabaseConfigured() || ids.length === 0) return collected;
+
+    const chunkSize = 2;
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      chunks.push(ids.slice(i, i + chunkSize));
+    }
+
+    const workers = 2;
+    let cursor = 0;
+
+    const runWorker = async () => {
+      while (cursor < chunks.length) {
+        const idx = cursor++;
+        const chunk = chunks[idx];
+        try {
+          const { data, error } = await supabase
+            .from('listings')
+            .select('id,images')
+            .in('id', chunk);
+
+          if (!error && Array.isArray(data)) {
+            const patch: Record<string, string[]> = {};
+            for (const row of data) {
+              const imgs =
+                Array.isArray(row.images) && row.images.length > 0
+                  ? (row.images as string[]).filter(Boolean)
+                  : ['/photos/car-suv-white.jpg'];
+              patch[row.id] = imgs;
+              collected[row.id] = imgs;
+            }
+            if (Object.keys(patch).length > 0 && onBatch) {
+              onBatch(patch);
+            }
+          }
+        } catch {
+          // Continue remaining chunks even if one image batch fails
+        }
+      }
+    };
+
+    await Promise.all(Array.from({ length: Math.min(workers, chunks.length) }, () => runWorker()));
+    return collected;
+  },
+
+  async fetchListingById(idOrSlug: string): Promise<Listing | null> {
+    if (!isSupabaseConfigured() || !idOrSlug) return null;
+    try {
+      const { data, error } = await supabase
+        .from('listings')
+        .select('*')
+        .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (error || !data) return null;
+      const mapped = mapListingRow(data);
+      if (mapped.images.length === 0) {
+        mapped.images = ['/photos/car-suv-white.jpg'];
+      }
+      return mapped;
+    } catch {
       return null;
     }
   },
@@ -462,16 +543,20 @@ export const supabaseService = {
 
       if (error || !data) return null;
 
-      return data.map(row => ({
-        id: row.id,
-        actorName: row.staff_name,
-        actorRole: 'Staff',
-        action: row.action,
-        target: row.target,
-        details: row.details || undefined,
-        timestamp: row.timestamp_display || 'Today',
-        category: (row.category as any) || 'payments'
-      }));
+      return data.map(row => {
+        const createdAt = row.created_at || undefined;
+        return {
+          id: row.id,
+          actorName: row.staff_name,
+          actorRole: 'Staff',
+          action: row.action,
+          target: row.target,
+          details: row.details || undefined,
+          createdAt,
+          timestamp: formatActivityTimestamp(createdAt, row.timestamp_display),
+          category: (row.category as any) || 'payments'
+        };
+      });
     } catch (err) {
       return null;
     }
@@ -480,6 +565,7 @@ export const supabaseService = {
   async insertActivity(act: StaffActivity): Promise<boolean> {
     if (!isSupabaseConfigured()) return false;
     try {
+      const createdAt = act.createdAt || new Date().toISOString();
       const { error } = await supabase.from('staff_activities').insert({
         id: act.id,
         category: act.category || 'payments',
@@ -487,7 +573,8 @@ export const supabaseService = {
         action: act.action,
         target: act.target || act.targetId || 'Record',
         details: act.details || '',
-        timestamp_display: act.timestamp || 'Today'
+        timestamp_display: act.timestamp || formatActivityTimestamp(createdAt),
+        created_at: createdAt,
       });
       return !error;
     } catch (err) {
@@ -619,6 +706,66 @@ export const supabaseService = {
     if (!isSupabaseConfigured()) return false;
     try {
       const { error } = await supabase.from('staff_accounts').delete().eq('id', id);
+      return !error;
+    } catch {
+      return false;
+    }
+  },
+
+  // ============================================================================
+  // 10. REGIONAL BRANCH OFFICES & CAR STANDS CRUD
+  // ============================================================================
+  async fetchBranchOffices(): Promise<BranchOffice[] | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const { data, error } = await supabase
+        .from('branch_offices')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (error || !data) return null;
+
+      return data.map(row => ({
+        id: row.id,
+        name: row.name,
+        state: row.state,
+        city: row.city || '',
+        address: row.address || '',
+        phone: row.phone || '',
+        managerName: row.manager_name || '',
+        handles: row.handles || '',
+        isActive: row.is_active !== false,
+        createdAt: row.created_at || undefined,
+      }));
+    } catch {
+      return null;
+    }
+  },
+
+  async upsertBranchOffice(branch: BranchOffice): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { error } = await supabase.from('branch_offices').upsert({
+        id: branch.id,
+        name: branch.name,
+        state: branch.state,
+        city: branch.city,
+        address: branch.address,
+        phone: branch.phone,
+        manager_name: branch.managerName,
+        handles: branch.handles,
+        is_active: branch.isActive !== false,
+        updated_at: new Date().toISOString(),
+      });
+      return !error;
+    } catch {
+      return false;
+    }
+  },
+
+  async deleteBranchOffice(id: string): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { error } = await supabase.from('branch_offices').delete().eq('id', id);
       return !error;
     } catch {
       return false;

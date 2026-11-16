@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
 import { useStore } from '@/lib/store';
+import { AdminKpiSkeleton, AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
 import { cn } from '@/lib/utils';
 
 export default function AdminReportsPage() {
@@ -32,6 +33,7 @@ export default function AdminReportsPage() {
     equipmentItems,
     events,
     digitalTickets,
+    isLoading,
   } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [range, setRange] = useState<'Last 6 months' | 'This year' | 'Last year' | 'Custom range'>('Last 6 months');
@@ -406,6 +408,13 @@ export default function AdminReportsPage() {
         ))}
       </div>
 
+      {isLoading ? (
+        <div className="space-y-6">
+          <AdminKpiSkeleton count={4} />
+          <AdminRowsSkeleton rows={5} />
+        </div>
+      ) : (
+        <>
       {/* Top 4 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Revenue */}
@@ -559,6 +568,8 @@ export default function AdminReportsPage() {
           </table>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

@@ -19,6 +19,7 @@ import {
 import { useToast } from '@/components/toast-provider';
 import { useStore } from '@/lib/store';
 import { useAdminAuth } from '@/lib/admin-auth';
+import { AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
 import { cn } from '@/lib/utils';
 import { Listing } from '@/lib/types';
 import { NIGERIA_STATES } from '@/lib/locations';
@@ -45,7 +46,7 @@ interface AdminListingItem {
 export default function AdminListingsPage() {
   const { toast } = useToast();
   const { user } = useAdminAuth();
-  const { listings, updateListing, markListingSold, deleteListing, addActivity } = useStore();
+  const { listings, isLoading, updateListing, markListingSold, deleteListing, addActivity } = useStore();
 
   const [activeFilter, setActiveFilter] = useState<
     'All' | 'Cars' | 'Property' | 'Land' | 'Sold' | 'Pending' | 'Drafts'
@@ -454,6 +455,10 @@ export default function AdminListingsPage() {
       </div>
 
       {/* Mobile Cards View (Car-stand phone friendly) */}
+      {isLoading ? (
+        <AdminRowsSkeleton rows={6} />
+      ) : (
+      <>
       <div className="grid grid-cols-1 gap-3 md:hidden">
         {filteredItems.map(row => (
           <div
@@ -738,6 +743,8 @@ export default function AdminListingsPage() {
           </table>
         </div>
       </div>
+      </>
+      )}
 
       {/* Mark Sold Modal */}
       {soldModalTarget && (

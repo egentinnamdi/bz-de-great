@@ -31,6 +31,7 @@ import { NIGERIA_STATES, inferStateFromLocation } from '@/lib/locations';
 import { isMasterAdmin } from '@/lib/staff';
 import { compressImageForUpload, formatBytesCompact } from '@/lib/image-upload';
 import { supabaseService } from '@/lib/supabase/service';
+import { AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
 import { cn } from '@/lib/utils';
 
 function AddListingForm() {
@@ -38,7 +39,7 @@ function AddListingForm() {
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit');
 
-  const { listings, addListing, updateListing, addActivity } = useStore();
+  const { listings, branchOffices, addListing, updateListing, addActivity, isLoading } = useStore();
   const { user } = useAdminAuth();
   const { toast } = useToast();
 
@@ -408,6 +409,15 @@ function AddListingForm() {
     }
   };
 
+  if (editId && isLoading && !listings.some(l => l.id === editId)) {
+    return (
+      <div className="space-y-6">
+        <div className="text-sm font-medium text-[#716769]">Loading listing details from backend...</div>
+        <AdminRowsSkeleton rows={5} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Bar */}
@@ -582,12 +592,24 @@ function AddListingForm() {
                   <Building2 className="w-4 h-4 text-[#716769] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
+                    list={master ? 'branch-offices-datalist' : undefined}
                     value={branchOffice}
                     onChange={e => setBranchOffice(e.target.value)}
                     placeholder="e.g. Awka Car Stand · Aroma"
                     readOnly={!master}
                     className="w-full h-[46px] pl-9 pr-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] read-only:bg-[#f8f5f5]"
                   />
+                  {master && (
+                    <datalist id="branch-offices-datalist">
+                      {branchOffices
+                        .filter(b => b.isActive !== false)
+                        .map(b => (
+                          <option key={b.id} value={b.name}>
+                            {b.city}, {b.state}
+                          </option>
+                        ))}
+                    </datalist>
+                  )}
                 </div>
               </div>
             </div>

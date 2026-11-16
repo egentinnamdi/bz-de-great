@@ -61,6 +61,7 @@ export const BRANCH_OFFICES: BranchOffice[] = [
     phone: '+234 704 753 1433',
     managerName: 'Ifeanyi Obi',
     handles: 'Properties · Land · Head Office Inquiries',
+    isActive: true,
   },
   {
     id: 'br-awka-stand',
@@ -71,6 +72,7 @@ export const BRANCH_OFFICES: BranchOffice[] = [
     phone: '+234 803 441 9012',
     managerName: 'Chinedu Okafor',
     handles: 'Car Sales · Stand Inspections',
+    isActive: true,
   },
   {
     id: 'br-asaba-delta',
@@ -81,6 +83,7 @@ export const BRANCH_OFFICES: BranchOffice[] = [
     phone: '+234 806 218 4410',
     managerName: 'Emeka Nnamdi',
     handles: 'Car Sales · Car Rentals · Houses & Land',
+    isActive: true,
   },
   {
     id: 'br-owerri-imo',
@@ -91,6 +94,7 @@ export const BRANCH_OFFICES: BranchOffice[] = [
     phone: '+234 703 881 2004',
     managerName: 'Uche Nwosu',
     handles: 'Car Sales · Partner Stand Inventory',
+    isActive: true,
   },
   {
     id: 'br-enugu-office',
@@ -101,6 +105,7 @@ export const BRANCH_OFFICES: BranchOffice[] = [
     phone: '+234 812 553 7781',
     managerName: 'Adaeze Eze',
     handles: 'Car Rentals · House Rentals & Viewings',
+    isActive: true,
   },
   {
     id: 'br-lagos-office',
@@ -111,6 +116,7 @@ export const BRANCH_OFFICES: BranchOffice[] = [
     phone: '+234 704 753 1433',
     managerName: 'BZ Executive Desk',
     handles: 'Car Sales · Rentals · Island & Mainland Homes',
+    isActive: true,
   },
   {
     id: 'br-abuja-office',
@@ -121,6 +127,7 @@ export const BRANCH_OFFICES: BranchOffice[] = [
     phone: '+234 704 753 1433',
     managerName: 'Abuja Fleet & Property Desk',
     handles: 'Car Rentals · Sales · Diplomatic Properties',
+    isActive: true,
   },
 ];
 
@@ -305,14 +312,19 @@ export function canManageBooking(
   );
 }
 
-export function findBranchForState(stateOrLocation?: string): BranchOffice | undefined {
-  if (!stateOrLocation) return undefined;
+export function findBranchForState(
+  stateOrLocation?: string,
+  branches: BranchOffice[] = BRANCH_OFFICES
+): BranchOffice | undefined {
+  if (!stateOrLocation || !branches.length) return undefined;
+  const activeBranches = branches.filter(b => b.isActive !== false);
+  const pool = activeBranches.length > 0 ? activeBranches : branches;
   const canonical = inferStateFromLocation(stateOrLocation);
   const low = stateOrLocation.toLowerCase();
   return (
-    BRANCH_OFFICES.find(b => low.includes(b.city.toLowerCase())) ||
-    BRANCH_OFFICES.find(b => b.state.toLowerCase() === canonical.toLowerCase()) ||
-    BRANCH_OFFICES.find(b => matchesLocationFilter(stateOrLocation, b.state))
+    pool.find(b => b.city && low.includes(b.city.toLowerCase())) ||
+    pool.find(b => b.state.toLowerCase() === canonical.toLowerCase()) ||
+    pool.find(b => matchesLocationFilter(stateOrLocation, b.state))
   );
 }
 

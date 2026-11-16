@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { useToast } from '@/components/toast-provider';
+import { AdminKpiSkeleton, AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
 import { cn, formatPhoneForWhatsApp } from '@/lib/utils';
 
 interface PaymentRow {
@@ -51,6 +52,7 @@ export default function AdminPaymentsPage() {
     updateEquipmentRental,
     updateDigitalTicket,
     addActivity,
+    isLoading,
   } = useStore();
   const [globalSearch, setGlobalSearch] = useState('');
   const [tableSearch, setTableSearch] = useState('');
@@ -309,6 +311,9 @@ export default function AdminPaymentsPage() {
       </div>
 
       {/* Top 4 Metric Cards */}
+      {isLoading ? (
+        <AdminKpiSkeleton count={4} />
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Awaiting review */}
         <div className="hover-luxury-lift bg-white rounded-xl border border-[#eae3e4] p-5 shadow-xs transition-all duration-300">
@@ -374,6 +379,7 @@ export default function AdminPaymentsPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Bottom Card: All payments table */}
       <div className="bg-white rounded-xl border border-[#eae3e4] overflow-hidden shadow-xs">
@@ -472,7 +478,13 @@ export default function AdminPaymentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eae3e4]">
-              {filteredPayments.map(row => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="p-5">
+                    <AdminRowsSkeleton rows={5} />
+                  </td>
+                </tr>
+              ) : filteredPayments.map(row => (
                 <tr key={row.id} className="hover:bg-[#fcf8f8]/50 transition-colors">
                   <td className="py-3.5 px-5 font-mono font-medium text-[#1b1416]">{row.reference}</td>
                   <td className="py-3.5 px-5 font-semibold text-[#1b1416]">{row.customerName}</td>

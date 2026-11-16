@@ -42,13 +42,20 @@ export function CardCar({ car, className }: CardCarProps) {
       )}
     >
       {/* Full-bleed Photo */}
-      <Image
-        src={car.images[0] || '/figma-images/1d1f3a8c0aa3ff156f7fb0fd0480a30117a69620.jpg'}
-        alt={car.title}
-        fill
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 384px"
-        className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-      />
+      {car.images && car.images[0] ? (
+        <Image
+          src={car.images[0]}
+          alt={car.title}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 384px"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 animate-pulse bg-gradient-to-br from-[#efe9ea] via-[#f6f1f2] to-[#e7dfe0]"
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15 pointer-events-none" />
 
       {/* Top Overlay Badges & Save Button */}

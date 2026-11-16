@@ -73,6 +73,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     equipmentRentals,
     digitalTickets,
     staffAccounts,
+    isLoading: isStoreLoading,
   } = useStore();
 
   const scopedListingsCount = React.useMemo(
@@ -102,6 +103,57 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return bCount + oCount + sCount + rCount + tCount;
   }, [bookings, productOrders, studioBookings, equipmentRentals, digitalTickets]);
 
+  const actionableOrdersCount = React.useMemo(
+    () =>
+      productOrders.filter(
+        o =>
+          o.orderStatus !== 'cancelled' &&
+          (o.orderStatus === 'pending' ||
+            o.paymentStatus === 'pending' ||
+            o.paymentStatus === 'receipt_uploaded')
+      ).length,
+    [productOrders]
+  );
+
+  const actionableStudioCount = React.useMemo(
+    () =>
+      studioBookings.filter(
+        s =>
+          s.bookingStatus !== 'cancelled' &&
+          s.bookingStatus !== 'completed' &&
+          (s.bookingStatus === 'pending' ||
+            s.bookingStatus === 'payment_pending' ||
+            s.paymentStatus === 'pending' ||
+            s.paymentStatus === 'receipt_uploaded')
+      ).length,
+    [studioBookings]
+  );
+
+  const actionableRentalsCount = React.useMemo(
+    () =>
+      equipmentRentals.filter(
+        r =>
+          r.rentalStatus !== 'cancelled' &&
+          r.rentalStatus !== 'returned' &&
+          (r.rentalStatus === 'pending' ||
+            r.rentalStatus === 'payment_pending' ||
+            r.rentalStatus === 'active' ||
+            r.paymentStatus === 'pending' ||
+            r.paymentStatus === 'receipt_uploaded')
+      ).length,
+    [equipmentRentals]
+  );
+
+  const actionableTicketsCount = React.useMemo(
+    () =>
+      digitalTickets.filter(
+        t =>
+          t.ticketStatus !== 'cancelled' &&
+          (t.paymentStatus === 'pending' || t.paymentStatus === 'receipt_uploaded')
+      ).length,
+    [digitalTickets]
+  );
+
   const navGroups = React.useMemo<Array<{ group: string; items: NavItem[] }>>(() => {
     const raw: Array<{ group: string; items: NavItem[] }> = [
       {
@@ -113,24 +165,24 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             href: '/admin/listings',
             moduleId: 'listings',
             icon: CarFront,
-            badge: scopedListingsCount || undefined,
+            badge: !isStoreLoading && scopedListingsCount > 0 ? scopedListingsCount : undefined,
           },
           {
             label: 'Bookings',
             href: '/admin/bookings',
             moduleId: 'bookings',
             icon: CalendarDays,
-            badge: scopedPendingBookingsCount || undefined,
+            badge: !isStoreLoading && scopedPendingBookingsCount > 0 ? scopedPendingBookingsCount : undefined,
           },
         ]
       },
       {
         group: 'COMMERCE & STUDIO',
         items: [
-          { label: 'Marketplace', href: '/admin/marketplace', moduleId: 'marketplace', icon: ShoppingBag, badge: productOrders.length || undefined },
-          { label: 'Studio', href: '/admin/studio', moduleId: 'studio', icon: Camera, badge: studioBookings.length || undefined },
-          { label: 'Gear Rentals', href: '/admin/equipment', moduleId: 'equipment', icon: Video, badge: equipmentRentals.length || undefined },
-          { label: 'Events & QR Gate', href: '/admin/events', moduleId: 'events', icon: Ticket, badge: digitalTickets.length || undefined },
+          { label: 'Marketplace', href: '/admin/marketplace', moduleId: 'marketplace', icon: ShoppingBag, badge: !isStoreLoading && actionableOrdersCount > 0 ? actionableOrdersCount : undefined },
+          { label: 'Studio', href: '/admin/studio', moduleId: 'studio', icon: Camera, badge: !isStoreLoading && actionableStudioCount > 0 ? actionableStudioCount : undefined },
+          { label: 'Gear Rentals', href: '/admin/equipment', moduleId: 'equipment', icon: Video, badge: !isStoreLoading && actionableRentalsCount > 0 ? actionableRentalsCount : undefined },
+          { label: 'Events & QR Gate', href: '/admin/events', moduleId: 'events', icon: Ticket, badge: !isStoreLoading && actionableTicketsCount > 0 ? actionableTicketsCount : undefined },
         ]
       },
       {
@@ -141,7 +193,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             href: '/admin/payments',
             moduleId: 'payments',
             icon: CreditCard,
-            badge: pendingPaymentsCount > 0 ? pendingPaymentsCount : undefined
+            badge: !isStoreLoading && pendingPaymentsCount > 0 ? pendingPaymentsCount : undefined
           }
         ]
       },
@@ -153,7 +205,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             href: '/admin/team',
             moduleId: 'team',
             icon: ShieldCheck,
-            badge: staffAccounts.filter(s => s.isActive && s.role !== 'Master Admin').length || undefined,
+            badge: !isStoreLoading ? (staffAccounts.filter(s => s.isActive && s.role !== 'Master Admin').length || undefined) : undefined,
           },
           { label: 'Customers', href: '/admin/customers', moduleId: 'customers', icon: Users },
           { label: 'Website content', href: '/admin/website-content', moduleId: 'website_content', icon: ImageIcon },
@@ -174,11 +226,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     scopedListingsCount,
     scopedPendingBookingsCount,
     pendingPaymentsCount,
-    productOrders.length,
-    studioBookings.length,
-    equipmentRentals.length,
-    digitalTickets.length,
+    actionableOrdersCount,
+    actionableStudioCount,
+    actionableRentalsCount,
+    actionableTicketsCount,
     staffAccounts,
+    isStoreLoading,
   ]);
 
   const isLoginPage = pathname === '/admin/login';

@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/toast-provider";
 import { StoreProvider } from "@/lib/store";
+import { CartDrawer } from "@/components/cart-drawer";
 import { SITE_CONFIG } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +70,7 @@ export default function RootLayout({
           <StoreProvider>
             <ToastProvider>
               {children}
+              <CartDrawer />
             </ToastProvider>
           </StoreProvider>
         </ThemeProvider>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import {
   Listing,
   Booking,
@@ -18,30 +18,23 @@ import {
   EventItem,
   DigitalTicket,
   StaffAccount,
+  BranchOffice,
 } from './types';
 import {
+  BRANCH_OFFICES,
   DEFAULT_STAFF_ACCOUNTS,
   computeInitials,
   findBranchForState,
   getListingState,
 } from './staff';
 import { inferStateFromLocation } from './locations';
+import { formatActivityTimestamp } from './activity-time';
 import {
-  INITIAL_LISTINGS,
-  INITIAL_BOOKINGS,
-  INITIAL_CUSTOMERS,
-  INITIAL_ACTIVITIES,
   INITIAL_PRODUCT_CATEGORIES,
   INITIAL_PRODUCTS,
-  INITIAL_PRODUCT_ORDERS,
   INITIAL_STUDIO_SERVICES,
-  INITIAL_STUDIO_BOOKINGS,
   INITIAL_EQUIPMENT_ITEMS,
-  INITIAL_EQUIPMENT_RENTALS,
   INITIAL_EVENTS,
-  INITIAL_DIGITAL_TICKETS,
-} from './mock-data';
-import {
   calculateOrderAuthoritative,
   validateStudioSlotConflict,
   calculateEquipmentRentalAuthoritative,
@@ -103,6 +96,7 @@ interface StoreContextType {
   websiteContent: WebsiteContentConfig;
   isLoading: boolean;
   refreshData: () => Promise<void>;
+  ensureListingImages: (idOrSlug: string) => Promise<void>;
 
   // Multi-Service Commerce State
   productCategories: ProductCategory[];
@@ -116,6 +110,7 @@ interface StoreContextType {
   events: EventItem[];
   digitalTickets: DigitalTicket[];
   staffAccounts: StaffAccount[];
+  branchOffices: BranchOffice[];
 
   // Staff / Branch Team Management
   addStaffAccount: (
@@ -123,6 +118,13 @@ interface StoreContextType {
   ) => Promise<StaffAccount>;
   updateStaffAccount: (id: string, updates: Partial<StaffAccount>) => Promise<void>;
   deleteStaffAccount: (id: string) => Promise<void>;
+
+  // Regional Branch Offices CRUD
+  addBranchOffice: (
+    branch: Omit<BranchOffice, 'id' | 'createdAt'>
+  ) => Promise<BranchOffice>;
+  updateBranchOffice: (id: string, updates: Partial<BranchOffice>) => Promise<void>;
+  deleteBranchOffice: (id: string) => Promise<void>;
 
   // Existing Mutations
   addListing: (listing: Omit<Listing, 'id' | 'createdAt'>) => Promise<Listing>;
@@ -151,6 +153,10 @@ interface StoreContextType {
   deleteProduct: (id: string) => Promise<void>;
 
   // Cart & Product Orders
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+  toggleCart: () => void;
   addToCart: (item: { productId: string; variantId?: string; quantity?: number }) => { ok: boolean; error?: string };
   updateCartItemQuantity: (cartItemId: string, quantity: number) => void;
   removeFromCart: (cartItemId: string) => void;
@@ -224,31 +230,52 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | null>(null);
 
-const CACHE_KEY_PREFIX = 'bz_group_supabase_cache_';
+const LEGACY_CACHE_PREFIX = 'bz_group_supabase_cache_';
+const CACHE_KEY_PREFIX = 'bz_group_v2_';
+
+function readCachedArray<T>(suffix: string): T[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(CACHE_KEY_PREFIX + suffix);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as T[]) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [listings, setListings] = useState<Listing[]>(INITIAL_LISTINGS);
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
-  const [activities, setActivities] = useState<StaffActivity[]>(INITIAL_ACTIVITIES);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [activities, setActivities] = useState<StaffActivity[]>([]);
   const [websiteContent, setWebsiteContent] = useState<WebsiteContentConfig>(DEFAULT_WEBSITE_CONTENT);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const imageStreamGenRef = useRef(0);
 
-  // Multi-Service Commerce State
+  // Multi-Service Commerce State (storefront service/product catalogs; zero fake pre-seeded orders)
   const [productCategories, setProductCategories] = useState<ProductCategory[]>(INITIAL_PRODUCT_CATEGORIES);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [productOrders, setProductOrders] = useState<ProductOrder[]>(INITIAL_PRODUCT_ORDERS);
+  const [productOrders, setProductOrders] = useState<ProductOrder[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [studioServices, setStudioServices] = useState<StudioService[]>(INITIAL_STUDIO_SERVICES);
-  const [studioBookings, setStudioBookings] = useState<StudioBooking[]>(INITIAL_STUDIO_BOOKINGS);
+  const [studioBookings, setStudioBookings] = useState<StudioBooking[]>([]);
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>(INITIAL_EQUIPMENT_ITEMS);
-  const [equipmentRentals, setEquipmentRentals] = useState<EquipmentRental[]>(INITIAL_EQUIPMENT_RENTALS);
+  const [equipmentRentals, setEquipmentRentals] = useState<EquipmentRental[]>([]);
   const [events, setEvents] = useState<EventItem[]>(INITIAL_EVENTS);
-  const [digitalTickets, setDigitalTickets] = useState<DigitalTicket[]>(INITIAL_DIGITAL_TICKETS);
-  const [staffAccounts, setStaffAccounts] = useState<StaffAccount[]>(DEFAULT_STAFF_ACCOUNTS);
+  const [digitalTickets, setDigitalTickets] = useState<DigitalTicket[]>([]);
+  const [staffAccounts, setStaffAccounts] = useState<StaffAccount[]>([]);
+  const [branchOffices, setBranchOffices] = useState<BranchOffice[]>([]);
+
+  const openCart = useCallback(() => setIsCartOpen(true), []);
+  const closeCart = useCallback(() => setIsCartOpen(false), []);
+  const toggleCart = useCallback(() => setIsCartOpen((prev) => !prev), []);
 
   // Hydrate from Supabase BaaS (Single Source of Truth)
   const refreshData = useCallback(async () => {
+    const generation = ++imageStreamGenRef.current;
     try {
       const [
         remoteListings,
@@ -257,6 +284,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         remoteActivities,
         remoteContent,
         remoteStaff,
+        remoteBranches,
       ] = await Promise.all([
         supabaseService.fetchListings(),
         supabaseService.fetchBookings(),
@@ -264,13 +292,86 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         supabaseService.fetchActivities(),
         supabaseService.fetchWebsiteContent(),
         supabaseService.fetchStaffAccounts(),
+        supabaseService.fetchBranchOffices(),
       ]);
 
-      if (remoteListings !== null) setListings(remoteListings);
-      if (remoteBookings !== null) setBookings(remoteBookings);
-      if (remoteCustomers !== null) setCustomers(remoteCustomers);
-      if (remoteActivities !== null) setActivities(remoteActivities);
-      if (remoteStaff !== null && remoteStaff.length > 0) setStaffAccounts(remoteStaff);
+      if (remoteListings !== null) {
+        setListings((prev) => {
+          const prevImagesById = new Map(prev.map((l) => [l.id, l.images]));
+          return remoteListings.map((item) => {
+            if (item.images.length > 0) return item;
+            const existingImgs = prevImagesById.get(item.id);
+            return existingImgs && existingImgs.length > 0
+              ? { ...item, images: existingImgs }
+              : item;
+          });
+        });
+
+        // Stage 2: stream real photos in 2-row batches without blocking initial render or timing out Postgres
+        const missingIds = remoteListings
+          .filter((item) => item.images.length === 0)
+          .sort((a, b) => {
+            const aScore = (a.status === 'published' ? 2 : 0) + (a.featured ? 1 : 0);
+            const bScore = (b.status === 'published' ? 2 : 0) + (b.featured ? 1 : 0);
+            return bScore - aScore;
+          })
+          .map((item) => item.id);
+
+        if (missingIds.length > 0) {
+          void supabaseService.fetchListingImagesForIds(missingIds, (patch) => {
+            if (imageStreamGenRef.current !== generation) return;
+            setListings((prev) =>
+              prev.map((item) =>
+                patch[item.id] ? { ...item, images: patch[item.id] } : item
+              )
+            );
+          });
+        }
+      } else {
+        const cached = readCachedArray<Listing>('listings');
+        if (cached) setListings(cached);
+      }
+
+      if (remoteBookings !== null) {
+        setBookings(remoteBookings);
+      } else {
+        const cached = readCachedArray<Booking>('bookings');
+        if (cached) setBookings(cached);
+      }
+
+      if (remoteCustomers !== null) {
+        setCustomers(remoteCustomers);
+      } else {
+        const cached = readCachedArray<Customer>('cust');
+        if (cached) setCustomers(cached);
+      }
+
+      if (remoteActivities !== null) {
+        setActivities(remoteActivities);
+      } else {
+        const cached = readCachedArray<StaffActivity>('act');
+        if (cached) setActivities(cached);
+      }
+
+      if (remoteStaff !== null && remoteStaff.length > 0) {
+        setStaffAccounts(remoteStaff);
+      } else {
+        const cachedStaff = readCachedArray<StaffAccount>('staff_accounts');
+        setStaffAccounts(cachedStaff && cachedStaff.length > 0 ? cachedStaff : DEFAULT_STAFF_ACCOUNTS);
+      }
+
+      if (remoteBranches !== null) {
+        if (remoteBranches.length > 0) {
+          setBranchOffices(remoteBranches);
+        } else {
+          const cachedBranches = readCachedArray<BranchOffice>('branch_offices');
+          setBranchOffices(cachedBranches !== null ? cachedBranches : BRANCH_OFFICES);
+        }
+      } else {
+        const cachedBranches = readCachedArray<BranchOffice>('branch_offices');
+        setBranchOffices(cachedBranches !== null ? cachedBranches : BRANCH_OFFICES);
+      }
+
       if (remoteContent) {
         setWebsiteContent((prev) => ({
           ...prev,
@@ -282,43 +383,49 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               ? prev.galleryPhotos
               : DEFAULT_WEBSITE_CONTENT.galleryPhotos,
         }));
+      } else if (typeof window !== 'undefined') {
+        try {
+          const cContent = localStorage.getItem(CACHE_KEY_PREFIX + 'content');
+          if (cContent) setWebsiteContent(JSON.parse(cContent));
+        } catch {
+          // ignore
+        }
       }
     } catch (err) {
       console.warn('Error fetching Supabase data:', err);
+      const cachedStaff = readCachedArray<StaffAccount>('staff_accounts');
+      setStaffAccounts(cachedStaff && cachedStaff.length > 0 ? cachedStaff : DEFAULT_STAFF_ACCOUNTS);
+      const cachedBranches = readCachedArray<BranchOffice>('branch_offices');
+      setBranchOffices(cachedBranches !== null ? cachedBranches : BRANCH_OFFICES);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Initial load
+  const ensureListingImages = useCallback(async (idOrSlug: string) => {
+    if (!idOrSlug) return;
+    const full = await supabaseService.fetchListingById(idOrSlug);
+    if (!full) return;
+    setListings((prev) => {
+      const idx = prev.findIndex((item) => item.id === full.id || item.slug === full.slug);
+      if (idx === -1) return [full, ...prev];
+      return prev.map((item, i) => (i === idx ? { ...item, ...full } : item));
+    });
+  }, []);
+
+  // Initial load: migrate active cart from legacy cache keys, purge old static mock caches, then fetch Supabase
   useEffect(() => {
     try {
-      const cListings = localStorage.getItem(CACHE_KEY_PREFIX + 'listings');
-      if (cListings) {
-        const p = JSON.parse(cListings);
-        if (Array.isArray(p) && p.length > 0) setListings(p);
+      const legacyCart = localStorage.getItem(LEGACY_CACHE_PREFIX + 'cart');
+      if (legacyCart && !localStorage.getItem(CACHE_KEY_PREFIX + 'cart')) {
+        localStorage.setItem(CACHE_KEY_PREFIX + 'cart', legacyCart);
       }
-
-      const cBookings = localStorage.getItem(CACHE_KEY_PREFIX + 'bookings');
-      if (cBookings) {
-        const p = JSON.parse(cBookings);
-        if (Array.isArray(p) && p.length > 0) setBookings(p);
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(LEGACY_CACHE_PREFIX)) {
+          localStorage.removeItem(k);
+        }
       }
-
-      const cCust = localStorage.getItem(CACHE_KEY_PREFIX + 'cust');
-      if (cCust) {
-        const p = JSON.parse(cCust);
-        if (Array.isArray(p) && p.length > 0) setCustomers(p);
-      }
-
-      const cAct = localStorage.getItem(CACHE_KEY_PREFIX + 'act');
-      if (cAct) {
-        const p = JSON.parse(cAct);
-        if (Array.isArray(p) && p.length > 0) setActivities(p);
-      }
-
-      const cContent = localStorage.getItem(CACHE_KEY_PREFIX + 'content');
-      if (cContent) setWebsiteContent(JSON.parse(cContent));
 
       const cProdCats = localStorage.getItem(CACHE_KEY_PREFIX + 'product_categories');
       if (cProdCats) {
@@ -379,12 +486,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const p = JSON.parse(cTickets);
         if (Array.isArray(p)) setDigitalTickets(p);
       }
-
-      const cStaff = localStorage.getItem(CACHE_KEY_PREFIX + 'staff_accounts');
-      if (cStaff) {
-        const p = JSON.parse(cStaff);
-        if (Array.isArray(p) && p.length > 0) setStaffAccounts(p);
-      }
     } catch {
       // Ignore cache read failures
     }
@@ -392,11 +493,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     refreshData();
   }, [refreshData]);
 
-  // Sync to local cache
+  // Sync to local cache (skip giant base64 image blobs to avoid QuotaExceededError)
   useEffect(() => {
     if (isLoading) return;
     try {
-      localStorage.setItem(CACHE_KEY_PREFIX + 'listings', JSON.stringify(listings));
+      const compactListings = listings.map((l) => ({
+        ...l,
+        images: l.images.filter((src) => !src.startsWith('data:') || src.length <= 16384),
+      }));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'listings', JSON.stringify(compactListings));
       localStorage.setItem(CACHE_KEY_PREFIX + 'bookings', JSON.stringify(bookings));
       localStorage.setItem(CACHE_KEY_PREFIX + 'cust', JSON.stringify(customers));
       localStorage.setItem(CACHE_KEY_PREFIX + 'act', JSON.stringify(activities));
@@ -412,6 +517,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(CACHE_KEY_PREFIX + 'events', JSON.stringify(events));
       localStorage.setItem(CACHE_KEY_PREFIX + 'digital_tickets', JSON.stringify(digitalTickets));
       localStorage.setItem(CACHE_KEY_PREFIX + 'staff_accounts', JSON.stringify(staffAccounts));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'branch_offices', JSON.stringify(branchOffices));
     } catch {
       // Ignore cache write errors
     }
@@ -432,6 +538,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     events,
     digitalTickets,
     staffAccounts,
+    branchOffices,
     isLoading,
   ]);
 
@@ -534,10 +641,83 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     await supabaseService.deleteStaffAccount(id);
   };
 
+  const addBranchOffice = async (
+    item: Omit<BranchOffice, 'id' | 'createdAt'>
+  ): Promise<BranchOffice> => {
+    const slug = (item.city || item.state || 'branch')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    const newBranch: BranchOffice = {
+      ...item,
+      id: `br-${slug || 'desk'}-${Date.now().toString(36)}`,
+      name: item.name.trim(),
+      state: item.state.trim(),
+      city: item.city.trim(),
+      address: item.address.trim(),
+      phone: item.phone.trim(),
+      managerName: item.managerName.trim(),
+      handles: item.handles.trim(),
+      isActive: item.isActive !== false,
+      createdAt: new Date().toISOString(),
+    };
+    setBranchOffices((prev) => [...prev, newBranch]);
+    await supabaseService.upsertBranchOffice(newBranch);
+    return newBranch;
+  };
+
+  const updateBranchOffice = async (id: string, updates: Partial<BranchOffice>) => {
+    let updatedTarget: BranchOffice | undefined;
+    let previousName: string | undefined;
+    setBranchOffices((prev) =>
+      prev.map((br) => {
+        if (br.id !== id) return br;
+        previousName = br.name;
+        updatedTarget = {
+          ...br,
+          ...updates,
+          name: updates.name !== undefined ? updates.name.trim() : br.name,
+          city: updates.city !== undefined ? updates.city.trim() : br.city,
+          address: updates.address !== undefined ? updates.address.trim() : br.address,
+          phone: updates.phone !== undefined ? updates.phone.trim() : br.phone,
+          managerName: updates.managerName !== undefined ? updates.managerName.trim() : br.managerName,
+          handles: updates.handles !== undefined ? updates.handles.trim() : br.handles,
+        };
+        return updatedTarget;
+      })
+    );
+    if (updatedTarget) {
+      await supabaseService.upsertBranchOffice(updatedTarget);
+      if (previousName && updatedTarget.name !== previousName) {
+        const affectedStaff: StaffAccount[] = [];
+        setStaffAccounts((prev) =>
+          prev.map((acc) => {
+            if (acc.branchOffice !== previousName) return acc;
+            const nextAcc = {
+              ...acc,
+              branchOffice: updatedTarget!.name,
+              branchAddress: updatedTarget!.address || acc.branchAddress,
+            };
+            affectedStaff.push(nextAcc);
+            return nextAcc;
+          })
+        );
+        for (const acc of affectedStaff) {
+          await supabaseService.upsertStaffAccount(acc);
+        }
+      }
+    }
+  };
+
+  const deleteBranchOffice = async (id: string) => {
+    setBranchOffices((prev) => prev.filter((br) => br.id !== id));
+    await supabaseService.deleteBranchOffice(id);
+  };
+
   const addListing = async (item: Omit<Listing, 'id' | 'createdAt'>) => {
     const newId = `listing-${Date.now()}`;
     const canonicalState = item.state?.trim() || inferStateFromLocation(item.location);
-    const matchedBranch = findBranchForState(canonicalState);
+    const matchedBranch = findBranchForState(canonicalState, branchOffices);
     const newListing: Listing = {
       ...item,
       id: newId,
@@ -591,7 +771,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       item.branchState ||
       (linkedListing ? getListingState(linkedListing) : undefined) ||
       (item.pickupLocation ? inferStateFromLocation(item.pickupLocation) : 'FCT Abuja');
-    const resolvedBranch = findBranchForState(resolvedState);
+    const resolvedBranch = findBranchForState(resolvedState, branchOffices);
 
     const newBooking: Booking = {
       ...item,
@@ -619,12 +799,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addActivity = async (act: Omit<StaffActivity, 'id' | 'timestamp'>) => {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const nowIso = new Date().toISOString();
     const newAct: StaffActivity = {
       ...act,
       id: `act-${Date.now()}`,
-      timestamp: `Today, ${timeStr}`,
+      createdAt: nowIso,
+      timestamp: formatActivityTimestamp(nowIso),
     };
     setActivities((prev) => [newAct, ...prev]);
     await supabaseService.insertActivity(newAct);
@@ -1161,6 +1341,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         websiteContent,
         isLoading,
         refreshData,
+        ensureListingImages,
         productCategories,
         products,
         productOrders,
@@ -1172,9 +1353,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         events,
         digitalTickets,
         staffAccounts,
+        branchOffices,
         addStaffAccount,
         updateStaffAccount,
         deleteStaffAccount,
+        addBranchOffice,
+        updateBranchOffice,
+        deleteBranchOffice,
         addListing,
         updateListing,
         markListingSold,
@@ -1191,6 +1376,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         addProduct,
         updateProduct,
         deleteProduct,
+        isCartOpen,
+        openCart,
+        closeCart,
+        toggleCart,
         addToCart,
         updateCartItemQuantity,
         removeFromCart,

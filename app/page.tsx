@@ -34,10 +34,11 @@ import { useStore } from "@/lib/store"
 import { SITE_CONFIG } from "@/lib/constants"
 import { Listing } from "@/lib/types"
 import { isListingLive } from "@/lib/staff"
+import { ListingGridSkeleton } from "@/components/ui/loading-skeleton"
 import { cn } from "@/lib/utils"
 
 export default function HomePage() {
-  const { listings, websiteContent } = useStore()
+  const { listings, websiteContent, isLoading } = useStore()
 
   // Modals state
   const [galleryOpen, setGalleryOpen] = useState(false)
@@ -77,7 +78,7 @@ export default function HomePage() {
           : l.pricePeriod === "/year"
             ? "/ year"
             : "",
-      image: (l.images && l.images[0]) || "/photos/car-suv-white.jpg",
+      image: (l.images && l.images[0]) || "",
       href: l.category.includes("rent")
         ? `/cars/rent/${l.id}`
         : `/cars/buy/${l.id}`,
@@ -101,7 +102,7 @@ export default function HomePage() {
         : "450 m²",
       price: `₦${Number(l.price).toLocaleString("en-NG")}`,
       period: l.pricePeriod === "/year" ? "/ year" : "",
-      image: (l.images && l.images[0]) || "/photos/house-duplex.jpg",
+      image: (l.images && l.images[0]) || "",
       href: l.category.includes("rent")
         ? `/homes/rent/${l.id}`
         : `/properties/buy/${l.id}`,
@@ -583,6 +584,17 @@ export default function HomePage() {
               </div>
             </ScrollReveal>
 
+            {isLoading ? (
+              <ListingGridSkeleton
+                count={3}
+                variant="home"
+                columnsClass="grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+              />
+            ) : featuredCars.length === 0 ? (
+              <div className="rounded-2xl border border-[#eae3e4] bg-[#faf7f7] p-10 text-center text-sm text-[#716769]">
+                No vehicles are currently published.
+              </div>
+            ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {featuredCars.map((car, idx) => (
                 <ScrollReveal
@@ -592,12 +604,19 @@ export default function HomePage() {
                 >
                   <div className="group hover-luxury-lift relative h-[400px] sm:h-[420px] overflow-hidden rounded-2xl border border-[#eae3e4] bg-[#faf7f7] transition-all duration-300 hover:border-[#81141f]/50">
                     {/* Full-bleed Photo */}
-                    <Image
-                      src={car.image}
-                      alt={car.title}
-                      fill
-                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                    />
+                    {car.image ? (
+                      <Image
+                        src={car.image}
+                        alt={car.title}
+                        fill
+                        className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      />
+                    ) : (
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-0 animate-pulse bg-gradient-to-br from-[#efe9ea] via-[#f6f1f2] to-[#e7dfe0]"
+                      />
+                    )}
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15" />
 
                     {/* Top Overlay Badges */}
@@ -670,6 +689,7 @@ export default function HomePage() {
                 </ScrollReveal>
               ))}
             </div>
+            )}
           </div>
         </section>
 
@@ -697,6 +717,17 @@ export default function HomePage() {
               </div>
             </ScrollReveal>
 
+            {isLoading ? (
+              <ListingGridSkeleton
+                count={3}
+                variant="home"
+                columnsClass="grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+              />
+            ) : featuredProperties.length === 0 ? (
+              <div className="rounded-2xl border border-[#eae3e4] bg-[#faf7f7] p-10 text-center text-sm text-[#716769]">
+                No properties are currently published.
+              </div>
+            ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {featuredProperties.map((prop, idx) => (
                 <ScrollReveal
@@ -706,12 +737,19 @@ export default function HomePage() {
                 >
                   <div className="group hover-luxury-lift relative h-[400px] sm:h-[420px] overflow-hidden rounded-2xl border border-[#eae3e4] bg-[#faf7f7] transition-all duration-300 hover:border-[#81141f]/50">
                     {/* Full-bleed Photo */}
-                    <Image
-                      src={prop.image}
-                      alt={prop.title}
-                      fill
-                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                    />
+                    {prop.image ? (
+                      <Image
+                        src={prop.image}
+                        alt={prop.title}
+                        fill
+                        className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      />
+                    ) : (
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-0 animate-pulse bg-gradient-to-br from-[#efe9ea] via-[#f6f1f2] to-[#e7dfe0]"
+                      />
+                    )}
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15" />
 
                     {/* Top Overlay Badges */}
@@ -784,6 +822,7 @@ export default function HomePage() {
                 </ScrollReveal>
               ))}
             </div>
+            )}
           </div>
         </section>
 

@@ -14,9 +14,10 @@ import { NigeriaLocationOptions } from '@/components/nigeria-location-options';
 import { matchesLocationFilter } from '@/lib/locations';
 import { useStore } from '@/lib/store';
 import { isListingLive } from '@/lib/staff';
+import { ListingGridSkeleton } from '@/components/ui/loading-skeleton';
 
 function HomesForRentContent() {
-  const { listings } = useStore();
+  const { listings, isLoading } = useStore();
   const searchParams = useSearchParams();
 
   const initialLocation = searchParams.get('location') || 'all';
@@ -254,8 +255,14 @@ function HomesForRentContent() {
             {/* Results bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#eae3e4] mb-8">
               <div className="text-[15px] text-[#716769]">
-                Showing <strong className="text-[#1b1416] font-semibold">1–{homesForRent.length}</strong> of{' '}
-                <strong className="text-[#1b1416] font-semibold">{homesForRent.length}</strong> homes
+                {isLoading ? (
+                  <span>Loading rental homes...</span>
+                ) : (
+                  <>
+                    Showing <strong className="text-[#1b1416] font-semibold">1–{homesForRent.length}</strong> of{' '}
+                    <strong className="text-[#1b1416] font-semibold">{homesForRent.length}</strong> homes
+                  </>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -274,7 +281,9 @@ function HomesForRentContent() {
             </div>
 
             {/* 2-Column Cards Grid (Figma: Row 1, Row 2, Row 3) */}
-            {homesForRent.length > 0 ? (
+            {isLoading ? (
+              <ListingGridSkeleton count={4} />
+            ) : homesForRent.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
                 {homesForRent.map((home, idx) => (
                   <ScrollReveal

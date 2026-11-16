@@ -42,6 +42,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
+import { AdminRowsSkeleton } from '@/components/ui/loading-skeleton';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { useAdminAuth } from '@/lib/admin-auth';
@@ -120,7 +121,7 @@ function parseBookingDateTime(booking: Booking): { date: Date | null; hour: numb
 export default function AdminBookingsPage() {
   const { toast } = useToast();
   const { user } = useAdminAuth();
-  const { bookings: storeBookings, listings, createBooking, updateBooking, addActivity } = useStore();
+  const { bookings: storeBookings, listings, branchOffices, isLoading, createBooking, updateBooking, addActivity } = useStore();
 
   const master = isMasterAdmin(user);
 
@@ -252,7 +253,7 @@ export default function AdminBookingsPage() {
       .filter(b => b.bookingStatus === 'requested')
       .map(b => {
         const bState = getBookingState(b, listingsById);
-        const branchName = b.branchOffice || findBranchForState(bState)?.name || bState;
+        const branchName = b.branchOffice || findBranchForState(bState, branchOffices)?.name || bState;
         return {
           id: b.id,
           reference: b.reference || b.id,
@@ -263,7 +264,7 @@ export default function AdminBookingsPage() {
           raw: b
         };
       });
-  }, [scopedBookings, listingsById]);
+  }, [scopedBookings, listingsById, branchOffices]);
 
   // All bookings table data
   const bookingsTableRows: BookingRow[] = useMemo(() => {
@@ -283,7 +284,7 @@ export default function AdminBookingsPage() {
 
       const whenStr = b.endDate ? `${b.startDate.split('T')[0]} → ${b.endDate.split('T')[0]}` : b.startDate.split('T')[0];
       const bState = getBookingState(b, listingsById);
-      const branchName = b.branchOffice || findBranchForState(bState)?.name || bState;
+      const branchName = b.branchOffice || findBranchForState(bState, branchOffices)?.name || bState;
 
       return {
         id: b.id,
@@ -297,7 +298,7 @@ export default function AdminBookingsPage() {
         raw: b
       };
     });
-  }, [scopedBookings, listingsById]);
+  }, [scopedBookings, listingsById, branchOffices]);
 
   const filteredBookings = useMemo(() => {
     if (!searchQuery.trim()) return bookingsTableRows;
@@ -834,6 +835,10 @@ export default function AdminBookingsPage() {
           </div>
 
           <div className="space-y-3.5">
+            {isLoading ? (
+              <AdminRowsSkeleton rows={3} />
+            ) : (
+            <>
             {needsConfirmation.map(item => (
               <div
                 key={item.id}
@@ -885,6 +890,8 @@ export default function AdminBookingsPage() {
                 All pending bookings have been confirmed.
               </div>
             )}
+            </>
+            )}
           </div>
         </div>
       </div>
@@ -927,7 +934,13 @@ export default function AdminBookingsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eae3e4]">
-              {filteredBookings.map(row => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="p-5">
+                    <AdminRowsSkeleton rows={4} />
+                  </td>
+                </tr>
+              ) : filteredBookings.map(row => (
                 <tr key={row.id} className="hover:bg-[#fdfbfb] transition-colors">
                   <td className="py-3.5 px-4 font-mono font-semibold text-[#81141f]">
                     {row.reference}

@@ -71,6 +71,8 @@ export interface BranchOffice {
   phone: string;
   managerName: string;
   handles: string;
+  isActive?: boolean;
+  createdAt?: string;
 }
 
 export interface Listing {
@@ -158,6 +160,7 @@ export interface StaffActivity {
   target?: string;
   details?: string;
   timestamp: string;
+  createdAt?: string;
   category?: 'payments' | 'listings' | 'content' | 'bookings' | 'team';
 }
 
