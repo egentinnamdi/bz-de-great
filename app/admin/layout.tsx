@@ -337,12 +337,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
         {/* Mobile Header Bar */}
-        <div className="md:hidden flex items-center justify-between p-4 bg-[#4e0b13] text-white border-b border-[#680e18]">
+        <div className="md:hidden shrink-0 flex items-center justify-between gap-2 px-4 py-3 bg-[#4e0b13] text-white border-b border-[#680e18]">
           <div className="flex items-center gap-2 min-w-0">
             <BrandLogo tone="light" size="sm" href="/" />
             {user && (
-              <span className="px-2 py-0.5 rounded-full bg-white/15 text-[10px] font-bold text-[#ebc7cb] truncate max-w-[115px]">
-                {isMasterAdmin(user) ? 'Master' : user.assignedStates[0]}
+              <span className="px-2 py-0.5 rounded-full bg-white/15 text-[10px] font-bold text-[#ebc7cb] whitespace-nowrap shrink-0">
+                {isMasterAdmin(user) ? 'Master' : user.assignedStates[0]?.replace(/ State$/i, '')}
               </span>
             )}
           </div>
@@ -350,18 +350,18 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={logout}
-              className="text-xs text-white/80 hover:text-white underline cursor-pointer"
+              className="text-xs text-white/80 hover:text-white underline cursor-pointer whitespace-nowrap"
             >
               Sign out
             </button>
-            <Link href="/" className="text-xs font-semibold text-white/80 hover:text-white">
+            <Link href="/" className="text-xs font-semibold text-white/80 hover:text-white whitespace-nowrap">
               Site ↗
             </Link>
           </div>
         </div>
 
         {/* Mobile Navigation Strip */}
-        <div className="md:hidden flex items-center gap-2 p-2 bg-[#f8f5f5] border-b border-[#eae3e4] overflow-x-auto no-scrollbar">
+        <div className="md:hidden shrink-0 flex items-center gap-2 px-3 py-2.5 bg-[#f8f5f5] border-b border-[#eae3e4] overflow-x-auto no-scrollbar">
           {navGroups.flatMap(g => g.items).map(item => {
             const isActive = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
             return (

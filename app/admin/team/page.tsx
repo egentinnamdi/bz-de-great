@@ -1,17 +1,21 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ShieldCheck,
+  Building2,
+  Check,
+  ChevronRight,
+  Copy,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  MapPin,
+  MessageSquare,
   Plus,
   Search,
-  MapPin,
-  Copy,
-  Check,
   Trash2,
-  UserPlus,
-  KeyRound,
-  Building2,
+  X,
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { useAdminAuth } from '@/lib/admin-auth';
@@ -21,19 +25,88 @@ import {
   ALL_LISTING_CATEGORIES,
   BRANCH_OFFICES,
   ROLE_DEFAULT_MODULES,
+  findBranchForState,
   formatCategoryLabel,
   getListingState,
+  isListingLive,
   matchesAssignedStates,
 } from '@/lib/staff';
 import {
   AdminRole,
   AdminSectionId,
+  BranchOffice,
   ListingCategory,
   StaffAccount,
 } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatPhoneForWhatsApp } from '@/lib/utils';
 
 type FilterTab = 'All' | 'Stand Uploader' | 'Regional Admin' | 'Suspended';
+
+const HUB_STATE_VALUES = [
+  'Anambra State',
+  'Delta State',
+  'Imo State',
+  'Enugu State',
+  'Lagos State',
+  'FCT Abuja',
+  'Rivers State',
+  'Abia State',
+  'Oyo State',
+  'Edo State',
+];
+
+interface ToggleSwitchProps {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+}
+
+function ToggleSwitch({ checked, onChange, label }: ToggleSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none',
+        checked ? 'bg-[#81141f]' : 'bg-[#d8d0d1]'
+      )}
+    >
+      <span
+        className={cn(
+          'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition',
+          checked ? 'translate-x-4' : 'translate-x-0'
+        )}
+      />
+    </button>
+  );
+}
+
+interface PermissionToggleRowProps {
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}
+
+function PermissionToggleRow({
+  title,
+  description,
+  checked,
+  onChange,
+}: PermissionToggleRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+      <div className="min-w-0">
+        <div className="text-[13px] font-medium text-[#1b1416]">{title}</div>
+        <div className="text-[11px] text-[#716769] leading-snug mt-0.5">{description}</div>
+      </div>
+      <ToggleSwitch checked={checked} onChange={onChange} label={title} />
+    </div>
+  );
+}
 
 export default function AdminTeamPage() {
   const {
@@ -49,10 +122,16 @@ export default function AdminTeamPage() {
 
   const [filterTab, setFilterTab] = useState<FilterTab>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Form state (create or edit partner)
+  // Slide-over drawers
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [branchesOpen, setBranchesOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Drawer form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -64,24 +143,22 @@ export default function AdminTeamPage() {
   const [allowedCategories, setAllowedCategories] = useState<ListingCategory[]>(['car_sale']);
   const [allowBookings, setAllowBookings] = useState(false);
   const [requireApproval, setRequireApproval] = useState(false);
+  const [canDeleteListings, setCanDeleteListings] = useState(false);
 
-  const resetFormToNew = () => {
-    setEditingId(null);
-    setName('');
-    setEmail('');
-    setPhone('');
-    setPassword('bzpartner2026');
-    setRole('Stand Uploader');
-    setAssignedStates(['Anambra State']);
-    setBranchOffice('');
-    setBranchAddress('');
-    setAllowedCategories(['car_sale']);
-    setAllowBookings(false);
-    setRequireApproval(false);
-  };
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setDrawerOpen(false);
+        setBranchesOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
-  const loadAccountIntoEditor = (acc: StaffAccount) => {
+  const populateForm = (acc: StaffAccount) => {
     setEditingId(acc.id);
+    setConfirmDeleteId(null);
     setName(acc.name);
     setEmail(acc.email);
     setPhone(acc.phone);
@@ -93,20 +170,60 @@ export default function AdminTeamPage() {
     setAllowedCategories(acc.allowedCategories);
     setAllowBookings(acc.allowedModules.includes('bookings'));
     setRequireApproval(Boolean(acc.requireApprovalBeforeLive));
+    setCanDeleteListings(Boolean(acc.canDeleteListings));
   };
 
-  const toggleStateSelection = (stateValue: string) => {
+  const openNewPartnerDrawer = (presetBranch?: BranchOffice) => {
+    setEditingId(null);
+    setConfirmDeleteId(null);
+    setShowPassword(true);
+    setName('');
+    setEmail('');
+    setPhone('');
+    setPassword('bzpartner2026');
+    setRole('Stand Uploader');
+    setAssignedStates([presetBranch?.state || 'Anambra State']);
+    setBranchOffice(presetBranch?.name || '');
+    setBranchAddress(presetBranch?.address || '');
+    setAllowedCategories(['car_sale']);
+    setAllowBookings(false);
+    setRequireApproval(false);
+    setCanDeleteListings(false);
+    setBranchesOpen(false);
+    setDrawerOpen(true);
+  };
+
+  const openEditDrawer = (acc: StaffAccount) => {
+    populateForm(acc);
+    setShowPassword(false);
+    setDrawerOpen(true);
+  };
+
+  const applyRolePreset = (nextRole: AdminRole) => {
+    setRole(nextRole);
+    if (nextRole === 'Regional Admin') {
+      setAllowBookings(true);
+      if (allowedCategories.length === 1 && allowedCategories[0] === 'car_sale') {
+        setAllowedCategories(['car_sale', 'car_rent', 'property_rent', 'property_sale']);
+      }
+    } else if (nextRole === 'Stand Uploader') {
+      setAllowBookings(false);
+    }
+  };
+
+  const addState = (stateValue: string) => {
+    if (!stateValue) return;
     if (assignedStates.includes('ALL')) {
       setAssignedStates([stateValue]);
       return;
     }
-    setAssignedStates(prev =>
-      prev.includes(stateValue)
-        ? prev.length > 1
-          ? prev.filter(s => s !== stateValue)
-          : prev
-        : [...prev, stateValue]
-    );
+    if (!assignedStates.includes(stateValue)) {
+      setAssignedStates(prev => [...prev, stateValue]);
+    }
+  };
+
+  const removeState = (stateValue: string) => {
+    setAssignedStates(prev => (prev.length > 1 ? prev.filter(s => s !== stateValue) : prev));
   };
 
   const toggleCategoryPermission = (cat: ListingCategory) => {
@@ -117,6 +234,16 @@ export default function AdminTeamPage() {
           : prev
         : [...prev, cat]
     );
+  };
+
+  const fillBranchFromState = () => {
+    const primaryState = assignedStates[0];
+    if (!primaryState) return;
+    const match = findBranchForState(primaryState);
+    if (match) {
+      setBranchOffice(match.name);
+      setBranchAddress(match.address);
+    }
   };
 
   const handleSavePartner = async (e: React.FormEvent) => {
@@ -142,12 +269,12 @@ export default function AdminTeamPage() {
       return;
     }
 
-    const computedModules: AdminSectionId[] =
-      role === 'Master Admin'
-        ? ROLE_DEFAULT_MODULES['Master Admin']
-        : allowBookings
-          ? ['overview', 'listings', 'bookings']
-          : ['overview', 'listings'];
+    const isMasterRecord = editingId === 'ADM-001' || role === 'Master Admin';
+    const computedModules: AdminSectionId[] = isMasterRecord
+      ? ROLE_DEFAULT_MODULES['Master Admin']
+      : allowBookings
+        ? ['overview', 'listings', 'bookings']
+        : ['overview', 'listings'];
 
     const resolvedOffice =
       branchOffice.trim() ||
@@ -160,27 +287,29 @@ export default function AdminTeamPage() {
         phone: phone.trim(),
         password: password.trim(),
         role,
-        assignedStates: role === 'Master Admin' ? ['ALL'] : assignedStates,
-        allowedCategories: role === 'Master Admin' ? ALL_LISTING_CATEGORIES : allowedCategories,
+        assignedStates: isMasterRecord ? ['ALL'] : assignedStates,
+        allowedCategories: isMasterRecord ? ALL_LISTING_CATEGORIES : allowedCategories,
         allowedModules: computedModules,
         branchOffice: resolvedOffice,
         branchAddress: branchAddress.trim() || undefined,
-        requireApprovalBeforeLive: requireApproval,
+        requireApprovalBeforeLive: isMasterRecord ? false : requireApproval,
+        canDeleteListings: isMasterRecord ? true : canDeleteListings,
       });
 
       await addActivity({
         actorName: user?.name || 'Master Admin',
         actorRole: 'Master Admin',
-        action: `updated access permissions for ${name.trim()} (${assignedStates.join(', ')})`,
+        action: `updated access permissions for ${name.trim()} (${isMasterRecord ? 'All Nigeria' : assignedStates.join(', ')})`,
         target: resolvedOffice,
         category: 'team',
       });
 
       toast({
-        title: 'Partner permissions updated',
-        description: `${name.trim()} is now scoped to ${assignedStates.join(', ')}.`,
+        title: 'Changes saved',
+        description: `${name.trim()} permissions updated.`,
         variant: 'success',
       });
+      setDrawerOpen(false);
     } else {
       const created = await addStaffAccount({
         name: name.trim(),
@@ -188,14 +317,14 @@ export default function AdminTeamPage() {
         phone: phone.trim() || '+234',
         password: password.trim(),
         role,
-        assignedStates: role === 'Master Admin' ? ['ALL'] : assignedStates,
-        allowedCategories: role === 'Master Admin' ? ALL_LISTING_CATEGORIES : allowedCategories,
+        assignedStates: isMasterRecord ? ['ALL'] : assignedStates,
+        allowedCategories: isMasterRecord ? ALL_LISTING_CATEGORIES : allowedCategories,
         allowedModules: computedModules,
         branchOffice: resolvedOffice,
         branchAddress: branchAddress.trim() || undefined,
         isActive: true,
         requireApprovalBeforeLive: requireApproval,
-        canDeleteListings: role === 'Master Admin',
+        canDeleteListings,
       });
 
       await addActivity({
@@ -207,11 +336,11 @@ export default function AdminTeamPage() {
       });
 
       toast({
-        title: 'Partner / Staff account created',
-        description: `${created.name} can now log in and upload listings for ${created.assignedStates.join(', ')}.`,
+        title: 'Partner login created',
+        description: `${created.name} can now upload for ${created.assignedStates.join(', ')}.`,
         variant: 'success',
       });
-      loadAccountIntoEditor(created);
+      setDrawerOpen(false);
     }
   };
 
@@ -227,7 +356,7 @@ export default function AdminTeamPage() {
       category: 'team',
     });
     toast({
-      title: next ? 'Partner access restored' : 'Partner access suspended',
+      title: next ? 'Access restored' : 'Access suspended',
       description: `${acc.name} (${acc.assignedStates.join(', ')})`,
       variant: next ? 'success' : 'default',
     });
@@ -240,26 +369,26 @@ export default function AdminTeamPage() {
       setCopiedId(acc.id);
       setTimeout(() => setCopiedId(null), 2000);
       toast({
-        title: 'Login details copied',
-        description: `Ready to paste and send to ${acc.name} on WhatsApp.`,
+        title: 'Login copied',
+        description: `Ready to share with ${acc.name} on WhatsApp.`,
         variant: 'success',
       });
     } catch {
       toast({
-        title: `${acc.email}`,
+        title: acc.email,
         description: `Password: ${acc.password}`,
         variant: 'default',
       });
     }
   };
 
-  const handleDelete = async (acc: StaffAccount) => {
+  const handleConfirmDelete = async (acc: StaffAccount) => {
     if (acc.id === 'ADM-001' || acc.role === 'Master Admin') return;
-    if (!confirm(`Remove "${acc.name}" (${acc.branchOffice}) from staff access?`)) return;
     await deleteStaffAccount(acc.id);
-    if (editingId === acc.id) resetFormToNew();
+    setConfirmDeleteId(null);
+    setDrawerOpen(false);
     toast({
-      title: 'Staff account removed',
+      title: 'Partner removed',
       description: `${acc.name} can no longer sign in.`,
       variant: 'default',
     });
@@ -295,8 +424,8 @@ export default function AdminTeamPage() {
   const statsForAccount = (acc: StaffAccount) => {
     if (acc.assignedStates.includes('ALL')) {
       return {
-        live: listings.filter(l => l.status === 'published').length,
-        sold: listings.filter(l => l.status === 'sold').length,
+        live: listings.filter(l => isListingLive(l)).length,
+        sold: listings.filter(l => l.status === 'sold' || l.status === 'rented').length,
       };
     }
     const scoped = listings.filter(
@@ -305,471 +434,816 @@ export default function AdminTeamPage() {
         acc.allowedCategories.includes(l.category)
     );
     return {
-      live: scoped.filter(l => l.status === 'published').length,
-      sold: scoped.filter(l => l.status === 'sold').length,
+      live: scoped.filter(l => isListingLive(l)).length,
+      sold: scoped.filter(l => l.status === 'sold' || l.status === 'rented').length,
     };
   };
 
-  const TOP_BRANCH_STATES = [
-    'Anambra State',
-    'Delta State',
-    'Imo State',
-    'Enugu State',
-    'Lagos State',
-    'FCT Abuja',
-    'Rivers State',
-    'Abia State',
-    'Oyo State',
-    'Edo State',
-  ];
+  const editingAccount = useMemo(
+    () => (editingId ? staffAccounts.find(s => s.id === editingId) || null : null),
+    [editingId, staffAccounts]
+  );
+
+  const isEditingMaster = editingAccount?.id === 'ADM-001' || editingAccount?.role === 'Master Admin';
+
+  const unselectedHubStates = useMemo(
+    () => NIGERIA_STATES.filter(s => HUB_STATE_VALUES.includes(s.value) && !assignedStates.includes(s.value)),
+    [assignedStates]
+  );
+  const unselectedOtherStates = useMemo(
+    () => NIGERIA_STATES.filter(s => !HUB_STATE_VALUES.includes(s.value) && !assignedStates.includes(s.value)),
+    [assignedStates]
+  );
+
+  const formatStateSummary = (states: string[]) => {
+    if (states.includes('ALL')) return 'All Nigeria';
+    const clean = states.map(s => s.replace(/ State$/i, ''));
+    return clean.length <= 2 ? clean.join(', ') : `${clean.slice(0, 2).join(', ')} +${clean.length - 2}`;
+  };
+
+  const formatCategorySummary = (cats: ListingCategory[]) => {
+    if (cats.length === ALL_LISTING_CATEGORIES.length) return 'All sections';
+    if (cats.length === 1) return formatCategoryLabel(cats[0]);
+    return `${cats.slice(0, 2).map(formatCategoryLabel).join(' · ')}${cats.length > 2 ? ` +${cats.length - 2}` : ''}`;
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#81141f] mb-1">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Master Admin Control</span>
-          </div>
-          <h1 className="font-serif text-[30px] font-bold text-[#1b1416] tracking-tight">
-            Team &amp; Branch Access
+    <div className="space-y-6 w-full">
+      {/* Calm Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#81141f]">
+            Team &amp; Branches
+          </p>
+          <h1 className="font-serif text-[28px] sm:text-[32px] font-bold text-[#1b1416] tracking-tight mt-0.5">
+            Branch Access
           </h1>
-          <p className="text-[13px] text-[#716769]">
-            Create accounts for partners and car-stand boys across Asaba, Awka, Owerri, Enugu, and other states with scoped state and section permissions.
+          <p className="text-[13px] text-[#716769] mt-0.5">
+            Assign state territories and upload scopes for regional offices and car stands.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={resetFormToNew}
-          className="h-[42px] px-4 rounded-[10px] bg-[#81141f] hover:bg-[#680e18] text-white text-[13px] font-semibold inline-flex items-center gap-2 shadow-xs transition-colors cursor-pointer shrink-0 self-start md:self-auto"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Add Partner / Stand Boy</span>
-        </button>
+        <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-auto">
+          <button
+            type="button"
+            onClick={() => setBranchesOpen(true)}
+            className="h-10 px-3.5 rounded-xl bg-white border border-[#eae3e4] hover:border-[#81141f] text-[13px] font-medium text-[#1b1416] inline-flex items-center gap-2 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+          >
+            <Building2 className="w-4 h-4 text-[#81141f] shrink-0" />
+            <span>Branches ({BRANCH_OFFICES.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openNewPartnerDrawer()}
+            className="h-10 px-4 rounded-xl bg-[#81141f] hover:bg-[#680e18] text-white text-[13px] font-semibold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[2.2] shrink-0" />
+            <span>Add Partner</span>
+          </button>
+        </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+      {/* Minimal Filter Strip */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#eae3e4] pb-3.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {[
-            { id: 'All' as const, label: `All · ${counts.all}` },
-            { id: 'Stand Uploader' as const, label: `Car-Stand Uploaders · ${counts.uploaders}` },
-            { id: 'Regional Admin' as const, label: `Regional Office Admins · ${counts.regional}` },
-            { id: 'Suspended' as const, label: `Suspended · ${counts.suspended}` },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilterTab(tab.id)}
-              className={cn(
-                'h-[36px] px-3.5 rounded-[8px] text-[13px] font-semibold transition-all whitespace-nowrap cursor-pointer',
-                filterTab === tab.id
-                  ? 'bg-[#81141f] text-white shadow-2xs'
-                  : 'bg-white border border-[#eae3e4] text-[#4a4245] hover:border-[#81141f] hover:text-[#81141f]'
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+            { id: 'All' as const, label: 'All', count: counts.all },
+            { id: 'Stand Uploader' as const, label: 'Stand Uploaders', count: counts.uploaders },
+            { id: 'Regional Admin' as const, label: 'Regional Admins', count: counts.regional },
+            { id: 'Suspended' as const, label: 'Suspended', count: counts.suspended },
+          ].map(tab => {
+            const active = filterTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilterTab(tab.id)}
+                className={cn(
+                  'h-9 px-3 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap inline-flex items-center gap-1.5 cursor-pointer',
+                  active
+                    ? 'bg-[#1b1416] text-white'
+                    : 'text-[#716769] hover:text-[#1b1416] hover:bg-[#f6f3f4]'
+                )}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={cn(
+                    'text-[11px] px-1.5 py-0.2 rounded-full',
+                    active ? 'bg-white/15 text-white' : 'bg-[#f1ecec] text-[#716769]'
+                  )}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="relative w-full md:w-64">
-          <Search className="w-3.5 h-3.5 text-[#716769] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="relative w-full lg:w-64 shrink-0">
+          <Search className="w-3.5 h-3.5 text-[#8c8082] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search name, state, stand..."
-            className="w-full h-[38px] pl-8 pr-3 bg-white border border-[#eae3e4] rounded-[8px] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+            placeholder="Search partner, state or stand..."
+            className="w-full h-9 pl-8 pr-3 bg-white border border-[#eae3e4] rounded-lg text-[13px] text-[#1b1416] placeholder:text-[#a09597] focus:outline-none focus:border-[#81141f]"
           />
         </div>
       </div>
 
-      {/* Main Split Grid: Roster + Editor */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        {/* Left: Staff Roster */}
-        <div className="xl:col-span-7 bg-white rounded-[16px] border border-[#eae3e4] shadow-xs overflow-hidden divide-y divide-[#eae3e4]">
+      {/* Sleek Single-Surface Roster */}
+      <div className="bg-white rounded-2xl border border-[#eae3e4] overflow-hidden shadow-2xs">
+        {/* Widescreen Column Labels (xl: where full 4 columns have comfortable room) */}
+        <div className="hidden xl:grid xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.3fr)_minmax(0,1fr)_225px] gap-5 px-5 py-2.5 bg-[#faf8f8] border-b border-[#eae3e4] text-[11px] font-semibold uppercase tracking-wider text-[#8c8082]">
+          <div>Partner</div>
+          <div>Role &amp; Stand</div>
+          <div>Scope &amp; Stock</div>
+          <div className="text-right">Status</div>
+        </div>
+
+        <div className="divide-y divide-[#f0eaeb]">
           {filteredAccounts.map(acc => {
             const stats = statsForAccount(acc);
-            const isSelected = editingId === acc.id;
             const isMaster = acc.role === 'Master Admin' || acc.id === 'ADM-001';
 
             return (
               <div
                 key={acc.id}
-                onClick={() => loadAccountIntoEditor(acc)}
-                className={cn(
-                  'p-4 sm:p-5 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4',
-                  isSelected ? 'bg-[#fbf3f4]' : 'hover:bg-[#fdfbfb]'
-                )}
+                onClick={() => openEditDrawer(acc)}
+                className="px-4 sm:px-5 py-3.5 hover:bg-[#fcf9fa] transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 xl:grid xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.3fr)_minmax(0,1fr)_225px] xl:gap-5"
               >
-                <div className="flex items-start gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-[#4e0b13] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                {/* Col 1: Identity (plus compact secondary metadata for < xl viewports) */}
+                <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                  <div
+                    className={cn(
+                      'w-9 h-9 rounded-full font-semibold text-xs flex items-center justify-center shrink-0 mt-0.5 sm:mt-0',
+                      isMaster
+                        ? 'bg-[#1b1416] text-white'
+                        : 'bg-[#f8eced] text-[#81141f]'
+                    )}
+                  >
                     {acc.avatarInitials}
                   </div>
-                  <div className="space-y-1.5 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-[14px] text-[#1b1416]">{acc.name}</span>
-                      <span
-                        className={cn(
-                          'px-2 py-0.5 rounded-full text-[10px] font-bold border',
-                          isMaster
-                            ? 'bg-amber-50 text-amber-800 border-amber-200'
-                            : acc.role === 'Regional Admin'
-                              ? 'bg-[#fbf3f4] text-[#81141f] border-[#ebc7cb]'
-                              : 'bg-stone-100 text-[#4a4245] border-[#eae3e4]'
-                        )}
-                      >
-                        {acc.role}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <span className="text-[14px] font-semibold text-[#1b1416] truncate">
+                        {acc.name}
                       </span>
-                      <span
-                        className={cn(
-                          'px-2 py-0.5 rounded-full text-[10px] font-bold',
-                          acc.isActive
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-zinc-100 text-zinc-600 border border-zinc-200'
-                        )}
-                      >
-                        {acc.isActive ? 'Active' : 'Suspended'}
+                      <span className="xl:hidden text-[11px] font-medium text-[#716769]">
+                        · {acc.role}
                       </span>
+                      {acc.requireApprovalBeforeLive && !isMaster && (
+                        <span
+                          title="Uploads require Master Admin approval"
+                          className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
+                        />
+                      )}
                     </div>
-
-                    <div className="text-[12px] text-[#716769]">
-                      {acc.email} · {acc.phone}
+                    <div className="text-[12px] text-[#716769] truncate">
+                      {acc.email}
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f8f5f5] border border-[#eae3e4] text-[11px] font-semibold text-[#1b1416]">
-                        <MapPin className="w-3 h-3 text-[#81141f]" />
-                        {acc.assignedStates.includes('ALL')
-                          ? 'All Nigeria'
-                          : acc.assignedStates.join(', ')}
+                    {/* Compact inline summary visible below xl so nothing gets squeezed into overlapping grid columns */}
+                    <div className="xl:hidden mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-[#716769]">
+                      <span className="inline-flex items-center gap-1 text-[#4a4245]">
+                        <MapPin className="w-3 h-3 text-[#81141f] shrink-0" />
+                        <span>
+                          {formatStateSummary(acc.assignedStates)} · {acc.branchOffice}
+                        </span>
                       </span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fbf3f4] border border-[#ebc7cb] text-[11px] font-semibold text-[#81141f]">
-                        {acc.branchOffice}
+                      <span className="text-[#c9bfc1]">•</span>
+                      <span>
+                        {formatCategorySummary(acc.allowedCategories)}
+                        {acc.allowedModules.includes('bookings') && !isMaster ? ' · Bookings' : ''}
                       </span>
-                    </div>
-
-                    <div className="text-[11px] text-[#716769]">
-                      Sections:{' '}
-                      <span className="font-medium text-[#4a4245]">
-                        {acc.allowedCategories.map(formatCategoryLabel).join(' · ')}
-                      </span>{' '}
-                      · <strong>{stats.live}</strong> live, <strong>{stats.sold}</strong> sold
+                      <span className="text-[#c9bfc1]">•</span>
+                      <span>
+                        <strong className="font-medium text-[#1b1416]">{stats.live}</strong> live,{' '}
+                        <strong className="font-medium text-[#1b1416]">{stats.sold}</strong> sold
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Quick Controls */}
+                {/* Col 2: Role & Branch (xl+ desktop table view) */}
+                <div className="hidden xl:block min-w-0">
+                  <div className="text-[13px] font-medium text-[#1b1416] truncate">
+                    {acc.role}
+                  </div>
+                  <div className="text-[12px] text-[#716769] truncate flex items-center gap-1 mt-0.5">
+                    <MapPin className="w-3 h-3 text-[#81141f] shrink-0" />
+                    <span className="truncate">
+                      {formatStateSummary(acc.assignedStates)} · {acc.branchOffice}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Col 3: Scope & Inventory (xl+ desktop table view) */}
+                <div className="hidden xl:block min-w-0">
+                  <div className="text-[13px] font-medium text-[#1b1416] truncate">
+                    {formatCategorySummary(acc.allowedCategories)}
+                    {acc.allowedModules.includes('bookings') && !isMaster ? ' · Bookings' : ''}
+                  </div>
+                  <div className="text-[12px] text-[#716769] mt-0.5">
+                    <span className="text-[#1b1416] font-medium">{stats.live}</span> live ·{' '}
+                    <span>{stats.sold}</span> sold
+                  </div>
+                </div>
+
+                {/* Col 4: Status & Fast Actions */}
                 <div
-                  className="flex items-center gap-2.5 shrink-0 self-end sm:self-center"
+                  className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 pl-[50px] sm:pl-0"
                   onClick={e => e.stopPropagation()}
                 >
                   <button
                     type="button"
-                    onClick={() => handleCopyCredentials(acc)}
-                    className="h-8 px-2.5 rounded-lg border border-[#eae3e4] bg-white hover:border-[#81141f] text-[11px] font-semibold text-[#1b1416] inline-flex items-center gap-1 cursor-pointer"
-                    title="Copy portal email & password for WhatsApp"
+                    onClick={() => openEditDrawer(acc)}
+                    className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4a4245] hover:text-[#1b1416] whitespace-nowrap cursor-pointer"
                   >
-                    {copiedId === acc.id ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5 text-[#81141f]" />
-                    )}
-                    <span>{copiedId === acc.id ? 'Copied' : 'Copy Login'}</span>
+                    <span
+                      className={cn(
+                        'w-2 h-2 rounded-full shrink-0',
+                        acc.isActive ? 'bg-emerald-500' : 'bg-stone-300'
+                      )}
+                    />
+                    <span>{acc.isActive ? 'Active' : 'Suspended'}</span>
                   </button>
 
-                  {!isMaster && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleActive(acc)}
-                        className={cn(
-                          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                          acc.isActive ? 'bg-[#81141f]' : 'bg-[#d8d0d1]'
-                        )}
-                        aria-label={`Toggle access for ${acc.name}`}
-                      >
-                        <span
-                          className={cn(
-                            'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition',
-                            acc.isActive ? 'translate-x-4' : 'translate-x-0'
-                          )}
-                        />
-                      </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyCredentials(acc)}
+                      title="Copy portal email & password"
+                      className="h-8 px-2.5 rounded-lg border border-[#eae3e4] bg-white hover:border-[#81141f] text-[11px] font-medium text-[#4a4245] hover:text-[#1b1416] inline-flex items-center gap-1 whitespace-nowrap cursor-pointer transition-colors"
+                    >
+                      {copiedId === acc.id ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 text-[#81141f]" />
+                      )}
+                      <span>{copiedId === acc.id ? 'Copied' : 'Copy'}</span>
+                    </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(acc)}
-                        className="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                        title="Remove partner access"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </>
-                  )}
+                    {!isMaster && (
+                      <ToggleSwitch
+                        checked={acc.isActive}
+                        onChange={() => handleToggleActive(acc)}
+                        label={`Toggle access for ${acc.name}`}
+                      />
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => openEditDrawer(acc)}
+                      aria-label={`Manage ${acc.name}`}
+                      className="p-1 text-[#a09597] hover:text-[#1b1416] cursor-pointer"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })}
 
           {filteredAccounts.length === 0 && (
-            <div className="p-10 text-center text-sm text-[#716769]">
-              No staff accounts match your current filter.
+            <div className="px-6 py-12 text-center space-y-2">
+              <p className="text-[14px] font-medium text-[#1b1416]">No matching accounts</p>
+              <p className="text-[12px] text-[#716769]">
+                Clear your search filter or add a new branch partner.
+              </p>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Right: Create / Edit Partner Panel */}
-        <form
-          onSubmit={handleSavePartner}
-          className="xl:col-span-5 bg-white rounded-[16px] border border-[#eae3e4] p-5 sm:p-6 shadow-xs space-y-4 sticky top-6"
-        >
-          <div className="flex items-center justify-between pb-3 border-b border-[#eae3e4]">
-            <div>
-              <h2 className="text-[17px] font-bold text-[#1b1416] flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-[#81141f]" />
-                <span>{editingId ? 'Edit Partner Permissions' : 'New Partner / Car-Stand Login'}</span>
-              </h2>
-              <p className="text-[11px] text-[#716769] mt-0.5">
-                Lock login to specific Nigerian state(s) &amp; product/rental sections.
-              </p>
+      {/* ====================================================================
+          SLIDE-OVER ACCOUNT INSPECTOR & EDITOR DRAWER
+         ==================================================================== */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-[1px] transition-opacity"
+            onClick={() => setDrawerOpen(false)}
+          />
+
+          <form
+            onSubmit={handleSavePartner}
+            className="relative z-10 w-full max-w-[520px] h-full bg-white shadow-2xl border-l border-[#eae3e4] flex flex-col animate-in slide-in-from-right duration-200"
+          >
+            {/* Sticky Drawer Header */}
+            <div className="px-6 py-4 border-b border-[#eae3e4] flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={cn(
+                    'w-10 h-10 rounded-full font-semibold text-xs flex items-center justify-center shrink-0',
+                    isEditingMaster ? 'bg-[#1b1416] text-white' : 'bg-[#f8eced] text-[#81141f]'
+                  )}
+                >
+                  {editingAccount ? editingAccount.avatarInitials : <Plus className="w-4 h-4" />}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-[16px] font-bold text-[#1b1416] truncate">
+                    {editingAccount ? editingAccount.name : 'New Partner Login'}
+                  </h2>
+                  <p className="text-[12px] text-[#716769] truncate">
+                    {editingAccount
+                      ? `${editingAccount.role} · ${formatStateSummary(editingAccount.assignedStates)}`
+                      : 'Lock access to a Nigerian state and stand section'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {editingAccount && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCredentials(editingAccount)}
+                    className="h-8 px-3 rounded-lg border border-[#eae3e4] hover:border-[#81141f] text-[12px] font-medium text-[#1b1416] inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {copiedId === editingAccount.id ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 text-[#81141f]" />
+                    )}
+                    <span>{copiedId === editingAccount.id ? 'Copied' : 'Copy Login'}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setDrawerOpen(false)}
+                  aria-label="Close drawer"
+                  className="w-8 h-8 rounded-lg hover:bg-[#f6f3f4] text-[#716769] hover:text-[#1b1416] flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            {editingId && (
+
+            {/* Drawer Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+              {/* Critical Quick Metrics for Existing Accounts */}
+              {editingAccount && (() => {
+                const liveStats = statsForAccount(editingAccount);
+                const cleanWa = formatPhoneForWhatsApp(editingAccount.phone);
+                return (
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="px-3.5 py-2.5 rounded-xl bg-[#faf8f8] border border-[#f0eaeb]">
+                      <div className="text-[11px] text-[#716769]">Live Units</div>
+                      <div className="text-[18px] font-bold text-[#1b1416] mt-0.5">
+                        {liveStats.live}
+                      </div>
+                    </div>
+                    <div className="px-3.5 py-2.5 rounded-xl bg-[#faf8f8] border border-[#f0eaeb]">
+                      <div className="text-[11px] text-[#716769]">Sold / Rented</div>
+                      <div className="text-[18px] font-bold text-[#1b1416] mt-0.5">
+                        {liveStats.sold}
+                      </div>
+                    </div>
+                    <div className="px-3.5 py-2.5 rounded-xl bg-[#faf8f8] border border-[#f0eaeb] flex flex-col justify-between">
+                      <div className="text-[11px] text-[#716769]">Contact</div>
+                      {cleanWa ? (
+                        <a
+                          href={`https://wa.me/${cleanWa}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[12px] font-semibold text-[#81141f] hover:underline inline-flex items-center gap-1 mt-1"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>WhatsApp</span>
+                        </a>
+                      ) : (
+                        <span className="text-[12px] text-[#716769] mt-1">No phone</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Role Preset (non-Master) */}
+              {!isEditingMaster && (
+                <div className="space-y-2.5">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-[#716769]">
+                    Access Level
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {[
+                      {
+                        id: 'Stand Uploader' as const,
+                        title: 'Stand Uploader',
+                        hint: 'Uploads photos & marks items sold. No bookings or money tabs.',
+                      },
+                      {
+                        id: 'Regional Admin' as const,
+                        title: 'Regional Admin',
+                        hint: 'Full state inventory + handles inspections & rental bookings.',
+                      },
+                    ].map(preset => {
+                      const active = role === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => applyRolePreset(preset.id)}
+                          className={cn(
+                            'p-3 rounded-xl border text-left transition-all cursor-pointer',
+                            active
+                              ? 'border-[#81141f] bg-[#fcf5f6]'
+                              : 'border-[#eae3e4] bg-white hover:border-[#cbbec0]'
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[13px] font-semibold text-[#1b1416]">
+                              {preset.title}
+                            </span>
+                            {active && <Check className="w-3.5 h-3.5 text-[#81141f]" />}
+                          </div>
+                          <p className="text-[11px] text-[#716769] leading-snug mt-1">
+                            {preset.hint}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Identity & Credentials */}
+              <div className="space-y-3 pt-1 border-t border-[#f0eaeb]">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#716769] pt-2">
+                  Identity &amp; Portal Login
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-medium text-[#4a4245]">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      placeholder="e.g. Chinedu Okafor"
+                      className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-medium text-[#4a4245]">Phone / WhatsApp</label>
+                    <input
+                      type="text"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      placeholder="+234 803..."
+                      className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-medium text-[#4a4245]">Portal Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="stand@bzdegreat.com"
+                      disabled={editingAccount?.id === 'ADM-001'}
+                      className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f] disabled:bg-[#faf8f8] disabled:text-[#716769]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-medium text-[#4a4245] flex items-center gap-1">
+                      <KeyRound className="w-3 h-3 text-[#716769]" />
+                      <span>Password *</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Set password"
+                        className="w-full h-10 pl-3 pr-9 rounded-lg border border-[#eae3e4] text-[13px] font-mono text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(p => !p)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8c8082] hover:text-[#1b1416] cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Territory & Branch Location */}
+              {!isEditingMaster && (
+                <div className="space-y-3.5 pt-2 border-t border-[#f0eaeb]">
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#716769]">
+                      Territory &amp; Branch Stand
+                    </span>
+                    {findBranchForState(assignedStates[0]) && (
+                      <button
+                        type="button"
+                        onClick={fillBranchFromState}
+                        className="text-[11px] font-semibold text-[#81141f] hover:underline cursor-pointer"
+                      >
+                        Use {assignedStates[0]?.replace(' State', '')} office address
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Assigned States (selected chips + clean Add State dropdown) */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12px] font-medium text-[#4a4245]">
+                        Assigned State(s)
+                      </span>
+                      <select
+                        value=""
+                        onChange={e => addState(e.target.value)}
+                        aria-label="Add state to territory"
+                        className="h-8 px-2.5 rounded-lg border border-[#eae3e4] bg-white text-[12px] font-medium text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                      >
+                        <option value="">+ Add state...</option>
+                        {unselectedHubStates.length > 0 && (
+                          <optgroup label="Key Branch Hubs">
+                            {unselectedHubStates.map(s => (
+                              <option key={s.value} value={s.value}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        <optgroup label="All Nigerian States">
+                          {unselectedOtherStates.map(s => (
+                            <option key={s.value} value={s.value}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {assignedStates.map(st => (
+                        <span
+                          key={st}
+                          className="inline-flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-full bg-[#fcf3f4] border border-[#ebc7cb] text-[12px] font-semibold text-[#81141f]"
+                        >
+                          <span>{st.replace(/ State$/i, '')}</span>
+                          {assignedStates.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeState(st)}
+                              aria-label={`Remove ${st}`}
+                              className="hover:text-[#1b1416] cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[12px] font-medium text-[#4a4245]">
+                        Car Stand / Office Name
+                      </label>
+                      <input
+                        type="text"
+                        value={branchOffice}
+                        onChange={e => setBranchOffice(e.target.value)}
+                        placeholder="e.g. Awka Car Stand — Aroma Junction"
+                        className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[12px] font-medium text-[#4a4245]">
+                        Inspection Address (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={branchAddress}
+                        onChange={e => setBranchAddress(e.target.value)}
+                        placeholder="Landmark where walk-in clients inspect cars or homes"
+                        className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sections & Safeguards */}
+              {!isEditingMaster && (
+                <div className="space-y-4 pt-2 border-t border-[#f0eaeb]">
+                  <div className="pt-2 space-y-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#716769] block">
+                      Allowed Sections
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {ALL_LISTING_CATEGORIES.map(cat => {
+                        const checked = allowedCategories.includes(cat);
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => toggleCategoryPermission(cat)}
+                            className={cn(
+                              'h-10 px-3 rounded-lg border text-[12px] font-medium flex items-center justify-between transition-colors cursor-pointer',
+                              checked
+                                ? 'border-[#81141f] bg-[#fcf5f6] text-[#81141f]'
+                                : 'border-[#eae3e4] bg-white text-[#4a4245] hover:border-[#cbbec0]'
+                            )}
+                          >
+                            <span>{formatCategoryLabel(cat)}</span>
+                            <span
+                              className={cn(
+                                'w-4 h-4 rounded flex items-center justify-center border text-[10px]',
+                                checked
+                                  ? 'bg-[#81141f] border-[#81141f] text-white'
+                                  : 'border-[#d6cdcf]'
+                              )}
+                            >
+                              {checked && <Check className="w-3 h-3" />}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="divide-y divide-[#f0eaeb] pt-1">
+                    <PermissionToggleRow
+                      title="Bookings & Inspections"
+                      description="View and confirm rental & inspection bookings in their state(s)"
+                      checked={allowBookings}
+                      onChange={setAllowBookings}
+                    />
+                    <PermissionToggleRow
+                      title="Require HQ Approval"
+                      description="Hold new uploads as drafts until Master Admin approves them live"
+                      checked={requireApproval}
+                      onChange={setRequireApproval}
+                    />
+                    <PermissionToggleRow
+                      title="Permanent Delete Access"
+                      description="Allow deleting records instead of only marking them Sold or Rented"
+                      checked={canDeleteListings}
+                      onChange={setCanDeleteListings}
+                    />
+                  </div>
+
+                  <div className="flex items-start gap-2 text-[11px] text-[#716769] bg-[#faf8f8] rounded-xl px-3.5 py-2.5 border border-[#f0eaeb]">
+                    <Lock className="w-3.5 h-3.5 text-[#81141f] shrink-0 mt-0.5" />
+                    <span>
+                      Payments, financial reports, customers, and website CMS remain hidden for all partner accounts.
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sticky Drawer Footer */}
+            <div className="px-6 py-4 border-t border-[#eae3e4] bg-[#faf8f8] flex items-center justify-between gap-3 shrink-0">
+              <div>
+                {editingAccount && !isEditingMaster && (
+                  confirmDeleteId === editingAccount.id ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleConfirmDelete(editingAccount)}
+                        className="h-9 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-semibold cursor-pointer"
+                      >
+                        Confirm Remove
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="text-[12px] text-[#716769] hover:text-[#1b1416] cursor-pointer"
+                      >
+                        Keep
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(editingAccount.id)}
+                      className="h-9 px-2.5 rounded-lg text-[12px] font-medium text-rose-700 hover:bg-rose-50 inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
+                  )
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setDrawerOpen(false)}
+                  className="h-10 px-4 rounded-xl border border-[#eae3e4] bg-white hover:bg-[#f6f3f4] text-[13px] font-medium text-[#4a4245] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="h-10 px-5 rounded-xl bg-[#81141f] hover:bg-[#680e18] text-white text-[13px] font-semibold shadow-2xs transition-colors cursor-pointer"
+                >
+                  {editingAccount ? 'Save Changes' : 'Create Login'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ====================================================================
+          BRANCH OFFICES QUICK DIRECTORY DRAWER
+         ==================================================================== */}
+      {branchesOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-[1px]"
+            onClick={() => setBranchesOpen(false)}
+          />
+          <div className="relative z-10 w-full max-w-[480px] h-full bg-white shadow-2xl border-l border-[#eae3e4] flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="px-6 py-4 border-b border-[#eae3e4] flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-[16px] font-bold text-[#1b1416]">
+                  Regional Branch Directory
+                </h2>
+                <p className="text-[12px] text-[#716769]">
+                  {BRANCH_OFFICES.length} registered car stands &amp; regional inspection desks
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={resetFormToNew}
-                className="text-xs font-semibold text-[#81141f] hover:underline cursor-pointer"
+                onClick={() => setBranchesOpen(false)}
+                aria-label="Close branches"
+                className="w-8 h-8 rounded-lg hover:bg-[#f6f3f4] text-[#716769] hover:text-[#1b1416] flex items-center justify-center cursor-pointer"
               >
-                + New
+                <X className="w-4 h-4" />
               </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-[#716769]">Full Name *</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="e.g. Chinedu Okafor"
-                className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-xs font-medium focus:outline-none focus:border-[#81141f]"
-              />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-[#716769]">Phone / WhatsApp</label>
-              <input
-                type="text"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="+234 803..."
-                className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-xs font-medium focus:outline-none focus:border-[#81141f]"
-              />
-            </div>
-          </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-3">
+              {BRANCH_OFFICES.map(branch => {
+                const branchListings = listings.filter(l =>
+                  matchesAssignedStates(getListingState(l), [branch.state])
+                );
+                const liveCount = branchListings.filter(l => isListingLive(l)).length;
+                const branchReps = staffAccounts.filter(
+                  s => s.isActive && s.role !== 'Master Admin' && matchesAssignedStates(branch.state, s.assignedStates)
+                );
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-[#716769]">Portal Email *</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="stand@bzdegreat.com"
-                disabled={editingId === 'ADM-001'}
-                className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-xs font-medium focus:outline-none focus:border-[#81141f] disabled:bg-stone-50"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-[#716769] flex items-center gap-1">
-                <KeyRound className="w-3 h-3" />
-                <span>Login Password *</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Set password"
-                className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-xs font-mono focus:outline-none focus:border-[#81141f]"
-              />
-            </div>
-          </div>
-
-          {editingId !== 'ADM-001' && (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-[#716769]">Account Role</label>
-                  <select
-                    value={role}
-                    onChange={e => {
-                      const nextRole = e.target.value as AdminRole;
-                      setRole(nextRole);
-                      if (nextRole === 'Regional Admin') {
-                        setAllowBookings(true);
-                      }
-                    }}
-                    className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] bg-white text-xs font-semibold focus:outline-none focus:border-[#81141f]"
+                return (
+                  <div
+                    key={branch.id}
+                    className="p-4 rounded-xl border border-[#eae3e4] bg-white hover:border-[#d6c8ca] transition-colors space-y-2"
                   >
-                    <option value="Stand Uploader">Stand Uploader (Cars / Stand)</option>
-                    <option value="Regional Admin">Regional Admin (State Office)</option>
-                  </select>
-                </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="text-[14px] font-semibold text-[#1b1416]">{branch.name}</div>
+                        <div className="text-[12px] text-[#716769]">
+                          {branch.city}, {branch.state.replace(/ State$/i, '')} · Desk Lead: {branch.managerName}
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-semibold text-[#81141f] shrink-0">
+                        {liveCount} live
+                      </span>
+                    </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-[#716769] flex items-center gap-1">
-                    <Building2 className="w-3 h-3" />
-                    <span>Car Stand / Office Name</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={branchOffice}
-                    onChange={e => setBranchOffice(e.target.value)}
-                    placeholder="e.g. Awka Car Stand · Aroma"
-                    className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-xs font-medium focus:outline-none focus:border-[#81141f]"
-                  />
-                </div>
-              </div>
+                    <div className="text-[12px] text-[#716769] leading-relaxed">
+                      {branch.address}
+                    </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-[#716769]">Office / Lot Address (Optional)</label>
-                <input
-                  type="text"
-                  value={branchAddress}
-                  onChange={e => setBranchAddress(e.target.value)}
-                  placeholder="Street or landmark where customers attend inspections"
-                  className="w-full h-10 px-3 rounded-lg border border-[#eae3e4] text-xs font-medium focus:outline-none focus:border-[#81141f]"
-                />
-              </div>
-
-              {/* Assigned Nigerian State(s) */}
-              <div className="space-y-2 p-3 rounded-xl bg-[#f8f5f5] border border-[#eae3e4]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#716769]">
-                    Assigned State(s) ({assignedStates.length})
-                  </span>
-                  <select
-                    value=""
-                    onChange={e => {
-                      if (e.target.value) toggleStateSelection(e.target.value);
-                    }}
-                    className="h-7 px-2 rounded border border-[#eae3e4] bg-white text-[11px] font-semibold text-[#1b1416]"
-                  >
-                    <option value="">+ Add any state...</option>
-                    {NIGERIA_STATES.map(s => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5">
-                  {Array.from(new Set([...TOP_BRANCH_STATES, ...assignedStates])).map(st => {
-                    const selected = assignedStates.includes(st);
-                    return (
+                    <div className="flex items-center justify-between pt-2 border-t border-[#f4eff0] text-[12px]">
+                      <span className="text-[#716769]">
+                        {branchReps.length} active {branchReps.length === 1 ? 'rep' : 'reps'} · {branch.phone}
+                      </span>
                       <button
-                        key={st}
                         type="button"
-                        onClick={() => toggleStateSelection(st)}
-                        className={cn(
-                          'px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer border',
-                          selected
-                            ? 'bg-[#81141f] text-white border-[#81141f]'
-                            : 'bg-white text-[#4a4245] border-[#eae3e4] hover:border-[#81141f]'
-                        )}
+                        onClick={() => openNewPartnerDrawer(branch)}
+                        className="font-semibold text-[#81141f] hover:underline cursor-pointer"
                       >
-                        {st.replace(' State', '')}
+                        + Add Rep
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Allowed Sections Checkboxes */}
-              <div className="space-y-2 p-3 rounded-xl bg-[#f8f5f5] border border-[#eae3e4]">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#716769] block">
-                  Allowed Sections &amp; Permissions
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {ALL_LISTING_CATEGORIES.map(cat => {
-                    const checked = allowedCategories.includes(cat);
-                    return (
-                      <label
-                        key={cat}
-                        className="flex items-center gap-2 text-xs font-semibold text-[#1b1416] bg-white px-2.5 py-2 rounded-lg border border-[#eae3e4] cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleCategoryPermission(cat)}
-                          className="accent-[#81141f] w-3.5 h-3.5 cursor-pointer"
-                        />
-                        <span>{formatCategoryLabel(cat)}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-
-                <label className="flex items-center gap-2 text-xs font-semibold text-[#1b1416] bg-white px-2.5 py-2 rounded-lg border border-[#eae3e4] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={allowBookings}
-                    onChange={e => setAllowBookings(e.target.checked)}
-                    className="accent-[#81141f] w-3.5 h-3.5 cursor-pointer"
-                  />
-                  <span>Can handle local Rental &amp; House Viewing bookings in their state(s)</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-xs font-semibold text-[#1b1416] bg-white px-2.5 py-2 rounded-lg border border-[#eae3e4] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={requireApproval}
-                    onChange={e => setRequireApproval(e.target.checked)}
-                    className="accent-[#81141f] w-3.5 h-3.5 cursor-pointer"
-                  />
-                  <span>Hold uploads for Master Admin approval before going live</span>
-                </label>
-
-                <div className="text-[11px] text-[#716769] pt-0.5">
-                  Payments, Financial Reports, Customers &amp; Website CMS stay strictly hidden for non-Master roles.
-                </div>
-              </div>
-            </>
-          )}
-
-          <button
-            type="submit"
-            className="w-full h-11 rounded-xl bg-[#81141f] hover:bg-[#680e18] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
-          >
-            {editingId ? 'Save Partner Permissions' : 'Create Partner Login'}
-          </button>
-
-          {/* Branch Directory quick reference */}
-          <div className="pt-2 border-t border-[#eae3e4]">
-            <p className="text-[11px] font-bold text-[#716769] mb-1.5">
-              Registered Regional Desks ({BRANCH_OFFICES.length})
-            </p>
-            <div className="text-[11px] text-[#716769] space-y-1 max-h-28 overflow-y-auto pr-1">
-              {BRANCH_OFFICES.map(b => (
-                <div key={b.id} className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-[#1b1416] truncate">{b.name}</span>
-                  <span className="shrink-0">{b.managerName}</span>
-                </div>
-              ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </form>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
