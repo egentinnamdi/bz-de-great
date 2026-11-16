@@ -12,20 +12,21 @@ import {
   Image as ImageIcon,
   Check,
   Clock,
-  Trash2
+  Trash2,
+  ShieldCheck
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
 import { cn } from '@/lib/utils';
 
 interface ActivityItem {
   id: string;
-  category: 'payments' | 'listings' | 'content' | 'bookings';
+  category: 'payments' | 'listings' | 'content' | 'bookings' | 'team';
   actorName: string;
   actionText: string;
   targetDetails: string;
   timestamp: string;
   dayGroup: 'TODAY' | 'YESTERDAY' | 'EARLIER';
-  iconType: 'payment' | 'listing' | 'payout' | 'booking' | 'content';
+  iconType: 'payment' | 'listing' | 'payout' | 'booking' | 'content' | 'team';
 }
 
 import { useStore } from '@/lib/store';
@@ -42,6 +43,7 @@ export default function AdminActivityLogPage() {
       if (a.category === 'listings') iconType = 'listing';
       else if (a.category === 'bookings') iconType = 'booking';
       else if (a.category === 'content') iconType = 'content';
+      else if (a.category === 'team') iconType = 'team';
 
       const tsLower = (a.timestamp || '').toLowerCase();
       let dayGroup: 'TODAY' | 'YESTERDAY' | 'EARLIER' = 'EARLIER';
@@ -129,6 +131,8 @@ export default function AdminActivityLogPage() {
         return <Calendar className="w-3.5 h-3.5 text-[#7A0C1A]" />;
       case 'content':
         return <ImageIcon className="w-3.5 h-3.5 text-[#7A0C1A]" />;
+      case 'team':
+        return <ShieldCheck className="w-3.5 h-3.5 text-[#7A0C1A]" />;
     }
   };
 

@@ -13,6 +13,7 @@ import { ScrollReveal } from '@/components/ui/scroll-reveal';
 import { NigeriaLocationOptions } from '@/components/nigeria-location-options';
 import { matchesLocationFilter } from '@/lib/locations';
 import { useStore } from '@/lib/store';
+import { isListingLive } from '@/lib/staff';
 
 function HomesForRentContent() {
   const { listings } = useStore();
@@ -67,7 +68,7 @@ function HomesForRentContent() {
 
   const homesForRent = useMemo(() => {
     return listings
-      .filter(l => l.category === 'property_rent')
+      .filter(l => isListingLive(l) && l.category === 'property_rent')
       .filter(item => {
         if (!keyword.trim()) return true;
         const kw = keyword.toLowerCase();

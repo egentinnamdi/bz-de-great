@@ -1,14 +1,29 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from './supabase/client';
+import { useStore } from './store';
+import { AdminRole, AdminSectionId, ListingCategory, StaffAccount } from './types';
+import {
+  ALL_ADMIN_MODULES,
+  ALL_LISTING_CATEGORIES,
+  DEFAULT_STAFF_ACCOUNTS,
+  getFirstAllowedAdminRoute,
+} from './staff';
 
 export interface AdminUser {
   id: string;
   name: string;
   email: string;
-  role: 'Master Admin';
+  phone: string;
+  role: AdminRole;
+  assignedStates: string[];
+  allowedCategories: ListingCategory[];
+  allowedModules: AdminSectionId[];
+  branchOffice: string;
+  requireApprovalBeforeLive?: boolean;
+  canDeleteListings?: boolean;
   avatarInitials: string;
 }
 
@@ -16,63 +31,82 @@ interface AdminAuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: AdminUser | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; landingRoute?: string }>;
   logout: () => Promise<void>;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
 
 const SESSION_STORAGE_KEY = 'bz_group_admin_auth_v2';
-const AUTHORIZED_EMAIL = 'admin@bzgroup.com';
-const AUTHORIZED_PASSWORD = 'admin2026';
+const MASTER_EMAIL = 'admin@bzgroup.com';
 
-const MASTER_ADMIN_USER: AdminUser = {
-  id: 'ADM-001',
-  name: 'Administrator',
-  email: AUTHORIZED_EMAIL,
-  role: 'Master Admin',
-  avatarInitials: 'AD'
-};
+function toAdminUser(acc: StaffAccount): AdminUser {
+  return {
+    id: acc.id,
+    name: acc.name,
+    email: acc.email,
+    phone: acc.phone,
+    role: acc.role,
+    assignedStates: acc.assignedStates?.length ? acc.assignedStates : ['ALL'],
+    allowedCategories: acc.allowedCategories?.length ? acc.allowedCategories : ALL_LISTING_CATEGORIES,
+    allowedModules: acc.allowedModules?.length ? acc.allowedModules : ALL_ADMIN_MODULES,
+    branchOffice: acc.branchOffice || 'BZ Group Operations Desk',
+    requireApprovalBeforeLive: Boolean(acc.requireApprovalBeforeLive),
+    canDeleteListings: Boolean(acc.canDeleteListings),
+    avatarInitials: acc.avatarInitials || 'BZ',
+  };
+}
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
+  const { staffAccounts, addActivity } = useStore();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  const combinedStaff = useMemo(() => {
+    const existingEmails = new Set(staffAccounts.map(s => s.email.toLowerCase()));
+    const missingDefaults = DEFAULT_STAFF_ACCOUNTS.filter(
+      d => !existingEmails.has(d.email.toLowerCase())
+    );
+    return [...staffAccounts, ...missingDefaults];
+  }, [staffAccounts]);
+
+  // Initial session hydration from cache + Supabase Auth
   useEffect(() => {
     let mounted = true;
 
-    // 1. Initial cached check
     try {
       const stored = localStorage.getItem(SESSION_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && parsed.email === AUTHORIZED_EMAIL) {
-          setUser(MASTER_ADMIN_USER);
-        } else {
-          localStorage.removeItem(SESSION_STORAGE_KEY);
+        if (parsed?.email) {
+          const match = combinedStaff.find(
+            s => s.email.toLowerCase() === String(parsed.email).toLowerCase() && s.isActive
+          );
+          if (match) {
+            setUser(toAdminUser(match));
+          } else {
+            localStorage.removeItem(SESSION_STORAGE_KEY);
+          }
         }
       }
     } catch (err) {
-      console.warn('Failed to parse cached session:', err);
+      console.warn('Failed to parse cached admin session:', err);
     }
 
-    // 2. Query Supabase Auth session
     const checkSupabaseSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user && mounted) {
-          if (session.user.email?.toLowerCase() === AUTHORIZED_EMAIL) {
-            setUser(MASTER_ADMIN_USER);
+          const matched = combinedStaff.find(
+            s => s.email.toLowerCase() === session.user.email?.toLowerCase() && s.isActive
+          );
+          if (matched) {
+            const adminUser = toAdminUser(matched);
+            setUser(adminUser);
             try {
-              localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(MASTER_ADMIN_USER));
-            } catch (e) {}
-          } else {
-            await supabase.auth.signOut();
-            setUser(null);
-            try {
-              localStorage.removeItem(SESSION_STORAGE_KEY);
-            } catch (e) {}
+              localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(adminUser));
+            } catch {}
           }
         }
       } catch (err) {
@@ -84,26 +118,23 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
     checkSupabaseSession();
 
-    // 3. Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user && mounted) {
-        if (session.user.email?.toLowerCase() === AUTHORIZED_EMAIL) {
-          setUser(MASTER_ADMIN_USER);
-          try {
-            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(MASTER_ADMIN_USER));
-          } catch (e) {}
-        } else {
-          await supabase.auth.signOut();
-          setUser(null);
-          try {
-            localStorage.removeItem(SESSION_STORAGE_KEY);
-          } catch (e) {}
-        }
-      } else if (event === 'SIGNED_OUT' && mounted) {
+      if (event === 'SIGNED_OUT' && mounted) {
         setUser(null);
         try {
           localStorage.removeItem(SESSION_STORAGE_KEY);
-        } catch (e) {}
+        } catch {}
+      } else if (session?.user && mounted) {
+        const matched = combinedStaff.find(
+          s => s.email.toLowerCase() === session.user.email?.toLowerCase() && s.isActive
+        );
+        if (matched) {
+          const adminUser = toAdminUser(matched);
+          setUser(adminUser);
+          try {
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(adminUser));
+          } catch {}
+        }
       }
     });
 
@@ -111,57 +142,93 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription?.unsubscribe();
     };
-  }, []);
+  }, []); // Run hydration once on mount
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  // Live permission sync whenever Owner modifies or suspends a partner account
+  useEffect(() => {
+    if (!user) return;
+    const latest = combinedStaff.find(
+      s => s.id === user.id || s.email.toLowerCase() === user.email.toLowerCase()
+    );
+    if (!latest) return;
+
+    if (!latest.isActive) {
+      setUser(null);
+      try {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+      } catch {}
+      router.replace('/admin/login');
+      return;
+    }
+
+    const refreshed = toAdminUser(latest);
+    if (JSON.stringify(refreshed) !== JSON.stringify(user)) {
+      setUser(refreshed);
+      try {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(refreshed));
+      } catch {}
+    }
+  }, [combinedStaff, user, router]);
+
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string; landingRoute?: string }> => {
     const trimmedEmail = email.trim().toLowerCase();
+    const account = combinedStaff.find(s => s.email.toLowerCase() === trimmedEmail);
 
-    // Strict authentication check - strictly admin@bzgroup.com and admin2026
-    if (trimmedEmail !== AUTHORIZED_EMAIL || password !== AUTHORIZED_PASSWORD) {
-      // Standard security practice: generic error with zero hints
+    if (!account || account.password !== password) {
       return { success: false, error: 'Invalid email or password.' };
     }
 
-    // Try Supabase Auth signInWithPassword if created in Supabase Auth
-    try {
-      await supabase.auth.signInWithPassword({
-        email: AUTHORIZED_EMAIL,
-        password: AUTHORIZED_PASSWORD
-      });
-    } catch (err) {
-      // Ignore Supabase Auth backend connection issues and proceed with authorized master credentials
+    if (!account.isActive) {
+      return {
+        success: false,
+        error: 'This partner/branch account has been suspended. Contact Master Admin.',
+      };
     }
 
-    // Set authorized state
-    setUser(MASTER_ADMIN_USER);
-    try {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(MASTER_ADMIN_USER));
-    } catch (e) {}
+    if (trimmedEmail === MASTER_EMAIL) {
+      try {
+        await supabase.auth.signInWithPassword({
+          email: account.email,
+          password: account.password,
+        });
+      } catch {
+        // Ignore Supabase Auth backend issues if using local/branch credentials
+      }
+    }
 
-    // Audit log sign-in
+    const adminUser = toAdminUser(account);
+    setUser(adminUser);
     try {
-      await supabase.from('staff_activities').insert({
-        id: `act-${Date.now()}`,
-        category: 'auth',
-        staff_name: MASTER_ADMIN_USER.name,
-        action: 'signed in to portal',
-        target: 'Operations Desk',
-        details: 'Master Admin authenticated successfully',
-        timestamp_display: 'Just now'
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(adminUser));
+    } catch {}
+
+    try {
+      await addActivity({
+        actorName: adminUser.name,
+        actorRole: `${adminUser.role} · ${adminUser.branchOffice}`,
+        action: `signed in (${adminUser.assignedStates.join(', ')})`,
+        target: adminUser.branchOffice,
+        category: 'team',
       });
-    } catch (e) {}
+    } catch {}
 
-    return { success: true };
+    return {
+      success: true,
+      landingRoute: getFirstAllowedAdminRoute(adminUser),
+    };
   };
 
   const logout = async () => {
     try {
       await supabase.auth.signOut();
-    } catch (e) {}
+    } catch {}
     setUser(null);
     try {
       localStorage.removeItem(SESSION_STORAGE_KEY);
-    } catch (e) {}
+    } catch {}
     router.push('/admin/login');
   };
 
@@ -172,7 +239,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         user,
         login,
-        logout
+        logout,
       }}
     >
       {children}

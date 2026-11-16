@@ -28,6 +28,8 @@ import { CardCar } from '@/components/card-car';
 import { GalleryViewer } from '@/components/gallery-viewer';
 import { BookingModal } from '@/components/booking-modal';
 import { useStore } from '@/lib/store';
+import { isListingLive } from '@/lib/staff';
+import { ListingUnavailableState } from '@/components/listing-unavailable-state';
 import { useToast } from '@/components/toast-provider';
 import { getWhatsAppBookingLink } from '@/lib/constants';
 
@@ -49,6 +51,19 @@ export default function CarSaleDetailPage() {
   const [preferredDate, setPreferredDate] = useState<string>('2026-10-27');
   const [preferredTime, setPreferredTime] = useState<string>('11:00 AM');
 
+  if (car && !isListingLive(car)) {
+    return (
+      <ListingUnavailableState
+        title={car.title}
+        location={car.location}
+        status={car.status}
+        backHref="/cars/buy"
+        backLabel="Browse Cars for Sale"
+        assetKindLabel="vehicle"
+      />
+    );
+  }
+
   if (!car) {
     return (
       <div className="min-h-screen flex flex-col bg-[#fdfbfb] text-[#1b1416]">
@@ -69,7 +84,7 @@ export default function CarSaleDetailPage() {
 
   const specs = car.vehicleSpecs;
   const similarCars = listings
-    .filter(l => l.category === 'car_sale' && l.id !== car.id)
+    .filter(l => isListingLive(l) && l.category === 'car_sale' && l.id !== car.id)
     .slice(0, 3);
 
   const handleShare = () => {

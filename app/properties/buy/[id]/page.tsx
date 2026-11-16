@@ -29,6 +29,8 @@ import { CardProperty } from '@/components/card-property';
 import { GalleryViewer } from '@/components/gallery-viewer';
 import { BookingModal } from '@/components/booking-modal';
 import { useStore } from '@/lib/store';
+import { isListingLive } from '@/lib/staff';
+import { ListingUnavailableState } from '@/components/listing-unavailable-state';
 import { useToast } from '@/components/toast-provider';
 import { getWhatsAppBookingLink } from '@/lib/constants';
 
@@ -50,6 +52,19 @@ export default function PropertySaleDetailPage() {
   const [preferredDate, setPreferredDate] = useState<string>('2026-10-26');
   const [preferredTime, setPreferredTime] = useState<string>('11:00 AM');
 
+  if (property && !isListingLive(property)) {
+    return (
+      <ListingUnavailableState
+        title={property.title}
+        location={property.location}
+        status={property.status}
+        backHref="/properties/buy"
+        backLabel="Browse Properties for Sale"
+        assetKindLabel="property"
+      />
+    );
+  }
+
   if (!property) {
     return (
       <div className="min-h-screen flex flex-col bg-[#fdfbfb] text-[#1b1416]">
@@ -70,7 +85,7 @@ export default function PropertySaleDetailPage() {
 
   const specs = property.propertySpecs;
   const similarProperties = listings
-    .filter(l => l.category === 'property_sale' && l.id !== property.id)
+    .filter(l => isListingLive(l) && l.category === 'property_sale' && l.id !== property.id)
     .slice(0, 3);
 
   const handleShare = () => {

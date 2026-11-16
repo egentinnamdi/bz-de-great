@@ -13,6 +13,7 @@ import { ScrollReveal } from '@/components/ui/scroll-reveal';
 import { NigeriaLocationOptions } from '@/components/nigeria-location-options';
 import { matchesLocationFilter } from '@/lib/locations';
 import { useStore } from '@/lib/store';
+import { isListingLive } from '@/lib/staff';
 
 function CarRentalsContent() {
   const { listings } = useStore();
@@ -75,7 +76,7 @@ function CarRentalsContent() {
   // Filter listings
   const filteredCars = useMemo(() => {
     return listings
-      .filter(item => item.category === 'car_rent')
+      .filter(item => isListingLive(item) && item.category === 'car_rent')
       .filter(item => {
         if (!keyword.trim()) return true;
         const kw = keyword.toLowerCase();

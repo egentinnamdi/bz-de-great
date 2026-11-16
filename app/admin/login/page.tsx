@@ -30,12 +30,12 @@ function AdminLoginContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const returnUrl = searchParams.get('returnUrl') || '/admin';
+  const returnUrl = searchParams.get('returnUrl');
 
   // If already logged in, redirect immediately
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace(returnUrl);
+      router.replace(returnUrl || '/admin');
     }
   }, [isAuthenticated, isLoading, returnUrl, router]);
 
@@ -52,7 +52,7 @@ function AdminLoginContent() {
           description: 'Welcome to BZ Group operations desk.',
           variant: 'default'
         });
-        router.replace(returnUrl);
+        router.replace(returnUrl || res.landingRoute || '/admin');
       } else {
         // Strict security: generic error without any hints
         setErrorMessage(res.error || 'Invalid email or password.');
@@ -94,7 +94,7 @@ function AdminLoginContent() {
             </h1>
 
             <p className="text-[13px] text-[#716769] font-normal leading-relaxed">
-              Enter your authorized corporate credentials to access the administration portal.
+              Sign in with your Master Admin or assigned branch office / car-stand credentials.
             </p>
           </div>
 

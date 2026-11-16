@@ -24,6 +24,55 @@ export interface PropertySpecs {
   amenities: string[];
 }
 
+export type ListingStatus = 'published' | 'draft' | 'sold' | 'rented' | 'reserved' | 'archived';
+
+export type AdminRole = 'Master Admin' | 'Regional Admin' | 'Stand Uploader';
+
+export type AdminSectionId =
+  | 'overview'
+  | 'listings'
+  | 'bookings'
+  | 'marketplace'
+  | 'studio'
+  | 'equipment'
+  | 'events'
+  | 'payments'
+  | 'customers'
+  | 'website_content'
+  | 'reports'
+  | 'activity_log'
+  | 'team';
+
+export interface StaffAccount {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  role: AdminRole;
+  assignedStates: string[]; // ['ALL'] for Master Admin or Nigerian state names e.g. ['Anambra State']
+  allowedCategories: ListingCategory[];
+  allowedModules: AdminSectionId[];
+  branchOffice: string; // e.g. 'Awka Car Stand — Aroma Junction'
+  branchAddress?: string;
+  isActive: boolean;
+  requireApprovalBeforeLive?: boolean;
+  canDeleteListings?: boolean;
+  avatarInitials: string;
+  createdAt: string;
+}
+
+export interface BranchOffice {
+  id: string;
+  name: string;
+  state: string;
+  city: string;
+  address: string;
+  phone: string;
+  managerName: string;
+  handles: string;
+}
+
 export interface Listing {
   id: string;
   category: ListingCategory;
@@ -35,8 +84,18 @@ export interface Listing {
   currency: 'NGN' | 'USD';
   pricePeriod?: '/day' | '/month' | '/year' | 'total';
   location: string;
+  state?: string;
+  branchOffice?: string;
+  createdById?: string;
+  createdByName?: string;
+  partnerNetPrice?: number;
+  soldAt?: string;
+  soldByName?: string;
+  soldByRole?: string;
+  saleNote?: string;
+  requiresApproval?: boolean;
   images: string[];
-  status: 'published' | 'draft' | 'archived';
+  status: ListingStatus;
   featured?: boolean;
   vehicleSpecs?: VehicleSpecs;
   propertySpecs?: PropertySpecs;
@@ -58,6 +117,10 @@ export interface Booking {
   endDate?: string;
   driverOption?: 'Self-drive' | 'Chauffeured';
   pickupLocation?: string;
+  branchState?: string;
+  branchOffice?: string;
+  assignedRepName?: string;
+  assignedRepPhone?: string;
   totalAmount?: number;
   paymentStatus: 'pending' | 'receipt_uploaded' | 'verified' | 'refunded';
   bookingStatus: 'requested' | 'confirmed' | 'active' | 'returned' | 'declined' | 'rescheduled';
@@ -95,7 +158,7 @@ export interface StaffActivity {
   target?: string;
   details?: string;
   timestamp: string;
-  category?: 'payments' | 'listings' | 'content' | 'bookings';
+  category?: 'payments' | 'listings' | 'content' | 'bookings' | 'team';
 }
 
 export interface WebsiteContentConfig {

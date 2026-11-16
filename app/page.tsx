@@ -33,6 +33,7 @@ import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { useStore } from "@/lib/store"
 import { SITE_CONFIG } from "@/lib/constants"
 import { Listing } from "@/lib/types"
+import { isListingLive } from "@/lib/staff"
 import { cn } from "@/lib/utils"
 
 export default function HomePage() {
@@ -58,7 +59,7 @@ export default function HomePage() {
 
   // Featured Cars derived dynamically from Supabase listings
   const featuredCars = React.useMemo(() => {
-    const cars = listings.filter((l) => l.category.startsWith("car"))
+    const cars = listings.filter((l) => isListingLive(l) && l.category.startsWith("car"))
     const featured = cars.filter((l) => l.featured)
     const pool = featured.length > 0 ? featured : cars
     return pool.slice(0, 3).map((l) => ({
@@ -85,7 +86,7 @@ export default function HomePage() {
 
   // Featured Properties derived dynamically from Supabase listings
   const featuredProperties = React.useMemo(() => {
-    const props = listings.filter((l) => !l.category.startsWith("car"))
+    const props = listings.filter((l) => isListingLive(l) && !l.category.startsWith("car"))
     const featured = props.filter((l) => l.featured)
     const pool = featured.length > 0 ? featured : props
     return pool.slice(0, 3).map((l) => ({

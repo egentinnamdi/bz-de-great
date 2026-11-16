@@ -17,7 +17,15 @@ import {
   EquipmentRental,
   EventItem,
   DigitalTicket,
+  StaffAccount,
 } from './types';
+import {
+  DEFAULT_STAFF_ACCOUNTS,
+  computeInitials,
+  findBranchForState,
+  getListingState,
+} from './staff';
+import { inferStateFromLocation } from './locations';
 import {
   INITIAL_LISTINGS,
   INITIAL_BOOKINGS,
@@ -107,10 +115,22 @@ interface StoreContextType {
   equipmentRentals: EquipmentRental[];
   events: EventItem[];
   digitalTickets: DigitalTicket[];
+  staffAccounts: StaffAccount[];
+
+  // Staff / Branch Team Management
+  addStaffAccount: (
+    account: Omit<StaffAccount, 'id' | 'createdAt' | 'avatarInitials'>
+  ) => Promise<StaffAccount>;
+  updateStaffAccount: (id: string, updates: Partial<StaffAccount>) => Promise<void>;
+  deleteStaffAccount: (id: string) => Promise<void>;
 
   // Existing Mutations
   addListing: (listing: Omit<Listing, 'id' | 'createdAt'>) => Promise<Listing>;
   updateListing: (id: string, updates: Partial<Listing>) => Promise<void>;
+  markListingSold: (
+    id: string,
+    meta: { soldByName: string; soldByRole: string; saleNote?: string }
+  ) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
 
   createBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Promise<Booking>;
@@ -225,6 +245,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [equipmentRentals, setEquipmentRentals] = useState<EquipmentRental[]>(INITIAL_EQUIPMENT_RENTALS);
   const [events, setEvents] = useState<EventItem[]>(INITIAL_EVENTS);
   const [digitalTickets, setDigitalTickets] = useState<DigitalTicket[]>(INITIAL_DIGITAL_TICKETS);
+  const [staffAccounts, setStaffAccounts] = useState<StaffAccount[]>(DEFAULT_STAFF_ACCOUNTS);
 
   // Hydrate from Supabase BaaS (Single Source of Truth)
   const refreshData = useCallback(async () => {
@@ -235,18 +256,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         remoteCustomers,
         remoteActivities,
         remoteContent,
+        remoteStaff,
       ] = await Promise.all([
         supabaseService.fetchListings(),
         supabaseService.fetchBookings(),
         supabaseService.fetchCustomers(),
         supabaseService.fetchActivities(),
         supabaseService.fetchWebsiteContent(),
+        supabaseService.fetchStaffAccounts(),
       ]);
 
       if (remoteListings !== null) setListings(remoteListings);
       if (remoteBookings !== null) setBookings(remoteBookings);
       if (remoteCustomers !== null) setCustomers(remoteCustomers);
       if (remoteActivities !== null) setActivities(remoteActivities);
+      if (remoteStaff !== null && remoteStaff.length > 0) setStaffAccounts(remoteStaff);
       if (remoteContent) {
         setWebsiteContent((prev) => ({
           ...prev,
@@ -355,6 +379,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const p = JSON.parse(cTickets);
         if (Array.isArray(p)) setDigitalTickets(p);
       }
+
+      const cStaff = localStorage.getItem(CACHE_KEY_PREFIX + 'staff_accounts');
+      if (cStaff) {
+        const p = JSON.parse(cStaff);
+        if (Array.isArray(p) && p.length > 0) setStaffAccounts(p);
+      }
     } catch {
       // Ignore cache read failures
     }
@@ -381,6 +411,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(CACHE_KEY_PREFIX + 'equipment_rentals', JSON.stringify(equipmentRentals));
       localStorage.setItem(CACHE_KEY_PREFIX + 'events', JSON.stringify(events));
       localStorage.setItem(CACHE_KEY_PREFIX + 'digital_tickets', JSON.stringify(digitalTickets));
+      localStorage.setItem(CACHE_KEY_PREFIX + 'staff_accounts', JSON.stringify(staffAccounts));
     } catch {
       // Ignore cache write errors
     }
@@ -400,6 +431,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     equipmentRentals,
     events,
     digitalTickets,
+    staffAccounts,
     isLoading,
   ]);
 
@@ -462,11 +494,55 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // EXISTING MUTATIONS
   // ==========================================================================
 
+  const addStaffAccount = async (
+    item: Omit<StaffAccount, 'id' | 'createdAt' | 'avatarInitials'>
+  ): Promise<StaffAccount> => {
+    const newAccount: StaffAccount = {
+      ...item,
+      email: item.email.trim().toLowerCase(),
+      id: `STF-${Date.now().toString(36).toUpperCase()}`,
+      avatarInitials: computeInitials(item.name),
+      createdAt: new Date().toISOString(),
+    };
+    setStaffAccounts((prev) => [...prev, newAccount]);
+    await supabaseService.upsertStaffAccount(newAccount);
+    return newAccount;
+  };
+
+  const updateStaffAccount = async (id: string, updates: Partial<StaffAccount>) => {
+    let updatedTarget: StaffAccount | undefined;
+    setStaffAccounts((prev) =>
+      prev.map((acc) => {
+        if (acc.id !== id) return acc;
+        updatedTarget = {
+          ...acc,
+          ...updates,
+          email: updates.email !== undefined ? updates.email.trim().toLowerCase() : acc.email,
+          avatarInitials: updates.name !== undefined ? computeInitials(updates.name) : acc.avatarInitials,
+        };
+        return updatedTarget;
+      })
+    );
+    if (updatedTarget) {
+      await supabaseService.upsertStaffAccount(updatedTarget);
+    }
+  };
+
+  const deleteStaffAccount = async (id: string) => {
+    if (id === 'ADM-001') return;
+    setStaffAccounts((prev) => prev.filter((acc) => acc.id !== id));
+    await supabaseService.deleteStaffAccount(id);
+  };
+
   const addListing = async (item: Omit<Listing, 'id' | 'createdAt'>) => {
     const newId = `listing-${Date.now()}`;
+    const canonicalState = item.state?.trim() || inferStateFromLocation(item.location);
+    const matchedBranch = findBranchForState(canonicalState);
     const newListing: Listing = {
       ...item,
       id: newId,
+      state: canonicalState,
+      branchOffice: item.branchOffice || matchedBranch?.name,
       createdAt: new Date().toISOString(),
     };
     setListings((prev) => [newListing, ...prev]);
@@ -475,8 +551,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateListing = async (id: string, updates: Partial<Listing>) => {
-    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, ...updates } : l)));
-    await supabaseService.updateListing(id, updates);
+    let merged: Listing | undefined;
+    setListings((prev) =>
+      prev.map((l) => {
+        if (l.id !== id) return l;
+        merged = { ...l, ...updates };
+        return merged;
+      })
+    );
+    await supabaseService.updateListing(id, updates, merged);
+  };
+
+  const markListingSold = async (
+    id: string,
+    meta: { soldByName: string; soldByRole: string; saleNote?: string }
+  ) => {
+    const updates: Partial<Listing> = {
+      status: 'sold',
+      soldAt: new Date().toISOString(),
+      soldByName: meta.soldByName,
+      soldByRole: meta.soldByRole,
+      saleNote: meta.saleNote?.trim() || undefined,
+    };
+    await updateListing(id, updates);
   };
 
   const deleteListing = async (id: string) => {
@@ -488,10 +585,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const prefix = item.type === 'car_rental' ? 'BK' : item.type === 'car_test_drive' ? 'TD' : 'INS';
     const num = Math.floor(1000 + Math.random() * 9000);
     const newId = `${prefix}-${num}`;
+
+    const linkedListing = item.listingId ? listings.find((l) => l.id === item.listingId) : undefined;
+    const resolvedState =
+      item.branchState ||
+      (linkedListing ? getListingState(linkedListing) : undefined) ||
+      (item.pickupLocation ? inferStateFromLocation(item.pickupLocation) : 'FCT Abuja');
+    const resolvedBranch = findBranchForState(resolvedState);
+
     const newBooking: Booking = {
       ...item,
       id: newId,
       reference: newId,
+      branchState: resolvedState,
+      branchOffice: item.branchOffice || linkedListing?.branchOffice || resolvedBranch?.name,
+      assignedRepName: item.assignedRepName || resolvedBranch?.managerName,
+      assignedRepPhone: item.assignedRepPhone || resolvedBranch?.phone,
       createdAt: new Date().toISOString(),
     };
     setBookings((prev) => [newBooking, ...prev]);
@@ -1062,8 +1171,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         equipmentRentals,
         events,
         digitalTickets,
+        staffAccounts,
+        addStaffAccount,
+        updateStaffAccount,
+        deleteStaffAccount,
         addListing,
         updateListing,
+        markListingSold,
         deleteListing,
         createBooking,
         updateBooking,

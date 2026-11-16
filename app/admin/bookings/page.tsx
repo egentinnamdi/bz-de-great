@@ -37,18 +37,31 @@ import {
   Home,
   Compass,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  MapPin,
+  ChevronDown
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
+import { useAdminAuth } from '@/lib/admin-auth';
 import { Booking, Listing } from '@/lib/types';
+import { NIGERIA_STATES } from '@/lib/locations';
+import {
+  canManageBooking,
+  canManageListing,
+  findBranchForState,
+  getBookingState,
+  isListingLive,
+  isMasterAdmin,
+} from '@/lib/staff';
 
 interface BookingRow {
   id: string;
   reference: string;
   customer: string;
   listing: string;
+  branchLabel: string;
   when: string;
   type: 'Car rental' | 'Inspection' | 'Apartment' | 'Test drive';
   status: 'Pending' | 'Approved' | 'In progress' | 'Declined' | 'Rescheduled';
@@ -106,12 +119,36 @@ function parseBookingDateTime(booking: Booking): { date: Date | null; hour: numb
 
 export default function AdminBookingsPage() {
   const { toast } = useToast();
+  const { user } = useAdminAuth();
   const { bookings: storeBookings, listings, createBooking, updateBooking, addActivity } = useStore();
+
+  const master = isMasterAdmin(user);
 
   // Navigation & Filtering
   const [timeFilter, setTimeFilter] = useState<'This week' | 'Next week' | 'This month'>('This week');
   const [activeDate, setActiveDate] = useState<Date>(() => new Date());
   const [searchQuery, setSearchQuery] = useState('');
+  const [stateFilter, setStateFilter] = useState<string>('ALL');
+
+  const listingsById = useMemo(
+    () => new Map(listings.map(l => [l.id, l])),
+    [listings]
+  );
+
+  const scopedBookings = useMemo(() => {
+    return storeBookings.filter(b => {
+      if (!canManageBooking(user, b, listingsById)) return false;
+      if (master && stateFilter !== 'ALL') {
+        return getBookingState(b, listingsById) === stateFilter;
+      }
+      return true;
+    });
+  }, [storeBookings, user, listingsById, master, stateFilter]);
+
+  const scopedListings = useMemo(
+    () => listings.filter(l => isListingLive(l) && canManageListing(user, l)),
+    [listings, user]
+  );
 
   // Interactive Modals
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -179,10 +216,10 @@ export default function AdminBookingsPage() {
   };
 
   // --------------------------------------------------------------------------
-  // Map Store Bookings to Slots and Rows
+  // Map Scoped Store Bookings to Slots and Rows
   // --------------------------------------------------------------------------
   const parsedBookings = useMemo(() => {
-    return storeBookings.map(b => {
+    return scopedBookings.map(b => {
       const { date, hour } = parseBookingDateTime(b);
       return {
         booking: b,
@@ -190,7 +227,7 @@ export default function AdminBookingsPage() {
         hour
       };
     });
-  }, [storeBookings]);
+  }, [scopedBookings]);
 
   // Find bookings matching a specific day and hour slot
   const getBookingsForSlot = (day: Date, hourStr: string) => {
@@ -211,21 +248,26 @@ export default function AdminBookingsPage() {
 
   // Needs confirmation list
   const needsConfirmation = useMemo(() => {
-    return storeBookings
+    return scopedBookings
       .filter(b => b.bookingStatus === 'requested')
-      .map(b => ({
-        id: b.id,
-        reference: b.reference || b.id,
-        title: b.listingTitle,
-        customerDate: `${b.customerName} · ${b.startDate}${b.endDate ? ` → ${b.endDate}` : ''}`,
-        timeAgo: 'Just now',
-        raw: b
-      }));
-  }, [storeBookings]);
+      .map(b => {
+        const bState = getBookingState(b, listingsById);
+        const branchName = b.branchOffice || findBranchForState(bState)?.name || bState;
+        return {
+          id: b.id,
+          reference: b.reference || b.id,
+          title: b.listingTitle,
+          branchLabel: `${branchName} (${bState})`,
+          customerDate: `${b.customerName} · ${b.startDate}${b.endDate ? ` → ${b.endDate}` : ''}`,
+          timeAgo: 'Just now',
+          raw: b
+        };
+      });
+  }, [scopedBookings, listingsById]);
 
   // All bookings table data
   const bookingsTableRows: BookingRow[] = useMemo(() => {
-    return storeBookings.map(b => {
+    return scopedBookings.map(b => {
       let mappedType: BookingRow['type'] = 'Car rental';
       if (b.type === 'car_rental') mappedType = 'Car rental';
       else if (b.type === 'car_test_drive') mappedType = 'Test drive';
@@ -240,19 +282,22 @@ export default function AdminBookingsPage() {
       else mappedStatus = 'Pending';
 
       const whenStr = b.endDate ? `${b.startDate.split('T')[0]} → ${b.endDate.split('T')[0]}` : b.startDate.split('T')[0];
+      const bState = getBookingState(b, listingsById);
+      const branchName = b.branchOffice || findBranchForState(bState)?.name || bState;
 
       return {
         id: b.id,
         reference: b.reference || b.id,
         customer: b.customerName,
         listing: b.listingTitle,
+        branchLabel: `${branchName} (${bState})`,
         when: whenStr,
         type: mappedType,
         status: mappedStatus,
         raw: b
       };
     });
-  }, [storeBookings]);
+  }, [scopedBookings, listingsById]);
 
   const filteredBookings = useMemo(() => {
     if (!searchQuery.trim()) return bookingsTableRows;
@@ -262,6 +307,7 @@ export default function AdminBookingsPage() {
         b.reference.toLowerCase().includes(q) ||
         b.customer.toLowerCase().includes(q) ||
         b.listing.toLowerCase().includes(q) ||
+        b.branchLabel.toLowerCase().includes(q) ||
         b.type.toLowerCase().includes(q)
     );
   }, [bookingsTableRows, searchQuery]);
@@ -274,8 +320,8 @@ export default function AdminBookingsPage() {
     if (target) {
       await updateBooking(target.id, { bookingStatus: 'confirmed' });
       await addActivity({
-        actorName: 'Admin',
-        actorRole: 'Master Admin',
+        actorName: user?.name || 'Admin',
+        actorRole: `${user?.role || 'Staff'} · ${user?.branchOffice || 'Bookings'}`,
         action: 'confirmed booking',
         target: `${target.reference || target.id} · ${target.customerName}`,
         details: target.listingTitle,
@@ -297,8 +343,8 @@ export default function AdminBookingsPage() {
     if (target) {
       await updateBooking(target.id, { bookingStatus: 'declined' });
       await addActivity({
-        actorName: 'Admin',
-        actorRole: 'Master Admin',
+        actorName: user?.name || 'Admin',
+        actorRole: `${user?.role || 'Staff'} · ${user?.branchOffice || 'Bookings'}`,
         action: 'declined booking',
         target: `${target.reference || target.id} · ${target.customerName}`,
         details: title || target.listingTitle,
@@ -320,8 +366,8 @@ export default function AdminBookingsPage() {
     if (target) {
       await updateBooking(target.id, { bookingStatus: 'rescheduled' });
       await addActivity({
-        actorName: 'Admin',
-        actorRole: 'Master Admin',
+        actorName: user?.name || 'Admin',
+        actorRole: `${user?.role || 'Staff'} · ${user?.branchOffice || 'Bookings'}`,
         action: 'requested reschedule for booking',
         target: `${target.reference || target.id} · ${target.customerName}`,
         details: target.listingTitle,
@@ -359,7 +405,7 @@ export default function AdminBookingsPage() {
 
     setIsSubmitting(true);
     try {
-      const selectedListing = listings.find(l => l.id === formListingId) || listings[0];
+      const selectedListing = scopedListings.find(l => l.id === formListingId) || scopedListings[0];
       const startDateTime = `${formStartDate || format(activeDate, 'yyyy-MM-dd')}T${formStartHour.padStart(5, '0')}:00`;
 
       const newBooking = await createBooking({
@@ -380,8 +426,8 @@ export default function AdminBookingsPage() {
       });
 
       await addActivity({
-        actorName: 'Admin',
-        actorRole: 'Master Admin',
+        actorName: user?.name || 'Admin',
+        actorRole: `${user?.role || 'Staff'} · ${user?.branchOffice || 'Bookings'}`,
         action: 'created manual booking',
         target: `${newBooking.reference || newBooking.id} · ${formCustomerName}`,
         details: selectedListing?.title || 'Reservation',
@@ -422,6 +468,7 @@ export default function AdminBookingsPage() {
             Bookings
           </h1>
           <p className="text-[13px] text-[#716769] font-normal">
+            {!master && user?.branchOffice ? `${user.branchOffice} (${user.assignedStates.join(', ')}) · ` : ''}
             {timeFilter === 'This month'
               ? `Rentals, test drives and inspections · ${format(activeDate, 'MMMM yyyy')}`
               : `Rentals, test drives and inspections · ${format(weekStart, 'd')}–${format(weekEnd, 'd MMMM yyyy')}`}
@@ -513,8 +560,27 @@ export default function AdminBookingsPage() {
           </div>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-4 text-[12px] font-medium text-[#716769]">
+        {/* Legend & State Filter */}
+        <div className="flex flex-wrap items-center gap-4 text-[12px] font-medium text-[#716769]">
+          {master && (
+            <div className="relative">
+              <MapPin className="w-3.5 h-3.5 text-[#81141f] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={stateFilter}
+                onChange={e => setStateFilter(e.target.value)}
+                aria-label="Filter bookings by state branch"
+                className="h-[34px] pl-7 pr-7 rounded-[8px] bg-white border border-[#eae3e4] text-[12px] font-semibold text-[#1b1416] focus:outline-none focus:border-[#81141f] appearance-none cursor-pointer"
+              >
+                <option value="ALL">All Branch States</option>
+                {NIGERIA_STATES.map(s => (
+                  <option key={s.value} value={s.value}>
+                    {s.label} Branch
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-[#716769] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#81141f]" />
             <span>Car rentals</span>
@@ -774,7 +840,13 @@ export default function AdminBookingsPage() {
                 className="p-3.5 rounded-[12px] bg-[#faf8f8] border border-[#eae3e4] space-y-2.5 text-[12px] transition-shadow hover:shadow-2xs"
               >
                 <div>
-                  <div className="font-bold text-[13px] text-[#1b1416]">{item.title}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-bold text-[13px] text-[#1b1416]">{item.title}</div>
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fcf3f4] border border-[#f5d0d4] text-[10px] font-semibold text-[#81141f]">
+                      <MapPin className="w-2.5 h-2.5" />
+                      {item.branchLabel}
+                    </span>
+                  </div>
                   <div className="text-[#716769] mt-0.5">{item.customerDate}</div>
                   <div className="text-[11px] text-[#716769] mt-0.5">{item.timeAgo}</div>
                 </div>
@@ -861,7 +933,13 @@ export default function AdminBookingsPage() {
                     {row.reference}
                   </td>
                   <td className="py-3.5 px-4 font-medium text-[#1b1416]">{row.customer}</td>
-                  <td className="py-3.5 px-4 text-[#4a4245]">{row.listing}</td>
+                  <td className="py-3.5 px-4 text-[#4a4245]">
+                    <div>{row.listing}</div>
+                    <div className="text-[11px] text-[#716769] mt-0.5 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-[#81141f]" />
+                      <span>{row.branchLabel}</span>
+                    </div>
+                  </td>
                   <td className="py-3.5 px-4 text-[#716769] text-[12px]">{row.when}</td>
                   <td className="py-3.5 px-4 text-[#4a4245]">{row.type}</td>
                   <td className="py-3.5 px-4">
@@ -1157,7 +1235,7 @@ export default function AdminBookingsPage() {
                   className="w-full h-[40px] px-3 bg-white border border-[#eae3e4] rounded-[8px] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f]"
                 >
                   <option value="">-- Choose from available inventory --</option>
-                  {listings.map(l => (
+                  {scopedListings.map(l => (
                     <option key={l.id} value={l.id}>
                       {l.title} ({l.location})
                     </option>

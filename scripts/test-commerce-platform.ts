@@ -1,5 +1,20 @@
 import assert from 'node:assert/strict';
 import {
+  BRANCH_OFFICES,
+  DEFAULT_STAFF_ACCOUNTS,
+  canAccessAdminModule,
+  canManageBooking,
+  canManageListing,
+  findBranchForState,
+  getBookingState,
+  getFirstAllowedAdminRoute,
+  getListingState,
+  isListingLive,
+  isMasterAdmin,
+} from '../lib/staff';
+import { inferStateFromLocation } from '../lib/locations';
+import { Booking, Listing } from '../lib/types';
+import {
   INITIAL_PRODUCT_CATEGORIES,
   INITIAL_PRODUCTS,
   INITIAL_STUDIO_SERVICES,
@@ -243,6 +258,107 @@ console.log('=== Running Multi-Service Commerce Platform Test Suite ===\n');
   assert.equal(matchesLocationFilter('Nigeria', 'Niger State'), false, 'Niger State must not false-match Nigeria');
   assert.equal(matchesLocationFilter('Minna, Niger State', 'Niger State'), true);
   console.log('✓ [Locations] Nationwide Nigeria coverage (36 states + FCT) and filter aliases verified');
+}
+
+// 7. Multi-Branch Partner Admin, Regional Scoping & Sold Lifecycle Removal
+{
+  assert.equal(inferStateFromLocation('Aroma Junction, Awka, Anambra State'), 'Anambra State');
+  assert.equal(inferStateFromLocation('Okpanam Road, Asaba'), 'Delta State');
+  assert.equal(inferStateFromLocation('New Owerri Auto Lot'), 'Imo State');
+  assert.equal(inferStateFromLocation('Independence Layout, Enugu'), 'Enugu State');
+  assert.equal(inferStateFromLocation('Lekki Phase 1, Lagos'), 'Lagos State');
+  assert.equal(inferStateFromLocation('Maitama, Abuja'), 'FCT Abuja');
+
+  assert.ok(BRANCH_OFFICES.length >= 6, 'Regional branch offices must be seeded');
+  const master = DEFAULT_STAFF_ACCOUNTS.find(a => a.email === 'admin@bzgroup.com');
+  const awkaRep = DEFAULT_STAFF_ACCOUNTS.find(a => a.email === 'awka@bzdegreat.com');
+  const asabaRep = DEFAULT_STAFF_ACCOUNTS.find(a => a.email === 'asaba@bzdegreat.com');
+  const owerriRep = DEFAULT_STAFF_ACCOUNTS.find(a => a.email === 'owerri@bzdegreat.com');
+  const enuguRep = DEFAULT_STAFF_ACCOUNTS.find(a => a.email === 'enugu@bzdegreat.com');
+
+  assert.ok(master && awkaRep && asabaRep && owerriRep && enuguRep, 'All regional demo accounts must exist');
+  assert.equal(isMasterAdmin(master), true);
+  assert.equal(isMasterAdmin(awkaRep), false);
+  assert.equal(isMasterAdmin(enuguRep), false);
+
+  // Module & financial isolation checks
+  assert.equal(canAccessAdminModule(master, 'payments'), true);
+  assert.equal(canAccessAdminModule(master, 'team'), true);
+  assert.equal(canAccessAdminModule(awkaRep, 'listings'), true);
+  assert.equal(canAccessAdminModule(awkaRep, 'payments'), false, 'Stand uploader must not access payments');
+  assert.equal(canAccessAdminModule(awkaRep, 'reports'), false, 'Stand uploader must not access reports');
+  assert.equal(canAccessAdminModule(awkaRep, 'team'), false, 'Stand uploader must not access team management');
+  assert.equal(canAccessAdminModule(awkaRep, 'bookings'), false, 'Upload-only stand boy must not access bookings');
+  assert.equal(canAccessAdminModule(asabaRep, 'bookings'), true);
+  assert.equal(canAccessAdminModule(asabaRep, 'payments'), false, 'Regional office must not see company financial payouts');
+  assert.ok(getFirstAllowedAdminRoute(awkaRep).startsWith('/admin'));
+
+  // Scoped listing management (State + Category isolation)
+  const makeListing = (overrides: Partial<Listing>): Listing => ({
+    id: 'LST-TEST-1',
+    slug: 'lst-test-1',
+    title: 'Test Asset',
+    category: 'car_sale',
+    price: 45000000,
+    currency: 'NGN',
+    pricePeriod: 'total',
+    location: 'Awka, Anambra State',
+    images: ['/photos/car-suv-white.jpg'],
+    description: 'Test vehicle',
+    status: 'published',
+    createdAt: '2026-11-16T00:00:00Z',
+    ...overrides,
+  });
+
+  const awkaCar = makeListing({ id: 'L-AWKA-1', category: 'car_sale', location: 'Aroma Junction, Awka' });
+  const awkaHome = makeListing({ id: 'L-AWKA-HOME', category: 'property_rent', location: 'Awka, Anambra State' });
+  const asabaCar = makeListing({ id: 'L-ASABA-1', category: 'car_sale', location: 'Okpanam Road, Asaba', state: 'Delta State' });
+  const enuguHouse = makeListing({ id: 'L-ENUGU-1', category: 'property_rent', location: 'Independence Layout, Enugu', state: 'Enugu State' });
+
+  assert.equal(getListingState(awkaCar), 'Anambra State');
+  assert.equal(canManageListing(master, asabaCar), true);
+  assert.equal(canManageListing(awkaRep, awkaCar), true, 'Awka car-stand boy manages Anambra car_sale');
+  assert.equal(canManageListing(awkaRep, awkaHome), false, 'Car-stand uploader cannot manage disallowed property category');
+  assert.equal(canManageListing(awkaRep, asabaCar), false, 'Awka stand cannot edit Delta listing');
+  assert.equal(canManageListing(asabaRep, asabaCar), true, 'Asaba office manages Delta listing');
+  assert.equal(canManageListing(enuguRep, enuguHouse), true, 'Enugu office manages Enugu property rental');
+  assert.equal(canManageListing(owerriRep, enuguHouse), false, 'Owerri stand cannot manage Enugu house');
+
+  // Booking branch routing & isolation
+  const listingMap = new Map<string, Listing>([
+    [asabaCar.id, asabaCar],
+    [enuguHouse.id, enuguHouse],
+  ]);
+  const deltaBooking: Booking = {
+    id: 'BK-DELTA-1',
+    reference: 'BZ-DLT-01',
+    type: 'car_test_drive',
+    listingId: asabaCar.id,
+    listingTitle: asabaCar.title,
+    customerName: 'Chief Chidi',
+    customerPhone: '08030000000',
+    customerEmail: 'chidi@example.com',
+    startDate: '2026-11-20',
+    bookingStatus: 'requested',
+    paymentStatus: 'pending',
+    totalAmount: 0,
+    createdAt: '2026-11-16T00:00:00Z',
+  };
+  assert.equal(getBookingState(deltaBooking, listingMap), 'Delta State');
+  assert.equal(findBranchForState('Asaba, Delta State')?.state, 'Delta State');
+  assert.equal(canManageBooking(master, deltaBooking, listingMap), true);
+  assert.equal(canManageBooking(asabaRep, deltaBooking, listingMap), true);
+  assert.equal(canManageBooking(owerriRep, deltaBooking, listingMap), false);
+
+  // Sold / Rented / Draft public visibility guard
+  assert.equal(isListingLive({ status: 'published' }), true);
+  assert.equal(isListingLive({ status: 'sold' }), false, 'Sold items must be hidden from public storefront');
+  assert.equal(isListingLive({ status: 'rented' }), false, 'Rented items must be hidden from public storefront');
+  assert.equal(isListingLive({ status: 'reserved' }), false);
+  assert.equal(isListingLive({ status: 'draft' }), false);
+  assert.equal(isListingLive({ status: 'archived' }), false);
+
+  console.log('✓ [Multi-Branch Partner Admin] Regional scoping, financial isolation, branch routing, and sold-removal guards verified');
 }
 
 console.log('\nALL MULTI-SERVICE COMMERCE TESTS PASSED SUCCESSFULLY!');

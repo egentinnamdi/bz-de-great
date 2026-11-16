@@ -1,11 +1,91 @@
 import { supabase, isSupabaseConfigured } from './client';
 import type {
   Listing,
+  ListingStatus,
   Booking,
   Customer,
+  StaffAccount,
   StaffActivity,
   WebsiteContentConfig
 } from '@/lib/types';
+import { inferStateFromLocation } from '@/lib/locations';
+
+interface ListingMetaPayload {
+  branchOffice?: string;
+  createdById?: string;
+  createdByName?: string;
+  partnerNetPrice?: number;
+  soldAt?: string;
+  soldByName?: string;
+  soldByRole?: string;
+  saleNote?: string;
+  requiresApproval?: boolean;
+}
+
+function dbStatusToListingStatus(dbStatus?: string): ListingStatus {
+  switch ((dbStatus || '').toLowerCase()) {
+    case 'available':
+    case 'published':
+      return 'published';
+    case 'sold':
+      return 'sold';
+    case 'rented':
+      return 'rented';
+    case 'reserved':
+      return 'reserved';
+    case 'archived':
+      return 'archived';
+    case 'under_inspection':
+    case 'draft':
+    default:
+      return 'draft';
+  }
+}
+
+function listingStatusToDbStatus(status?: ListingStatus): string {
+  switch (status) {
+    case 'published':
+      return 'available';
+    case 'sold':
+      return 'sold';
+    case 'rented':
+      return 'rented';
+    case 'reserved':
+      return 'reserved';
+    case 'archived':
+    case 'draft':
+    default:
+      return 'under_inspection';
+  }
+}
+
+function extractListingSpecsAndMeta(rawSpecs: any) {
+  if (!rawSpecs || typeof rawSpecs !== 'object') {
+    return { cleanSpecs: {}, meta: {} as ListingMetaPayload };
+  }
+  const { __bzMeta, ...rest } = rawSpecs;
+  return {
+    cleanSpecs: rest,
+    meta: (__bzMeta && typeof __bzMeta === 'object' ? __bzMeta : {}) as ListingMetaPayload,
+  };
+}
+
+function buildSpecsWithMeta(listing: Partial<Listing>, fallbackSpecs?: any) {
+  const baseSpecs = (listing.vehicleSpecs || listing.propertySpecs || fallbackSpecs || {}) as Record<string, any>;
+  const meta: ListingMetaPayload = {
+    branchOffice: listing.branchOffice,
+    createdById: listing.createdById,
+    createdByName: listing.createdByName,
+    partnerNetPrice: listing.partnerNetPrice,
+    soldAt: listing.soldAt,
+    soldByName: listing.soldByName,
+    soldByRole: listing.soldByRole,
+    saleNote: listing.saleNote,
+    requiresApproval: listing.requiresApproval,
+  };
+  const hasMeta = Object.values(meta).some(v => v !== undefined);
+  return hasMeta ? { ...baseSpecs, __bzMeta: meta } : baseSpecs;
+}
 
 /**
  * Robust, production-grade service layer connecting BZ Group to Supabase BaaS.
@@ -36,6 +116,10 @@ export const supabaseService = {
           categoryMapped = row.mode === 'rent' ? 'property_rent' : 'property_sale';
         }
 
+        const { cleanSpecs, meta } = extractListingSpecsAndMeta(row.specs);
+        const isVehicle = cleanSpecs && 'make' in cleanSpecs;
+        const isProp = cleanSpecs && ('bedrooms' in cleanSpecs || 'amenities' in cleanSpecs || 'type' in cleanSpecs);
+
         return {
           id: row.id,
           category: categoryMapped as any,
@@ -47,14 +131,24 @@ export const supabaseService = {
           currency: (row.currency as any) || 'NGN',
           pricePeriod: row.price_unit === '/ day' ? '/day' : (row.price_unit === '/ year' ? '/year' : 'total'),
           location: row.location,
+          state: (row.state && row.state.trim()) || inferStateFromLocation(row.location),
+          branchOffice: row.branch_office || meta.branchOffice,
+          createdById: row.created_by_id || meta.createdById,
+          createdByName: row.created_by_name || meta.createdByName,
+          partnerNetPrice: row.partner_net_price != null ? Number(row.partner_net_price) : meta.partnerNetPrice,
+          soldAt: row.sold_at || meta.soldAt,
+          soldByName: row.sold_by_name || meta.soldByName,
+          soldByRole: meta.soldByRole,
+          saleNote: row.sale_note || meta.saleNote,
+          requiresApproval: row.requires_approval ?? meta.requiresApproval,
           images: Array.isArray(row.images) && row.images.length > 0
             ? (row.images as string[])
             : ['/photos/car-suv-white.jpg'],
-          status: (row.status === 'available' ? 'published' : 'draft') as any,
+          status: dbStatusToListingStatus(row.status),
           featured: Boolean(row.featured),
           tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
-          vehicleSpecs: (row.specs && typeof row.specs === 'object' && 'make' in row.specs ? (row.specs as any) : undefined),
-          propertySpecs: (row.specs && typeof row.specs === 'object' && ('bedrooms' in row.specs || 'amenities' in row.specs) ? (row.specs as any) : undefined),
+          vehicleSpecs: isVehicle ? (cleanSpecs as any) : undefined,
+          propertySpecs: !isVehicle && isProp ? (cleanSpecs as any) : undefined,
           createdAt: row.created_at || new Date().toISOString()
         };
       });
@@ -69,6 +163,7 @@ export const supabaseService = {
     try {
       const isCar = listing.category.startsWith('car');
       const isRent = listing.category.includes('rent');
+      const canonicalState = listing.state || inferStateFromLocation(listing.location);
 
       const { error } = await supabase.from('listings').insert({
         id: listing.id,
@@ -84,12 +179,12 @@ export const supabaseService = {
         caution_fee: 0,
         images: listing.images as any,
         location: listing.location,
-        state: 'Abuja',
-        status: listing.status === 'published' ? 'available' : 'reserved',
+        state: canonicalState,
+        status: listingStatusToDbStatus(listing.status),
         featured: Boolean(listing.featured),
         tags: (listing.tags || []) as any,
         description: listing.description,
-        specs: (listing.vehicleSpecs || listing.propertySpecs || {}) as any,
+        specs: buildSpecsWithMeta(listing) as any,
         features: [] as any
       });
 
@@ -104,7 +199,7 @@ export const supabaseService = {
     }
   },
 
-  async updateListing(id: string, updates: Partial<Listing>): Promise<boolean> {
+  async updateListing(id: string, updates: Partial<Listing>, mergedListing?: Listing): Promise<boolean> {
     if (!isSupabaseConfigured()) return false;
     try {
       const dbUpdates: Record<string, any> = {};
@@ -116,11 +211,25 @@ export const supabaseService = {
         dbUpdates.price_formatted = `₦${Number(updates.price).toLocaleString('en-NG')}`;
       }
       if (updates.location !== undefined) dbUpdates.location = updates.location;
-      if (updates.status !== undefined) dbUpdates.status = updates.status === 'published' ? 'available' : 'reserved';
+      if (updates.state !== undefined) dbUpdates.state = updates.state;
+      if (updates.status !== undefined) dbUpdates.status = listingStatusToDbStatus(updates.status);
       if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
       if (updates.images !== undefined) dbUpdates.images = updates.images;
-      if (updates.vehicleSpecs || updates.propertySpecs) {
-        dbUpdates.specs = updates.vehicleSpecs || updates.propertySpecs;
+
+      const metaUpdated =
+        updates.branchOffice !== undefined ||
+        updates.createdById !== undefined ||
+        updates.createdByName !== undefined ||
+        updates.partnerNetPrice !== undefined ||
+        updates.soldAt !== undefined ||
+        updates.soldByName !== undefined ||
+        updates.soldByRole !== undefined ||
+        updates.saleNote !== undefined ||
+        updates.requiresApproval !== undefined;
+
+      if (updates.vehicleSpecs || updates.propertySpecs || metaUpdated) {
+        const source = mergedListing ? { ...mergedListing, ...updates } : updates;
+        dbUpdates.specs = buildSpecsWithMeta(source);
       }
 
       const { error } = await supabase.from('listings').update(dbUpdates).eq('id', id);
@@ -397,38 +506,123 @@ export const supabaseService = {
   },
 
   // ============================================================================
-  // 8. STORAGE & RECEIPT UPLOADS
+  // 8. STORAGE & RECEIPT / LISTING PHOTO UPLOADS
   // ============================================================================
-  async uploadReceipt(file: File | Blob, filename?: string): Promise<string> {
-    const fname = filename || (file instanceof File ? file.name : `receipt-${Date.now()}.png`);
-    const ext = fname.split('.').pop() || 'png';
-    const filePath = `receipts/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+  async uploadFileToBuckets(
+    buckets: string[],
+    folder: string,
+    file: File | Blob,
+    filename?: string
+  ): Promise<string> {
+    const fname = filename || (file instanceof File ? file.name : `${folder}-${Date.now()}.jpg`);
+    const ext = fname.split('.').pop() || 'jpg';
+    const filePath = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
-    try {
-      if (isSupabaseConfigured()) {
-        const { data, error } = await supabase.storage.from('receipts').upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-        if (!error && data) {
-          const { data: pubData } = supabase.storage.from('receipts').getPublicUrl(filePath);
-          if (pubData?.publicUrl) {
-            return pubData.publicUrl;
+    if (isSupabaseConfigured()) {
+      for (const bucket of buckets) {
+        try {
+          const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true,
+          });
+          if (!error && data) {
+            const { data: pubData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+            if (pubData?.publicUrl) {
+              return pubData.publicUrl;
+            }
           }
+        } catch {
+          // Try next bucket
         }
       }
-    } catch (e) {
-      // Fall through to Base64 data URL
     }
 
-    // Direct fallback: Base64 data URL ensures 100% receipt persistence
+    // Fallback: compressed Data URL when Storage bucket is unavailable
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Failed to encode receipt file'));
+      reader.onerror = () => reject(new Error('Failed to encode uploaded image'));
       reader.readAsDataURL(file);
     });
+  },
+
+  async uploadReceipt(file: File | Blob, filename?: string): Promise<string> {
+    return this.uploadFileToBuckets(['receipts'], 'receipts', file, filename);
+  },
+
+  async uploadListingPhoto(file: File | Blob, filename?: string): Promise<string> {
+    return this.uploadFileToBuckets(['listing-images', 'receipts'], 'listings', file, filename);
+  },
+
+  // ============================================================================
+  // 9. REGIONAL & CAR-STAND STAFF ACCOUNTS
+  // ============================================================================
+  async fetchStaffAccounts(): Promise<StaffAccount[] | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const { data, error } = await supabase
+        .from('staff_accounts')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (error || !data) return null;
+
+      return data.map(row => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        phone: row.phone || '',
+        password: row.password,
+        role: row.role,
+        assignedStates: Array.isArray(row.assigned_states) ? row.assigned_states : [],
+        allowedCategories: Array.isArray(row.allowed_categories) ? row.allowed_categories : ['car_sale'],
+        allowedModules: Array.isArray(row.allowed_modules) ? row.allowed_modules : ['overview', 'listings'],
+        branchOffice: row.branch_office || '',
+        branchAddress: row.branch_address || undefined,
+        isActive: row.is_active !== false,
+        requireApprovalBeforeLive: Boolean(row.require_approval_before_live),
+        canDeleteListings: Boolean(row.can_delete_listings),
+        avatarInitials: row.avatar_initials || 'BZ',
+        createdAt: row.created_at || new Date().toISOString(),
+      }));
+    } catch {
+      return null;
+    }
+  },
+
+  async upsertStaffAccount(account: StaffAccount): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { error } = await supabase.from('staff_accounts').upsert({
+        id: account.id,
+        name: account.name,
+        email: account.email.toLowerCase(),
+        phone: account.phone,
+        password: account.password,
+        role: account.role,
+        assigned_states: account.assignedStates as any,
+        allowed_categories: account.allowedCategories as any,
+        allowed_modules: account.allowedModules as any,
+        branch_office: account.branchOffice,
+        branch_address: account.branchAddress || null,
+        is_active: account.isActive,
+        require_approval_before_live: Boolean(account.requireApprovalBeforeLive),
+        can_delete_listings: Boolean(account.canDeleteListings),
+        avatar_initials: account.avatarInitials,
+      });
+      return !error;
+    } catch {
+      return false;
+    }
+  },
+
+  async deleteStaffAccount(id: string): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { error } = await supabase.from('staff_accounts').delete().eq('id', id);
+      return !error;
+    } catch {
+      return false;
+    }
   }
 };
 

@@ -27,6 +27,8 @@ import { CardCar } from '@/components/card-car';
 import { GalleryViewer } from '@/components/gallery-viewer';
 import { BookingModal } from '@/components/booking-modal';
 import { useStore } from '@/lib/store';
+import { isListingLive } from '@/lib/staff';
+import { ListingUnavailableState } from '@/components/listing-unavailable-state';
 import { useToast } from '@/components/toast-provider';
 import { getWhatsAppBookingLink } from '@/lib/constants';
 
@@ -49,6 +51,19 @@ export default function CarDetailPage() {
   const [startDate, setStartDate] = useState<string>('2026-10-25');
   const [pickupLoc, setPickupLoc] = useState<string>('Abuja Central Delivery');
 
+  if (car && !isListingLive(car)) {
+    return (
+      <ListingUnavailableState
+        title={car.title}
+        location={car.location}
+        status={car.status}
+        backHref="/cars/rent"
+        backLabel="Browse Rental Cars"
+        assetKindLabel="vehicle"
+      />
+    );
+  }
+
   if (!car) {
     return (
       <div className="min-h-screen flex flex-col bg-[#fdfbfb] text-[#1b1416]">
@@ -69,7 +84,7 @@ export default function CarDetailPage() {
 
   const specs = car.vehicleSpecs;
   const similarCars = listings
-    .filter(l => l.category === 'car_rent' && l.id !== car.id)
+    .filter(l => isListingLive(l) && l.category === 'car_rent' && l.id !== car.id)
     .slice(0, 3);
 
   // Dynamic cost calculation matching screenshot (₦755,000 for Lincoln Navigator with driver over 3 days)

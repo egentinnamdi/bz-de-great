@@ -151,3 +151,41 @@ export function matchesLocationFilter(itemLocation: string, selectedLocation: st
     normalizedSelected.includes(normalizedItem)
   );
 }
+
+/**
+ * Infers the canonical Nigerian State label (matching NIGERIA_STATES values)
+ * from a free-text listing location or pickup string.
+ */
+export function inferStateFromLocation(location?: string): string {
+  const raw = (location || '').trim();
+  if (!raw) return 'FCT Abuja';
+  const low = raw.toLowerCase();
+
+  for (const state of NIGERIA_STATES) {
+    if (matchesLocationFilter(raw, state.value)) {
+      return state.value;
+    }
+  }
+
+  if (low.includes('abuja') || low.includes('fct')) return 'FCT Abuja';
+  if (low.includes('lagos') || low.includes('lekki') || low.includes('ikoyi') || low.includes('ajah') || low.includes('victoria island')) {
+    return 'Lagos State';
+  }
+  if (low.includes('asaba') || low.includes('warri') || low.includes('okpanam') || low.includes('delta')) {
+    return 'Delta State';
+  }
+  if (low.includes('awka') || low.includes('onitsha') || low.includes('nnewi') || low.includes('anambra')) {
+    return 'Anambra State';
+  }
+  if (low.includes('owerri') || low.includes('orlu') || low.includes('imo')) {
+    return 'Imo State';
+  }
+  if (low.includes('enugu') || low.includes('nsukka')) {
+    return 'Enugu State';
+  }
+  if (low.includes('port harcourt') || low.includes('rivers')) {
+    return 'Rivers State';
+  }
+  return raw;
+}
+

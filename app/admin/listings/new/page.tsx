@@ -18,11 +18,19 @@ import {
   Trash2,
   Camera,
   X,
-  Check
+  Check,
+  Lock,
+  Building2,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/components/toast-provider';
 import { useStore } from '@/lib/store';
-import { Listing } from '@/lib/types';
+import { useAdminAuth } from '@/lib/admin-auth';
+import { Listing, ListingCategory } from '@/lib/types';
+import { NIGERIA_STATES, inferStateFromLocation } from '@/lib/locations';
+import { isMasterAdmin } from '@/lib/staff';
+import { compressImageForUpload, formatBytesCompact } from '@/lib/image-upload';
+import { supabaseService } from '@/lib/supabase/service';
 import { cn } from '@/lib/utils';
 
 function AddListingForm() {
@@ -31,17 +39,37 @@ function AddListingForm() {
   const editId = searchParams.get('edit');
 
   const { listings, addListing, updateListing, addActivity } = useStore();
+  const { user } = useAdminAuth();
   const { toast } = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Form State - Starts completely empty per user requirements
-  const [category, setCategory] = useState<'Car' | 'Property'>('Car');
-  const [listingType, setListingType] = useState<'For rent' | 'For sale'>('For rent');
+  const master = isMasterAdmin(user);
+  const allowedCats: ListingCategory[] = user?.allowedCategories?.length
+    ? user.allowedCategories
+    : ['car_sale', 'car_rent', 'property_rent', 'property_sale'];
+
+  const allowCar = allowedCats.includes('car_sale') || allowedCats.includes('car_rent');
+  const allowProperty = allowedCats.includes('property_sale') || allowedCats.includes('property_rent');
+  const allowedStates =
+    master || !user?.assignedStates?.length || user.assignedStates.includes('ALL')
+      ? NIGERIA_STATES.map(s => s.value)
+      : user.assignedStates;
+
+  // Form State
+  const [category, setCategory] = useState<'Car' | 'Property'>(allowCar ? 'Car' : 'Property');
+  const [listingType, setListingType] = useState<'For rent' | 'For sale'>(
+    allowedCats.includes('car_sale') && !allowedCats.includes('car_rent') ? 'For sale' : 'For rent'
+  );
   const [title, setTitle] = useState('');
+  const [stateName, setStateName] = useState<string>(allowedStates[0] || 'FCT Abuja');
   const [location, setLocation] = useState('');
+  const [branchOffice, setBranchOffice] = useState(user?.branchOffice || '');
   const [price, setPrice] = useState('');
+  const [partnerNetPrice, setPartnerNetPrice] = useState('');
   const [pricePeriod, setPricePeriod] = useState('day');
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
 
   // Car Details
   const [make, setMake] = useState('');
@@ -69,6 +97,35 @@ function AddListingForm() {
   const [offerWithDriver, setOfferWithDriver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Sync default state & allowed category/mode for scoped partners when not editing
+  useEffect(() => {
+    if (editId || !user) return;
+    if (!master && user.assignedStates.length > 0 && !user.assignedStates.includes('ALL')) {
+      setStateName(user.assignedStates[0]);
+    }
+    if (user.branchOffice) {
+      setBranchOffice(user.branchOffice);
+    }
+    if (!allowCar && allowProperty) {
+      setCategory('Property');
+    } else if (allowCar && !allowProperty) {
+      setCategory('Car');
+    }
+  }, [editId, user, master, allowCar, allowProperty]);
+
+  // Keep listingType valid for selected Category
+  useEffect(() => {
+    const rentCat: ListingCategory = category === 'Car' ? 'car_rent' : 'property_rent';
+    const saleCat: ListingCategory = category === 'Car' ? 'car_sale' : 'property_sale';
+    const canRent = allowedCats.includes(rentCat);
+    const canSale = allowedCats.includes(saleCat);
+    if (listingType === 'For rent' && !canRent && canSale) {
+      setListingType('For sale');
+    } else if (listingType === 'For sale' && !canSale && canRent) {
+      setListingType('For rent');
+    }
+  }, [category, listingType, allowedCats]);
+
   // Pre-load data if in edit mode (?edit=id)
   useEffect(() => {
     if (editId) {
@@ -81,7 +138,12 @@ function AddListingForm() {
         setListingType(isRent ? 'For rent' : 'For sale');
         setTitle(existing.title || '');
         setLocation(existing.location || '');
+        setStateName(existing.state || inferStateFromLocation(existing.location));
+        setBranchOffice(existing.branchOffice || user?.branchOffice || '');
         setPrice(existing.price ? Number(existing.price).toLocaleString('en-NG') : '');
+        setPartnerNetPrice(
+          existing.partnerNetPrice ? Number(existing.partnerNetPrice).toLocaleString('en-NG') : ''
+        );
         setPricePeriod(existing.pricePeriod === '/day' ? 'day' : existing.pricePeriod === '/year' ? 'year' : 'total');
         setPhotos(existing.images || []);
         setDescription(existing.description || '');
@@ -105,30 +167,44 @@ function AddListingForm() {
     }
   }, [editId, listings]);
 
-  // Handle Photo Upload with Instant Preview
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Photo Upload with automatic mobile compression & Supabase Storage upload
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      const newUrls: string[] = [];
-      let loaded = 0;
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            newUrls.push(reader.result);
+    if (!files || files.length === 0) return;
+
+    const selected = Array.from(files).slice(0, Math.max(1, 12 - photos.length));
+    setIsUploadingPhotos(true);
+    let savedBytes = 0;
+
+    try {
+      const uploadedUrls = await Promise.all(
+        selected.map(async file => {
+          const compressed = await compressImageForUpload(file, 1400, 0.8);
+          if (compressed.usedCompression) {
+            savedBytes += compressed.originalBytes - compressed.compressedBytes;
           }
-          loaded++;
-          if (loaded === files.length) {
-            setPhotos(prev => [...prev, ...newUrls]);
-            toast({
-              title: 'Photos attached',
-              description: `${files.length} photo(s) added and preview updated.`,
-              variant: 'success'
-            });
-          }
-        };
-        reader.readAsDataURL(file);
+          return supabaseService.uploadListingPhoto(compressed.blob, compressed.filename);
+        })
+      );
+
+      setPhotos(prev => [...prev, ...uploadedUrls].slice(0, 12));
+      toast({
+        title: `${uploadedUrls.length} photo(s) uploaded`,
+        description:
+          savedBytes > 0
+            ? `Compressed to save ${formatBytesCompact(savedBytes)} for fast 4G upload.`
+            : 'Photos attached and ready to publish.',
+        variant: 'success',
       });
+    } catch {
+      toast({
+        title: 'Photo upload issue',
+        description: 'Some photos could not be processed. Try smaller JPEG/PNG files.',
+        variant: 'error',
+      });
+    } finally {
+      setIsUploadingPhotos(false);
+      e.target.value = '';
     }
   };
 
@@ -153,6 +229,7 @@ function AddListingForm() {
   // Build the Listing Payload
   const buildListingPayload = (publishStatus: 'published' | 'draft'): Omit<Listing, 'id' | 'createdAt'> => {
     const numericPrice = parseFloat(price.replace(/,/g, '')) || 0;
+    const numericNet = parseFloat(partnerNetPrice.replace(/,/g, '')) || 0;
     const computedSlug = (title || 'listing')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -167,6 +244,17 @@ function AddListingForm() {
         ? 'property_rent'
         : 'property_sale';
 
+    const cleanLoc = location.trim();
+    const shortState = stateName.replace(' State', '');
+    const formattedLocation = cleanLoc
+      ? cleanLoc.toLowerCase().includes(shortState.toLowerCase())
+        ? cleanLoc
+        : `${cleanLoc}, ${shortState}`
+      : stateName;
+
+    const needsOwnerApproval =
+      publishStatus === 'published' && Boolean(user?.requireApprovalBeforeLive) && !master;
+
     return {
       category: resolvedCategory,
       title: title.trim() || (publishStatus === 'draft' ? 'Untitled Draft' : 'New Listing'),
@@ -176,10 +264,16 @@ function AddListingForm() {
       price: numericPrice,
       currency: 'NGN',
       pricePeriod: listingType === 'For rent' ? (pricePeriod.toLowerCase().includes('year') ? '/year' : '/day') : 'total',
-      location: location.trim() || 'Nigeria',
+      location: formattedLocation,
+      state: stateName,
+      branchOffice: branchOffice.trim() || user?.branchOffice || `${shortState} Branch`,
+      createdById: user?.id,
+      createdByName: user?.name || 'Admin',
+      partnerNetPrice: numericNet > 0 ? numericNet : undefined,
+      requiresApproval: needsOwnerApproval,
       images: photos.length > 0 ? photos : ['/photos/car-suv-white.jpg'],
-      status: publishStatus,
-      featured: featureOnHomepage,
+      status: needsOwnerApproval ? 'draft' : publishStatus,
+      featured: master ? featureOnHomepage : false,
       vehicleSpecs:
         category === 'Car'
           ? {
@@ -219,12 +313,15 @@ function AddListingForm() {
     setIsSubmitting(true);
     try {
       const payload = buildListingPayload('published');
+      const actorName = user?.name || 'Admin';
+      const actorRole = `${user?.role || 'Master Admin'} · ${payload.state}`;
+
       if (editId) {
         await updateListing(editId, payload);
         await addActivity({
-          actorName: 'Admin',
-          actorRole: 'Master Admin',
-          action: `updated listing: ${payload.title}`,
+          actorName,
+          actorRole,
+          action: `updated listing (${payload.state}): ${payload.title}`,
           target: payload.title,
           category: 'listings'
         });
@@ -236,15 +333,19 @@ function AddListingForm() {
       } else {
         const created = await addListing(payload);
         await addActivity({
-          actorName: 'Admin',
-          actorRole: 'Master Admin',
-          action: `published new listing: ${payload.title}`,
+          actorName,
+          actorRole,
+          action: payload.requiresApproval
+            ? `submitted listing for approval (${payload.state}): ${payload.title}`
+            : `published new listing (${payload.state}): ${payload.title}`,
           target: payload.title,
           category: 'listings'
         });
         toast({
-          title: 'Listing published successfully',
-          description: `${created.title} is now live and accepting bookings.`,
+          title: payload.requiresApproval ? 'Submitted for Master Approval' : 'Listing published live',
+          description: payload.requiresApproval
+            ? `${created.title} has been sent to Owner for quick sign-off.`
+            : `${created.title} (${payload.state}) is now live on the website.`,
           variant: 'success'
         });
       }
@@ -266,11 +367,14 @@ function AddListingForm() {
     setIsSubmitting(true);
     try {
       const payload = buildListingPayload('draft');
+      const actorName = user?.name || 'Admin';
+      const actorRole = `${user?.role || 'Master Admin'} · ${payload.state}`;
+
       if (editId) {
         await updateListing(editId, payload);
         await addActivity({
-          actorName: 'Admin',
-          actorRole: 'Master Admin',
+          actorName,
+          actorRole,
           action: `saved draft for: ${payload.title}`,
           target: payload.title,
           category: 'listings'
@@ -278,9 +382,9 @@ function AddListingForm() {
       } else {
         await addListing(payload);
         await addActivity({
-          actorName: 'Admin',
-          actorRole: 'Master Admin',
-          action: `saved new draft listing: ${payload.title}`,
+          actorName,
+          actorRole,
+          action: `saved new draft listing (${payload.state}): ${payload.title}`,
           target: payload.title,
           category: 'listings'
         });
@@ -343,51 +447,91 @@ function AddListingForm() {
       <form onSubmit={handlePublishListing} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN: Inputs (8 Cols) */}
         <div className="lg:col-span-8 space-y-6">
+          {/* Card 0: Branch / Stand Scope Banner for Regional & Stand Reps */}
+          {user && !master && (
+            <div className="rounded-[14px] bg-[#fbf3f4] border border-[#ebc7cb] p-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#81141f] text-white flex items-center justify-center shrink-0">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div className="text-xs">
+                <div className="font-bold text-[#81141f]">
+                  Uploading for {user.branchOffice} ({user.assignedStates.join(', ')})
+                </div>
+                <div className="text-[#4a4245]">
+                  Posted under <strong>{user.name}</strong> ·{' '}
+                  {user.requireApprovalBeforeLive
+                    ? 'Submitted for Owner approval before appearing live.'
+                    : 'Publishes live immediately and notifies Master Admin when marked Sold.'}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Card 1: Basics */}
           <div className="bg-white rounded-[16px] border border-[#eae3e4] p-6 shadow-xs space-y-5">
             <h2 className="text-[18px] font-bold text-[#1b1416]">Basics</h2>
 
-            {/* Category & Listing Type Toggles */}
+            {/* Category & Listing Type Toggles (Respecting Role Scope) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[12px] font-semibold text-[#716769] block">Category</label>
                 <div className="flex items-center gap-2">
-                  {(['Car', 'Property'] as const).map(cat => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCategory(cat)}
-                      className={cn(
-                        'h-[40px] px-5 rounded-[8px] text-[13px] font-semibold transition-all cursor-pointer',
-                        category === cat
-                          ? 'bg-[#81141f] text-white shadow-2xs'
-                          : 'bg-white border border-[#eae3e4] text-[#4a4245] hover:border-[#81141f]'
-                      )}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+                  {(['Car', 'Property'] as const).map(cat => {
+                    const permitted = cat === 'Car' ? allowCar : allowProperty;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        disabled={!permitted}
+                        onClick={() => permitted && setCategory(cat)}
+                        className={cn(
+                          'h-[40px] px-5 rounded-[8px] text-[13px] font-semibold transition-all',
+                          !permitted && 'opacity-40 cursor-not-allowed',
+                          permitted && 'cursor-pointer',
+                          category === cat
+                            ? 'bg-[#81141f] text-white shadow-2xs'
+                            : 'bg-white border border-[#eae3e4] text-[#4a4245] hover:border-[#81141f]'
+                        )}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-[12px] font-semibold text-[#716769] block">Listing type</label>
                 <div className="flex items-center gap-2">
-                  {(['For rent', 'For sale'] as const).map(lt => (
-                    <button
-                      key={lt}
-                      type="button"
-                      onClick={() => setListingType(lt)}
-                      className={cn(
-                        'h-[40px] px-5 rounded-[8px] text-[13px] font-semibold transition-all cursor-pointer',
-                        listingType === lt
-                          ? 'bg-[#81141f] text-white shadow-2xs'
-                          : 'bg-white border border-[#eae3e4] text-[#4a4245] hover:border-[#81141f]'
-                      )}
-                    >
-                      {lt}
-                    </button>
-                  ))}
+                  {(['For rent', 'For sale'] as const).map(lt => {
+                    const needed: ListingCategory =
+                      category === 'Car'
+                        ? lt === 'For rent'
+                          ? 'car_rent'
+                          : 'car_sale'
+                        : lt === 'For rent'
+                          ? 'property_rent'
+                          : 'property_sale';
+                    const permitted = allowedCats.includes(needed);
+                    return (
+                      <button
+                        key={lt}
+                        type="button"
+                        disabled={!permitted}
+                        onClick={() => permitted && setListingType(lt)}
+                        className={cn(
+                          'h-[40px] px-5 rounded-[8px] text-[13px] font-semibold transition-all',
+                          !permitted && 'opacity-40 cursor-not-allowed',
+                          permitted && 'cursor-pointer',
+                          listingType === lt
+                            ? 'bg-[#81141f] text-white shadow-2xs'
+                            : 'bg-white border border-[#eae3e4] text-[#4a4245] hover:border-[#81141f]'
+                        )}
+                      >
+                        {lt}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -402,16 +546,57 @@ function AddListingForm() {
                 required
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                placeholder={category === 'Car' ? 'e.g. Mercedes-Benz G-Class 2023' : 'e.g. 5-Bedroom Detached Villa'}
+                placeholder={category === 'Car' ? 'e.g. 2021 Lexus RX 350 F-Sport' : 'e.g. 5-Bedroom Detached Villa'}
                 className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors"
               />
             </div>
 
-            {/* Location & Price Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-              <div className="sm:col-span-6 space-y-1.5">
+            {/* State & Car Stand / Branch Office Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
                 <label className="text-[12px] font-semibold text-[#716769] block">
-                  Location *
+                  Nigerian State *
+                </label>
+                <div className="relative">
+                  <select
+                    value={stateName}
+                    onChange={e => setStateName(e.target.value)}
+                    disabled={!master && allowedStates.length === 1}
+                    className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] font-semibold text-[#1b1416] focus:outline-none focus:border-[#81141f] appearance-none cursor-pointer disabled:bg-[#fbf3f4] disabled:text-[#81141f] disabled:border-[#ebc7cb]"
+                  >
+                    {allowedStates.map(st => (
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-[#716769] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-semibold text-[#716769] block">
+                  Car Stand / Branch Office
+                </label>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 text-[#716769] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={branchOffice}
+                    onChange={e => setBranchOffice(e.target.value)}
+                    placeholder="e.g. Awka Car Stand · Aroma"
+                    readOnly={!master}
+                    className="w-full h-[46px] pl-9 pr-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] read-only:bg-[#f8f5f5]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Area/Location & Prices Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+              <div className="sm:col-span-5 space-y-1.5">
+                <label className="text-[12px] font-semibold text-[#716769] block">
+                  City / Exact Stand Area *
                 </label>
                 <div className="relative">
                   <MapPin className="w-4 h-4 text-[#716769] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -420,22 +605,22 @@ function AddListingForm() {
                     required
                     value={location}
                     onChange={e => setLocation(e.target.value)}
-                    placeholder="e.g. Lekki, Lagos or Maitama, Abuja"
+                    placeholder="e.g. Aroma Junction, Awka or Okpanam Rd, Asaba"
                     className="w-full h-[46px] pl-9 pr-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors"
                   />
                 </div>
               </div>
 
-              <div className="sm:col-span-4 space-y-1.5">
+              <div className="sm:col-span-3 space-y-1.5">
                 <label className="text-[12px] font-semibold text-[#716769] block">
-                  Price (₦) *
+                  Public Price (₦) *
                 </label>
                 <input
                   type="text"
                   required
                   value={price}
                   onChange={e => setPrice(e.target.value)}
-                  placeholder="e.g. 250,000"
+                  placeholder="e.g. 54,000,000"
                   className="w-full h-[46px] px-3.5 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors"
                 />
               </div>
@@ -446,10 +631,24 @@ function AddListingForm() {
                 </label>
                 <input
                   type="text"
-                  value={pricePeriod}
+                  value={listingType === 'For sale' ? 'total' : pricePeriod}
                   onChange={e => setPricePeriod(e.target.value)}
+                  disabled={listingType === 'For sale'}
                   placeholder="day"
-                  className="w-full h-[46px] px-3 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors text-center"
+                  className="w-full h-[46px] px-3 bg-white border border-[#eae3e4] rounded-[8px] text-[14px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors text-center disabled:bg-stone-50"
+                />
+              </div>
+
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="text-[12px] font-semibold text-[#716769] block truncate" title="Internal partner/stand cost — never shown publicly">
+                  Stand Net (₦)
+                </label>
+                <input
+                  type="text"
+                  value={partnerNetPrice}
+                  onChange={e => setPartnerNetPrice(e.target.value)}
+                  placeholder="Optional"
+                  className="w-full h-[46px] px-3 bg-white border border-[#eae3e4] rounded-[8px] text-[13px] text-[#1b1416] focus:outline-none focus:border-[#81141f] transition-colors"
                 />
               </div>
             </div>
@@ -580,13 +779,18 @@ function AddListingForm() {
             )}
           </div>
 
-          {/* Card 3: Photos (With Instant Photo Preview) */}
+          {/* Card 3: Photos (Mobile Camera + Auto-Compressed Storage Upload) */}
           <div className="bg-white rounded-[16px] border border-[#eae3e4] p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <div>
-                <h2 className="text-[18px] font-bold text-[#1b1416]">Photos</h2>
+                <h2 className="text-[18px] font-bold text-[#1b1416] flex items-center gap-2">
+                  <span>Photos</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                    4G Compressed
+                  </span>
+                </h2>
                 <p className="text-[12px] text-[#716769]">
-                  {photos.length} of 12 uploaded · Click image to set as primary cover
+                  {photos.length} of 12 uploaded · Snap directly from phone camera or select multiple gallery images
                 </p>
               </div>
 
@@ -594,7 +798,7 @@ function AddListingForm() {
                 <button
                   type="button"
                   onClick={() => setPhotos([])}
-                  className="text-[11px] text-rose-600 hover:underline"
+                  className="text-[11px] text-rose-600 hover:underline shrink-0 cursor-pointer"
                 >
                   Clear all
                 </button>
@@ -606,6 +810,14 @@ function AddListingForm() {
               type="file"
               multiple
               accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
               onChange={handlePhotoUpload}
               className="hidden"
             />
@@ -647,14 +859,30 @@ function AddListingForm() {
                 </div>
               ))}
 
-              {/* Add Photos Button */}
+              {/* Camera Photo Button (Mobile Friendly) */}
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-24 h-20 rounded-[8px] border-2 border-dashed border-[#ebc7cb] hover:border-[#81141f] bg-[#fbf3f4] flex flex-col items-center justify-center gap-1 cursor-pointer shrink-0 transition-colors"
+                disabled={isUploadingPhotos || photos.length >= 12}
+                onClick={() => cameraInputRef.current?.click()}
+                className="w-24 h-20 rounded-[8px] border-2 border-dashed border-[#ebc7cb] hover:border-[#81141f] bg-[#fbf3f4] flex flex-col items-center justify-center gap-1 cursor-pointer shrink-0 transition-colors disabled:opacity-50"
               >
-                <Upload className="w-4 h-4 text-[#81141f]" />
-                <span className="text-[10px] font-bold text-[#81141f]">Add photos</span>
+                {isUploadingPhotos ? (
+                  <Loader2 className="w-4 h-4 text-[#81141f] animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4 text-[#81141f]" />
+                )}
+                <span className="text-[10px] font-bold text-[#81141f]">Take photo</span>
+              </button>
+
+              {/* Gallery Upload Button */}
+              <button
+                type="button"
+                disabled={isUploadingPhotos || photos.length >= 12}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-24 h-20 rounded-[8px] border-2 border-dashed border-[#eae3e4] hover:border-[#81141f] bg-[#faf8f8] flex flex-col items-center justify-center gap-1 cursor-pointer shrink-0 transition-colors disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4 text-[#4a4245]" />
+                <span className="text-[10px] font-bold text-[#4a4245]">Gallery</span>
               </button>
             </div>
           </div>
@@ -696,26 +924,28 @@ function AddListingForm() {
               </div>
             </div>
 
-            {/* Toggle 1: Feature on homepage */}
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <div>
-                <div className="text-[13px] font-semibold text-[#1b1416]">Feature on homepage</div>
-                <div className="text-[11px] text-[#716769]">Shows in “Ready when you are”</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFeatureOnHomepage(!featureOnHomepage)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                  featureOnHomepage ? 'bg-[#81141f]' : 'bg-[#d8d0d1]'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                    featureOnHomepage ? 'translate-x-4' : 'translate-x-0'
+            {/* Toggle 1: Feature on homepage (Master Admin only) */}
+            {master && (
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <div>
+                  <div className="text-[13px] font-semibold text-[#1b1416]">Feature on homepage</div>
+                  <div className="text-[11px] text-[#716769]">Shows in “Ready when you are”</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFeatureOnHomepage(!featureOnHomepage)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                    featureOnHomepage ? 'bg-[#81141f]' : 'bg-[#d8d0d1]'
                   }`}
-                />
-              </button>
-            </div>
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      featureOnHomepage ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
 
             {/* Toggle 2: Accept bookings */}
             <div className="flex items-center justify-between gap-3 pt-1">
@@ -765,16 +995,26 @@ function AddListingForm() {
             <div className="pt-2 space-y-2.5">
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isUploadingPhotos}
                 className="w-full h-[46px] rounded-[8px] bg-[#81141f] hover:bg-[#680e18] text-white font-semibold text-[13px] flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
               >
-                <span>{isSubmitting ? 'Saving...' : editId ? 'Update listing' : 'Publish listing'}</span>
+                <span>
+                  {isUploadingPhotos
+                    ? 'Uploading photos...'
+                    : isSubmitting
+                      ? 'Saving...'
+                      : editId
+                        ? 'Update listing'
+                        : user?.requireApprovalBeforeLive && !master
+                          ? 'Submit for Owner Approval'
+                          : 'Publish listing live'}
+                </span>
               </button>
 
               <button
                 type="button"
                 onClick={handleSaveDraft}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isUploadingPhotos}
                 className="w-full h-[44px] rounded-[8px] bg-white border border-[#eae3e4] hover:bg-[#f8f5f5] text-[#1b1416] font-semibold text-[13px] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
               >
                 Save draft
